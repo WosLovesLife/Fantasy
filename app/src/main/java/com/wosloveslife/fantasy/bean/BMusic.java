@@ -5,7 +5,7 @@ package com.wosloveslife.fantasy.bean;
  */
 public class BMusic {
     public long id;
-    public char pinyinIndex;
+    public String pinyinIndex;
     public String title;
     public String album;
     public String artist;

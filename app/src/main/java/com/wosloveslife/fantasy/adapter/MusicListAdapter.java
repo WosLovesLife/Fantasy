@@ -32,6 +32,8 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
     }
 
     public void setPlayItem(int position) {
+        if (getRealItemCount() == 0) return;
+
         if (mPlayingIndex == position) {
             togglePlay();
         } else {
@@ -43,6 +45,8 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
     }
 
     public void togglePlay() {
+        if (getRealItemCount() == 0) return;
+
         int playState = mData.get(mPlayingIndex).playState;
         if (playState == 1) {
             mData.get(mPlayingIndex).playState = 2;

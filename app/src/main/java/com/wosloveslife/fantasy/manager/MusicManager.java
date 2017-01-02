@@ -7,6 +7,7 @@ import android.provider.MediaStore;
 import com.arasthel.swissknife.annotations.OnBackground;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.event.RefreshEvent;
+import com.wosloveslife.fantasy.interfaces.IPlay;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 
 import org.greenrobot.eventbus.EventBus;
@@ -22,15 +23,18 @@ import rx.schedulers.Schedulers;
 /**
  * Created by zhangh on 2017/1/2.
  */
-public class MusicManager {
+public class MusicManager implements IPlay {
     private static final MusicManager sMusicManager = new MusicManager();
 
     Context mContext;
-    List<String> mPinyinIndex;
-    List<BMusic> mMusicList;
 
     //=============Var
     boolean mLoading;
+
+    //=============Data
+    List<String> mPinyinIndex;
+    List<BMusic> mMusicList;
+    BMusic mCurrentMusic;
 
     private MusicManager() {
         mPinyinIndex = new ArrayList<>();
@@ -133,6 +137,33 @@ public class MusicManager {
         return mLoading;
     }
 
+    //==============================================================================================
+    @Override
+    public void play() {
+
+    }
+
+    @Override
+    public void pause() {
+
+    }
+
+    @Override
+    public void next() {
+
+    }
+
+    @Override
+    public void previous() {
+
+    }
+
+    @Override
+    public void setProgress(int progress) {
+
+    }
+
+    //========================================事件==================================================
     public static class RefreshEventM extends RefreshEvent {
         public RefreshEventM(boolean refreshing) {
             super(refreshing);
@@ -146,6 +177,24 @@ public class MusicManager {
         public OnGotMusicEvent(List<String> pinyinIndex, List<BMusic> bMusics) {
             mPinyinIndex = pinyinIndex;
             mBMusicList = bMusics;
+        }
+    }
+
+    public static class OnPlayStateChangedEvent {
+        public boolean mPlay;
+
+        public OnPlayStateChangedEvent(boolean play) {
+            mPlay = play;
+        }
+    }
+
+    public static class OnChangedMusicEvent {
+        public BMusic mCurrentMusic;
+        public BMusic mPreviousMusic;
+
+        public OnChangedMusicEvent(BMusic previousMusic, BMusic currentMusic) {
+            mPreviousMusic = previousMusic;
+            mCurrentMusic = currentMusic;
         }
     }
 }
