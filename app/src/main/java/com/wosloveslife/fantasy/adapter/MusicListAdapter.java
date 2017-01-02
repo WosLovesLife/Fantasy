@@ -27,6 +27,41 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
         return new Holder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_music, parent, false));
     }
 
+    public int getPlayingIndex() {
+        return mPlayingIndex;
+    }
+
+    public void setPlayItem(int position) {
+        if (mPlayingIndex == position) {
+            togglePlay();
+        } else {
+            mData.get(mPlayingIndex).playState = 0;
+            mData.get(position).playState = 1;
+            notifyItemChanged(mPlayingIndex);
+            notifyItemChanged(position);
+        }
+    }
+
+    public void togglePlay() {
+        int playState = mData.get(mPlayingIndex).playState;
+        if (playState == 1) {
+            mData.get(mPlayingIndex).playState = 2;
+        } else {
+            mData.get(mPlayingIndex).playState = 1;
+        }
+        notifyItemChanged(mPlayingIndex);
+    }
+
+    public void toPrevious() {
+        if (mPlayingIndex == 0) return;
+        setPlayItem(mPlayingIndex - 1);
+    }
+
+    public void toNext() {
+        if (mPlayingIndex == getRealItemCount() - 1) return;
+        setPlayItem(mPlayingIndex + 1);
+    }
+
     class Holder extends BaseRecyclerViewHolder<BMusic> {
         @BindView(R.id.tv_id)
         TextView mTvId;
@@ -77,20 +112,11 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
                 case R.id.iv_more_btn:
                     break;
                 case R.id.fl_root_view:
-                    if (mPlayingIndex == mPosition) {
-                        int playState = mData.get(mPlayingIndex).playState;
-                        if (playState == 1) {
-                            mData.get(mPlayingIndex).playState = 2;
-                        } else {
-                            mData.get(mPlayingIndex).playState = 1;
-                        }
-                        notifyItemChanged(mPlayingIndex);
-                        return;
+                    setPlayItem(mPosition);
+
+                    if (mOnItemClickListener != null) {
+                        mOnItemClickListener.onItemClick(mData.get(mPosition), view, mPosition);
                     }
-                    mData.get(mPlayingIndex).playState = 0;
-                    mData.get(mPosition).playState = 1;
-                    notifyItemChanged(mPlayingIndex);
-                    notifyItemChanged(mPosition);
                     break;
             }
         }

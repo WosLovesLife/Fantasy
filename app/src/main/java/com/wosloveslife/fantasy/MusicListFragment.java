@@ -1,17 +1,26 @@
 package com.wosloveslife.fantasy;
 
+import android.content.res.ColorStateList;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
+import android.text.format.DateFormat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.wosloveslife.fantasy.adapter.MusicListAdapter;
+import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
+import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -27,19 +36,35 @@ import butterknife.OnClick;
  */
 public class MusicListFragment extends BaseFragment {
 
+    @BindView(R.id.iv_album)
+    ImageView mIvAlbum;
+    @BindView(R.id.tv_title)
+    TextView mTvTitle;
+    @BindView(R.id.tv_artist)
+    TextView mTvArtist;
+    @BindView(R.id.tv_progress)
+    TextView mTvProgress;
+    @BindView(R.id.tv_duration)
+    TextView mTvDuration;
     @BindView(R.id.iv_previous_btn)
     ImageView mIvPreviousBtn;
     @BindView(R.id.iv_play_btn)
     ImageView mIvPlayBtn;
     @BindView(R.id.iv_next_btn)
     ImageView mIvNextBtn;
+    @BindView(R.id.pb_progress)
+    ProgressBar mPbProgress;
+
     @BindView(R.id.recycler_view)
     RecyclerView mRecyclerView;
+
+    private Snackbar mSnackbar;
 
     //=============
     private MusicListAdapter mAdapter;
     private LinearLayoutManager mLayoutManager;
-    private Snackbar mSnackbar;
+    //=============
+    BMusic mCurrentMusic;
 
     public static MusicListFragment newInstance() {
 
@@ -58,12 +83,48 @@ public class MusicListFragment extends BaseFragment {
     }
 
     public void initView() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mPbProgress.setProgressBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.transparent)));
+        }
+
         mLayoutManager = new LinearLayoutManager(getActivity());
         mRecyclerView.setLayoutManager(mLayoutManager);
+
         mAdapter = new MusicListAdapter();
+        mAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<BMusic>() {
+            @Override
+            public void onItemClick(BMusic music, View v, int position) {
+                syncPlayView(music);
+            }
+        });
         mRecyclerView.setAdapter(mAdapter);
 
         onRefreshChanged(new MusicManager.RefreshEventM(MusicManager.getInstance().isLoading()));
+    }
+
+    private void syncPlayView(BMusic music) {
+        if (music == null) return;
+
+        if (music.playState == 1) {
+            mIvPlayBtn.setImageResource(R.drawable.ic_pause);
+        } else {
+            mIvPlayBtn.setImageResource(R.drawable.ic_play_arrow);
+        }
+
+        if (music.equals(mCurrentMusic)) {
+            return;
+        }
+        mCurrentMusic = music;
+
+        Glide.with(getActivity())
+                .load(music.album)
+                .placeholder(R.color.gray_disable)
+                .crossFade()
+                .into(mIvAlbum);
+        mTvTitle.setText(TextUtils.isEmpty(music.title) ? "未知" : music.title);
+        mTvArtist.setText(TextUtils.isEmpty(music.artist) ? "未知" : music.artist);
+        mTvProgress.setText("00:00");
+        mTvDuration.setText(DateFormat.format("mm:ss", music.duration).toString());
     }
 
     @Override
@@ -77,12 +138,17 @@ public class MusicListFragment extends BaseFragment {
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.iv_previous_btn:
+                mAdapter.toPrevious();
                 break;
             case R.id.iv_play_btn:
+                mAdapter.togglePlay();
                 break;
             case R.id.iv_next_btn:
+                mAdapter.toNext();
                 break;
         }
+
+        syncPlayView(mAdapter.getNormalData(mAdapter.getPlayingIndex()));
     }
 
     @Override
