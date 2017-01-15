@@ -1,22 +1,33 @@
 package com.wosloveslife.fantasy;
 
-import android.content.res.ColorStateList;
-import android.os.Build;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.TextUtils;
-import android.text.format.DateFormat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 
-import com.bumptech.glide.Glide;
+import com.google.android.exoplayer2.DefaultLoadControl;
+import com.google.android.exoplayer2.ExoPlayerFactory;
+import com.google.android.exoplayer2.LoadControl;
+import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
+import com.google.android.exoplayer2.extractor.ExtractorsFactory;
+import com.google.android.exoplayer2.source.ExtractorMediaSource;
+import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.trackselection.AdaptiveVideoTrackSelection;
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
+import com.google.android.exoplayer2.trackselection.TrackSelection;
+import com.google.android.exoplayer2.trackselection.TrackSelector;
+import com.google.android.exoplayer2.upstream.BandwidthMeter;
+import com.google.android.exoplayer2.upstream.DataSource;
+import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
+import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.util.Util;
 import com.wosloveslife.fantasy.adapter.MusicListAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
@@ -29,32 +40,33 @@ import org.greenrobot.eventbus.ThreadMode;
 import base.BaseFragment;
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import butterknife.OnClick;
 
 /**
  * Created by zhangh on 2017/1/2.
  */
 public class MusicListFragment extends BaseFragment {
 
-    @BindView(R.id.iv_album)
-    ImageView mIvAlbum;
-    @BindView(R.id.tv_title)
-    TextView mTvTitle;
-    @BindView(R.id.tv_artist)
-    TextView mTvArtist;
-    @BindView(R.id.tv_progress)
-    TextView mTvProgress;
-    @BindView(R.id.tv_duration)
-    TextView mTvDuration;
-    @BindView(R.id.iv_previous_btn)
-    ImageView mIvPreviousBtn;
-    @BindView(R.id.iv_play_btn)
-    ImageView mIvPlayBtn;
-    @BindView(R.id.iv_next_btn)
-    ImageView mIvNextBtn;
-    @BindView(R.id.pb_progress)
-    ProgressBar mPbProgress;
+//    @BindView(R.id.iv_album)
+//    ImageView mIvAlbum;
+//    @BindView(R.id.tv_title)
+//    TextView mTvTitle;
+//    @BindView(R.id.tv_artist)
+//    TextView mTvArtist;
+//    @BindView(R.id.tv_progress)
+//    TextView mTvProgress;
+//    @BindView(R.id.tv_duration)
+//    TextView mTvDuration;
+//    @BindView(R.id.iv_previous_btn)
+//    ImageView mIvPreviousBtn;
+//    @BindView(R.id.iv_play_btn)
+//    ImageView mIvPlayBtn;
+//    @BindView(R.id.iv_next_btn)
+//    ImageView mIvNextBtn;
+//    @BindView(R.id.pb_progress)
+//    ProgressBar mPbProgress;
 
+    @BindView(R.id.control_view)
+    ControlView mControlView;
     @BindView(R.id.recycler_view)
     RecyclerView mRecyclerView;
 
@@ -63,8 +75,15 @@ public class MusicListFragment extends BaseFragment {
     //=============
     private MusicListAdapter mAdapter;
     private LinearLayoutManager mLayoutManager;
+
     //=============
     BMusic mCurrentMusic;
+
+    //=============
+    private SimpleExoPlayer mPlayer;
+    private DefaultBandwidthMeter mBandwidthMeter;
+    private DataSource.Factory mDataSourceFactory;
+    private ExtractorsFactory mExtractorsFactory;
 
     public static MusicListFragment newInstance() {
 
@@ -83,10 +102,6 @@ public class MusicListFragment extends BaseFragment {
     }
 
     public void initView() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mPbProgress.setProgressBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.transparent)));
-        }
-
         mLayoutManager = new LinearLayoutManager(getActivity());
         mRecyclerView.setLayoutManager(mLayoutManager);
 
@@ -94,37 +109,43 @@ public class MusicListFragment extends BaseFragment {
         mAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<BMusic>() {
             @Override
             public void onItemClick(BMusic music, View v, int position) {
-                syncPlayView(music);
+                if (mCurrentMusic != music) {
+                    prepare(music.path);
+                    mCurrentMusic = music;
+                }else {
+                    mPlayer.setPlayWhenReady(!mPlayer.getPlayWhenReady());
+                }
+                mControlView.syncPlayView(music);
             }
         });
         mRecyclerView.setAdapter(mAdapter);
 
         onRefreshChanged(new MusicManager.RefreshEventM(MusicManager.getInstance().isLoading()));
-    }
 
-    private void syncPlayView(BMusic music) {
-        if (music == null) return;
+        initPlayer();
 
-        if (music.playState == 1) {
-            mIvPlayBtn.setImageResource(R.drawable.ic_pause);
-        } else {
-            mIvPlayBtn.setImageResource(R.drawable.ic_play_arrow);
-        }
+        /** 监听控制面板中的事件 */
+        mControlView.setControlListener(new ControlView.ControlListener() {
+            @Override
+            public void previous() {
+                mAdapter.toPrevious();
+            }
 
-        if (music.equals(mCurrentMusic)) {
-            return;
-        }
-        mCurrentMusic = music;
+            @Override
+            public void next() {
+                mAdapter.toNext();
+            }
 
-        Glide.with(getActivity())
-                .load(music.album)
-                .placeholder(R.color.gray_disable)
-                .crossFade()
-                .into(mIvAlbum);
-        mTvTitle.setText(TextUtils.isEmpty(music.title) ? "未知" : music.title);
-        mTvArtist.setText(TextUtils.isEmpty(music.artist) ? "未知" : music.artist);
-        mTvProgress.setText("00:00");
-        mTvDuration.setText(DateFormat.format("mm:ss", music.duration).toString());
+            @Override
+            public void play() {
+                mAdapter.togglePlay();
+            }
+
+            @Override
+            public void pause() {
+                mAdapter.togglePlay();
+            }
+        });
     }
 
     @Override
@@ -132,23 +153,6 @@ public class MusicListFragment extends BaseFragment {
         super.getData();
 
         mAdapter.setData(MusicManager.getInstance().getMusicList());
-    }
-
-    @OnClick({R.id.iv_previous_btn, R.id.iv_play_btn, R.id.iv_next_btn})
-    public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.iv_previous_btn:
-                mAdapter.toPrevious();
-                break;
-            case R.id.iv_play_btn:
-                mAdapter.togglePlay();
-                break;
-            case R.id.iv_next_btn:
-                mAdapter.toNext();
-                break;
-        }
-
-        syncPlayView(mAdapter.getNormalData(mAdapter.getPlayingIndex()));
     }
 
     @Override
@@ -192,5 +196,44 @@ public class MusicListFragment extends BaseFragment {
         }
 
         mSnackbar.show();
+    }
+
+
+    private void initPlayer() {
+        //==========step1初始操作
+        // 1. Create a default TrackSelector
+        Handler mainHandler = new Handler();
+        BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
+        TrackSelection.Factory videoTrackSelectionFactory = new AdaptiveVideoTrackSelection.Factory(bandwidthMeter);
+        TrackSelector trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
+
+        // 2. Create a default LoadControl
+        LoadControl loadControl = new DefaultLoadControl();
+
+        // 3. Create the player
+        mPlayer = ExoPlayerFactory.newSimpleInstance(getActivity(), trackSelector, loadControl);
+
+        //=========step3准备播放
+        // Measures bandwidth during playback. Can be null if not required.
+        mBandwidthMeter = new DefaultBandwidthMeter();
+        // Produces DataSource instances through which media data is loaded.
+        mDataSourceFactory = new DefaultDataSourceFactory(getActivity(), Util.getUserAgent(getActivity(), "yourApplicationName"), mBandwidthMeter);
+        // Produces Extractor instances for parsing the media data.
+        mExtractorsFactory = new DefaultExtractorsFactory();
+
+        mControlView.setPlayer(mPlayer);
+    }
+
+    private void prepare(String path) {
+        Uri uri = Uri.parse(path);
+        MediaSource videoSource = new ExtractorMediaSource(uri, mDataSourceFactory, mExtractorsFactory, null, null);
+        mPlayer.prepare(videoSource);
+        mPlayer.setPlayWhenReady(true);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mPlayer.release();
     }
 }

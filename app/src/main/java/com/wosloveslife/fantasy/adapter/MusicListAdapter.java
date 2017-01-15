@@ -35,25 +35,28 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
         if (getRealItemCount() == 0) return;
 
         if (mPlayingIndex == position) {
-            togglePlay();
+            int playState = mData.get(mPlayingIndex).playState;
+            if (playState == 1) {
+                mData.get(mPlayingIndex).playState = 2;
+            } else {
+                mData.get(mPlayingIndex).playState = 1;
+            }
+            notifyItemChanged(mPlayingIndex);
         } else {
             mData.get(mPlayingIndex).playState = 0;
             mData.get(position).playState = 1;
             notifyItemChanged(mPlayingIndex);
             notifyItemChanged(position);
         }
+
+        if (mOnItemClickListener != null) {
+            mOnItemClickListener.onItemClick(mData.get(position), null, position);
+        }
     }
 
     public void togglePlay() {
         if (getRealItemCount() == 0) return;
-
-        int playState = mData.get(mPlayingIndex).playState;
-        if (playState == 1) {
-            mData.get(mPlayingIndex).playState = 2;
-        } else {
-            mData.get(mPlayingIndex).playState = 1;
-        }
-        notifyItemChanged(mPlayingIndex);
+        setPlayItem(mPlayingIndex);
     }
 
     public void toPrevious() {
@@ -117,10 +120,6 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
                     break;
                 case R.id.fl_root_view:
                     setPlayItem(mPosition);
-
-                    if (mOnItemClickListener != null) {
-                        mOnItemClickListener.onItemClick(mData.get(mPosition), view, mPosition);
-                    }
                     break;
             }
         }
