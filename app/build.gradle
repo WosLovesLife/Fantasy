@@ -1,5 +1,4 @@
 apply plugin: 'com.android.application'
-apply plugin: 'android-apt'
 
 android {
     compileSdkVersion 23
@@ -27,18 +26,8 @@ dependencies {
     compile 'com.android.support:cardview-v7:23.+'
     compile 'com.android.support:appcompat-v7:23.+'
     compile 'com.android.support:design:23.+'
-    //=============ButterKnife
-    compile 'com.jakewharton:butterknife:8.0.1'
-    apt 'com.jakewharton:butterknife-compiler:8.0.1'
-    compile 'com.arasthel:swissknife:1.4.0'
+    //=============库依赖
     compile project(':blibrary_wos')
-
-    //============Event
-    compile 'org.greenrobot:eventbus:3.0.0'
-
-    //============Rx
-    compile 'io.reactivex:rxjava:1.0.14'
-    compile 'io.reactivex:rxandroid:1.0.1'
     //ExoPlayer音视频库
     compile 'com.google.android.exoplayer:exoplayer:r2.1.1'
 }

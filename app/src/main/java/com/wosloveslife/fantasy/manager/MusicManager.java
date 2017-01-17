@@ -3,11 +3,12 @@ package com.wosloveslife.fantasy.manager;
 import android.content.Context;
 import android.database.Cursor;
 import android.provider.MediaStore;
+import android.support.annotation.Nullable;
+import android.support.annotation.WorkerThread;
+import android.text.TextUtils;
 
-import com.arasthel.swissknife.annotations.OnBackground;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.event.RefreshEvent;
-import com.wosloveslife.fantasy.interfaces.IPlay;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 
 import org.greenrobot.eventbus.EventBus;
@@ -23,7 +24,7 @@ import rx.schedulers.Schedulers;
 /**
  * Created by zhangh on 2017/1/2.
  */
-public class MusicManager implements IPlay {
+public class MusicManager {
     private static final MusicManager sMusicManager = new MusicManager();
 
     Context mContext;
@@ -83,7 +84,7 @@ public class MusicManager implements IPlay {
                 });
     }
 
-    @OnBackground
+    @WorkerThread
     private List<BMusic> getMusicFromSystemDb() {
         List<BMusic> musicList = new ArrayList<>();
         Cursor cursor = mContext.getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
@@ -138,29 +139,71 @@ public class MusicManager implements IPlay {
     }
 
     //==============================================================================================
-    @Override
-    public void play() {
-
+    public int getIndex(BMusic music) {
+        return mMusicList.indexOf(music);
     }
 
-    @Override
-    public void pause() {
-
+    public int getMusicCount() {
+        return mMusicList.size();
     }
 
-    @Override
-    public void next() {
-
+    @Nullable
+    public BMusic getMusic(int position) {
+        if (position > 0 && position < mMusicList.size()) {
+            return mMusicList.get(position);
+        }
+        return null;
     }
 
-    @Override
-    public void previous() {
-
+    @Nullable
+    public BMusic getMusic(String pinyin) {
+        if (!TextUtils.isEmpty(pinyin)) {
+            int index = mPinyinIndex.indexOf(pinyin);
+            return getMusic(index);
+        }
+        return null;
     }
 
-    @Override
-    public void setProgress(int progress) {
+    public BMusic getFirst() {
+        return getMusic(0);
+    }
 
+    public BMusic getLast() {
+        return getMusic(getMusicCount() - 1);
+    }
+
+    @Nullable
+    public BMusic getNext(BMusic music) {
+        if (music != null) {
+            return getNext(music.pinyinIndex);
+        }
+        return null;
+    }
+
+    @Nullable
+    public BMusic getNext(String pinyin) {
+        if (!TextUtils.isEmpty(pinyin)) {
+            int index = mPinyinIndex.indexOf(pinyin);
+            return getMusic(index + 1);
+        }
+        return null;
+    }
+
+    @Nullable
+    public BMusic getPrevious(BMusic music) {
+        if (music != null) {
+            return getPrevious(music.pinyinIndex);
+        }
+        return null;
+    }
+
+    @Nullable
+    public BMusic getPrevious(String pinyin) {
+        if (!TextUtils.isEmpty(pinyin)) {
+            int index = mPinyinIndex.indexOf(pinyin);
+            return getMusic(index - 1);
+        }
+        return null;
     }
 
     //========================================事件==================================================

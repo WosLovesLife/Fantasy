@@ -1,6 +1,7 @@
 package com.wosloveslife.fantasy;
 
 import android.app.Application;
+import android.content.Intent;
 
 import com.wosloveslife.fantasy.manager.MusicManager;
 
@@ -13,6 +14,9 @@ public class App extends Application {
         super.onCreate();
 
         initManager();
+
+        Intent intent = new Intent(this, PlayService.class);
+        startService(intent);
     }
 
     private void initManager() {

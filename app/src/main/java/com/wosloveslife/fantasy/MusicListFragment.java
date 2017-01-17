@@ -1,8 +1,11 @@
 package com.wosloveslife.fantasy;
 
-import android.net.Uri;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.Handler;
+import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.LinearLayoutManager;
@@ -11,27 +14,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.google.android.exoplayer2.DefaultLoadControl;
-import com.google.android.exoplayer2.ExoPlayerFactory;
-import com.google.android.exoplayer2.LoadControl;
-import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
-import com.google.android.exoplayer2.extractor.ExtractorsFactory;
-import com.google.android.exoplayer2.source.ExtractorMediaSource;
-import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.trackselection.AdaptiveVideoTrackSelection;
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.trackselection.TrackSelection;
-import com.google.android.exoplayer2.trackselection.TrackSelector;
-import com.google.android.exoplayer2.upstream.BandwidthMeter;
-import com.google.android.exoplayer2.upstream.DataSource;
-import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
-import com.google.android.exoplayer2.util.Util;
 import com.wosloveslife.fantasy.adapter.MusicListAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -45,26 +32,6 @@ import butterknife.ButterKnife;
  * Created by zhangh on 2017/1/2.
  */
 public class MusicListFragment extends BaseFragment {
-
-//    @BindView(R.id.iv_album)
-//    ImageView mIvAlbum;
-//    @BindView(R.id.tv_title)
-//    TextView mTvTitle;
-//    @BindView(R.id.tv_artist)
-//    TextView mTvArtist;
-//    @BindView(R.id.tv_progress)
-//    TextView mTvProgress;
-//    @BindView(R.id.tv_duration)
-//    TextView mTvDuration;
-//    @BindView(R.id.iv_previous_btn)
-//    ImageView mIvPreviousBtn;
-//    @BindView(R.id.iv_play_btn)
-//    ImageView mIvPlayBtn;
-//    @BindView(R.id.iv_next_btn)
-//    ImageView mIvNextBtn;
-//    @BindView(R.id.pb_progress)
-//    ProgressBar mPbProgress;
-
     @BindView(R.id.control_view)
     ControlView mControlView;
     @BindView(R.id.recycler_view)
@@ -75,15 +42,10 @@ public class MusicListFragment extends BaseFragment {
     //=============
     private MusicListAdapter mAdapter;
     private LinearLayoutManager mLayoutManager;
+    private PlayService.PlayBinder mPlayBinder;
 
     //=============
     BMusic mCurrentMusic;
-
-    //=============
-    private SimpleExoPlayer mPlayer;
-    private DefaultBandwidthMeter mBandwidthMeter;
-    private DataSource.Factory mDataSourceFactory;
-    private ExtractorsFactory mExtractorsFactory;
 
     public static MusicListFragment newInstance() {
 
@@ -94,6 +56,27 @@ public class MusicListFragment extends BaseFragment {
         return fragment;
     }
 
+    //========================================生命周期-start========================================
+    @Override
+    public void onStart() {
+        super.onStart();
+        EventBus.getDefault().register(this);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        EventBus.getDefault().unregister(this);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getActivity().unbindService(mServiceConnection);
+    }
+
+    //========================================生命周期-end========================================
+
     @Override
     protected View setContentView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_music_list, container, false);
@@ -102,6 +85,8 @@ public class MusicListFragment extends BaseFragment {
     }
 
     public void initView() {
+        initServiceBinder();
+
         mLayoutManager = new LinearLayoutManager(getActivity());
         mRecyclerView.setLayoutManager(mLayoutManager);
 
@@ -109,11 +94,13 @@ public class MusicListFragment extends BaseFragment {
         mAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<BMusic>() {
             @Override
             public void onItemClick(BMusic music, View v, int position) {
+                //TODO
                 if (mCurrentMusic != music) {
-                    prepare(music.path);
                     mCurrentMusic = music;
-                }else {
-                    mPlayer.setPlayWhenReady(!mPlayer.getPlayWhenReady());
+                    mPlayBinder.play(music);
+                } else {
+                    /* 播放,暂停当前曲目 */
+                    mPlayBinder.togglePlayOrPause();
                 }
                 mControlView.syncPlayView(music);
             }
@@ -121,8 +108,6 @@ public class MusicListFragment extends BaseFragment {
         mRecyclerView.setAdapter(mAdapter);
 
         onRefreshChanged(new MusicManager.RefreshEventM(MusicManager.getInstance().isLoading()));
-
-        initPlayer();
 
         /** 监听控制面板中的事件 */
         mControlView.setControlListener(new ControlView.ControlListener() {
@@ -148,23 +133,34 @@ public class MusicListFragment extends BaseFragment {
         });
     }
 
+    private void initServiceBinder() {
+        getActivity().bindService(new Intent(getActivity(), PlayService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    ServiceConnection mServiceConnection = new ServiceConnection() {
+        /** bindService()方法执行后, 绑定成功时回调 */
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            WLogger.logD("连接到播放服务");
+            mPlayBinder = (PlayService.PlayBinder) service;
+
+            //TODO
+            mControlView.setPlayer(mPlayBinder.getExoPlayer());
+            mCurrentMusic = mPlayBinder.getCurrentMusic();
+        }
+
+        /** 和服务断开连接后回调(比如unbindService()方法执行后) */
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            WLogger.logD("和服务断开连接");
+        }
+    };
+
     @Override
     protected void getData() {
         super.getData();
 
         mAdapter.setData(MusicManager.getInstance().getMusicList());
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        EventBus.getDefault().register(this);
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        EventBus.getDefault().unregister(this);
     }
 
     //==========================================事件================================================
@@ -196,44 +192,5 @@ public class MusicListFragment extends BaseFragment {
         }
 
         mSnackbar.show();
-    }
-
-
-    private void initPlayer() {
-        //==========step1初始操作
-        // 1. Create a default TrackSelector
-        Handler mainHandler = new Handler();
-        BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-        TrackSelection.Factory videoTrackSelectionFactory = new AdaptiveVideoTrackSelection.Factory(bandwidthMeter);
-        TrackSelector trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
-
-        // 2. Create a default LoadControl
-        LoadControl loadControl = new DefaultLoadControl();
-
-        // 3. Create the player
-        mPlayer = ExoPlayerFactory.newSimpleInstance(getActivity(), trackSelector, loadControl);
-
-        //=========step3准备播放
-        // Measures bandwidth during playback. Can be null if not required.
-        mBandwidthMeter = new DefaultBandwidthMeter();
-        // Produces DataSource instances through which media data is loaded.
-        mDataSourceFactory = new DefaultDataSourceFactory(getActivity(), Util.getUserAgent(getActivity(), "yourApplicationName"), mBandwidthMeter);
-        // Produces Extractor instances for parsing the media data.
-        mExtractorsFactory = new DefaultExtractorsFactory();
-
-        mControlView.setPlayer(mPlayer);
-    }
-
-    private void prepare(String path) {
-        Uri uri = Uri.parse(path);
-        MediaSource videoSource = new ExtractorMediaSource(uri, mDataSourceFactory, mExtractorsFactory, null, null);
-        mPlayer.prepare(videoSource);
-        mPlayer.setPlayWhenReady(true);
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mPlayer.release();
     }
 }
