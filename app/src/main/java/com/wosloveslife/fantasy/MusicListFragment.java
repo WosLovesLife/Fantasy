@@ -14,11 +14,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.adapter.MusicListAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
-import com.yesing.blibrary_wos.utils.assist.WLogger;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -141,18 +141,19 @@ public class MusicListFragment extends BaseFragment {
         /** bindService()方法执行后, 绑定成功时回调 */
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            WLogger.logD("连接到播放服务");
+            Logger.d("连接到播放服务");
             mPlayBinder = (PlayService.PlayBinder) service;
 
             //TODO
-            mControlView.setPlayer(mPlayBinder.getExoPlayer());
             mCurrentMusic = mPlayBinder.getCurrentMusic();
+            mControlView.setPlayer(mPlayBinder.getExoPlayer());
+            mControlView.syncPlayView(mCurrentMusic);
         }
 
         /** 和服务断开连接后回调(比如unbindService()方法执行后) */
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            WLogger.logD("和服务断开连接");
+            Logger.d("和服务断开连接");
         }
     };
 

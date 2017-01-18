@@ -3,6 +3,7 @@ package com.wosloveslife.fantasy;
 import android.app.Application;
 import android.content.Intent;
 
+import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.manager.MusicManager;
 
 /**
@@ -13,10 +14,16 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
 
+        initKits();
+
         initManager();
 
         Intent intent = new Intent(this, PlayService.class);
         startService(intent);
+    }
+
+    private void initKits() {
+        Logger.init("Fantasy");
     }
 
     private void initManager() {

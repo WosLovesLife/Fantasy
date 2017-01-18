@@ -15,27 +15,28 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
+import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.bean.BMusic;
-import com.yesing.blibrary_wos.utils.assist.WLogger;
+import com.wosloveslife.fantasy.utils.FormatUtils;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-
-import static com.wosloveslife.fantasy.utils.FormatUtils.progressBarValue;
-import static com.wosloveslife.fantasy.utils.FormatUtils.stringForTime;
 
 /**
  * Created by zhangh on 2017/1/15.
  */
 
 public class ControlView extends FrameLayout {
+    private static final int PROGRESS_MAX = 100;
+
     @BindView(R.id.iv_album)
     ImageView mIvAlbum;
     /** 歌曲名 */
@@ -75,7 +76,6 @@ public class ControlView extends FrameLayout {
     /** 如果手正在拖动SeekBar,就不能让Progress自动跳转 */
     boolean mDragging;
 
-
     public ControlView(Context context) {
         this(context, null);
     }
@@ -108,36 +108,37 @@ public class ControlView extends FrameLayout {
         mPlayer = player;
 
         mPlayer.addListener(new ExoPlayer.EventListener() {
+
             @Override
-            public void onTimelineChanged(Timeline timeline, Object manifest) {
-                WLogger.logD("timeline = " + timeline + "; manifest = " + manifest);
-                updateProgress();
+            public void onPlayerError(ExoPlaybackException error) {
+                Logger.d("error = " + error);
             }
 
             @Override
             public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
-                WLogger.logD("trackGroups = " + trackGroups + "; trackSelections = " + trackSelections);
+                Logger.d("trackGroups = " + trackGroups + "; trackSelections = " + trackSelections);
             }
 
             @Override
             public void onLoadingChanged(boolean isLoading) {
-                WLogger.logD("isLoading = " + isLoading);
+                Logger.d("isLoading = " + isLoading);
             }
 
             @Override
             public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-                WLogger.logD("playWhenReady = " + playWhenReady + "; playbackState = " + playbackState);
+                Logger.d("playWhenReady = " + playWhenReady + "; playbackState = " + playbackState);
                 updateProgress();
             }
 
             @Override
-            public void onPlayerError(ExoPlaybackException error) {
-                WLogger.logE("error = " + error);
+            public void onTimelineChanged(Timeline timeline, Object manifest) {
+                Logger.d("timeline = " + timeline + "; manifest = " + manifest);
+                updateProgress();
             }
 
             @Override
             public void onPositionDiscontinuity() {
-                WLogger.logD("onPositionDiscontinuity()");
+                Logger.d("onPositionDiscontinuity()");
                 updateProgress();
             }
         });
@@ -175,27 +176,31 @@ public class ControlView extends FrameLayout {
         mTvArtist.setText(TextUtils.isEmpty(music.artist) ? "未知" : music.artist);
         mTvProgress.setText("00:00");
         mTvDuration.setText(DateFormat.format("mm:ss", music.duration).toString());
+
+        updateProgress();
     }
 
     private void updateProgress() {
         long duration = mPlayer == null ? 0 : mPlayer.getDuration();
         long position = mPlayer == null ? 0 : mPlayer.getCurrentPosition();
         if (mTvDuration != null) {
-            mTvDuration.setText(stringForTime(duration));
+            mTvDuration.setText(FormatUtils.stringForTime(duration));
         }
         if (mTvProgress != null && !mDragging) {
-            mTvProgress.setText(stringForTime(position));
+            mTvProgress.setText(FormatUtils.stringForTime(position));
         }
 
         if (!mDragging) {
-            mPbProgress.setProgress(progressBarValue(position, duration));
+            mPbProgress.setProgress(progressBarValue(position));
         }
 
         /* TODO 如果是网络资源,则显示缓存进度 */
         if (false) {
             long bufferedPosition = mPlayer == null ? 0 : mPlayer.getBufferedPosition();
-            mPbProgress.setSecondaryProgress(progressBarValue(bufferedPosition, duration));
+            mPbProgress.setSecondaryProgress(progressBarValue(bufferedPosition));
         }
+
+        removeCallbacks(updateProgressAction);
 
         // Schedule an update if necessary.
         int playbackState = mPlayer == null ? ExoPlayer.STATE_IDLE : mPlayer.getPlaybackState();
@@ -209,8 +214,13 @@ public class ControlView extends FrameLayout {
             } else {
                 delayMs = 1000;
             }
-            mPbProgress.postDelayed(updateProgressAction, delayMs);
+            postDelayed(updateProgressAction, delayMs);
         }
+    }
+
+    private int progressBarValue(long position) {
+        long duration = mPlayer == null ? C.TIME_UNSET : mPlayer.getDuration();
+        return duration == C.TIME_UNSET || duration == 0 ? 0 : (int) ((position * PROGRESS_MAX) / duration);
     }
 
     /**
@@ -243,6 +253,12 @@ public class ControlView extends FrameLayout {
                 }
                 break;
         }
+    }
+
+    @Override
+    public void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        removeCallbacks(updateProgressAction);
     }
 
     //==============================================================================================
