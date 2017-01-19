@@ -9,8 +9,10 @@ import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 
 import com.google.android.exoplayer2.DefaultLoadControl;
+import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.SimpleExoPlayer;
@@ -27,7 +29,10 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
+import com.google.gson.Gson;
+import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
+import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.interfaces.IPlay;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
@@ -35,6 +40,8 @@ import com.yesing.blibrary_wos.utils.assist.WLogger;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by zhangh on 2017/1/17.
@@ -65,6 +72,8 @@ public class PlayService extends Service {
     //============变量
     public int mPlayOrder;
 
+    List<PlayStateListener> mPlayStateListeners = new ArrayList<>();
+
     public PlayService() {
     }
 
@@ -78,64 +87,31 @@ public class PlayService extends Service {
     public class PlayBinder extends Binder implements IPlay {
         //========================================播放相关-start====================================
         public void play(BMusic music) {
-            mCurrentMusic = music;
-            prepare(music.path);
+            PlayService.this.play(music);
         }
 
         public void togglePlayOrPause() {
-            if (mPlayer.getPlayWhenReady()) {
-                pause();
-            } else {
-                play();
-            }
+            PlayService.this.togglePlayOrPause();
         }
 
         @Override
         public void play() {
-            if (mCurrentMusic != null) {
-                mPlayer.setPlayWhenReady(true);
-            } else {
-                next();
-            }
+            PlayService.this.play();
         }
 
         @Override
         public void pause() {
-            if (mCurrentMusic != null) {
-                mPlayer.setPlayWhenReady(false);
-            }
+            PlayService.this.pause();
         }
 
         @Override
         public void next() {
-            BMusic next = MusicManager.getInstance().getNext(mCurrentMusic);
-            /* 如果下一首没有了,则获取第1首歌曲 */
-            if (next == null) {
-                next = MusicManager.getInstance().getFirst();
-            }
-
-            /* 如果第一首歌也没有了,则说明发生了异常状况 */
-            if (next == null) {
-                WLogger.logE("next(); 获取下一首歌曲失败");
-            }
-
-            play(next);
+            PlayService.this.next();
         }
 
         @Override
         public void previous() {
-            BMusic previous = MusicManager.getInstance().getPrevious(mCurrentMusic);
-            /* 如果下一首没有了,则获取第1首歌曲 */
-            if (previous == null) {
-                previous = MusicManager.getInstance().getLast();
-            }
-
-            /* 如果第一首歌也没有了,则说明发生了异常状况 */
-            if (previous == null) {
-                WLogger.logE("next(); 获取上一首歌曲失败");
-            }
-
-            play(previous);
+            PlayService.this.previous();
         }
 
         /**
@@ -145,19 +121,144 @@ public class PlayService extends Service {
          */
         @Override
         public void setProgress(int progress) {
-            mPlayer.seekTo((long) (progress / 100f * mPlayer.getDuration()));
+            PlayService.this.setProgress(progress);
         }
 
         //========================================播放相关-end======================================
 
         public SimpleExoPlayer getExoPlayer() {
-            return mPlayer;
+            return PlayService.this.getExoPlayer();
         }
+
         public BMusic getCurrentMusic() {
-            return mCurrentMusic;
+            return PlayService.this.getCurrentMusic();
+        }
+
+        public boolean isPlaying() {
+            return PlayService.this.isPlaying();
+        }
+
+        //========================================监听相关-start====================================
+        public boolean addPlayStateListener(PlayStateListener listener) {
+            return PlayService.this.addPlayStateListener(listener);
+        }
+
+        public boolean removePlayStateListener(PlayStateListener listener) {
+            return PlayService.this.removePlayStateListener(listener);
         }
     }
 
+    //==============================================================================================
+    //==============================================================================================
+    //==============================================================================================
+
+    //========================================播放相关-start====================================
+    public void play(BMusic music) {
+        mCurrentMusic = music;
+        if (mCurrentMusic != null) {
+            prepare(music.path);
+            mPlayer.setPlayWhenReady(true);
+            SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
+        } else {
+            mPlayer.setPlayWhenReady(false);
+        }
+    }
+
+    public void togglePlayOrPause() {
+        if (mPlayer.getPlayWhenReady()) {
+            pause();
+        } else {
+            play();
+        }
+    }
+
+    public void play() {
+        if (mCurrentMusic != null) {
+            mPlayer.setPlayWhenReady(true);
+        } else {
+            next();
+        }
+    }
+
+    public void pause() {
+        if (mCurrentMusic != null) {
+            mPlayer.setPlayWhenReady(false);
+        }
+    }
+
+    public void next() {
+        BMusic next = MusicManager.getInstance().getNext(mCurrentMusic);
+            /* 如果下一首没有了,则获取第1首歌曲 */
+        if (next == null) {
+            next = MusicManager.getInstance().getFirst();
+        }
+
+            /* 如果第一首歌也没有了,则说明发生了异常状况 */
+        if (next == null) {
+            WLogger.logE("next(); 获取下一首歌曲失败");
+            //todo 传递异常
+            return;
+        }
+
+        play(next);
+    }
+
+    public void previous() {
+        BMusic previous = MusicManager.getInstance().getPrevious(mCurrentMusic);
+            /* 如果下一首没有了,则获取第1首歌曲 */
+        if (previous == null) {
+            previous = MusicManager.getInstance().getLast();
+        }
+
+            /* 如果第一首歌也没有了,则说明发生了异常状况 */
+        if (previous == null) {
+            WLogger.logE("next(); 获取上一首歌曲失败");
+        }
+
+        play(previous);
+    }
+
+    /**
+     * 跳转进度
+     *
+     * @param progress 0~100
+     */
+    public void setProgress(int progress) {
+        mPlayer.seekTo((long) (progress / 100f * mPlayer.getDuration()));
+    }
+
+    //========================================播放相关-end======================================
+
+    public SimpleExoPlayer getExoPlayer() {
+        return mPlayer;
+    }
+
+    public BMusic getCurrentMusic() {
+        return mCurrentMusic;
+    }
+
+    public boolean isPlaying() {
+        return mPlayer.getPlayWhenReady();
+    }
+
+    //========================================监听相关-start====================================
+    public boolean addPlayStateListener(PlayStateListener listener) {
+        return listener != null && mPlayStateListeners.add(listener);
+    }
+
+    public boolean removePlayStateListener(PlayStateListener listener) {
+        return listener != null && mPlayStateListeners.remove(listener);
+    }
+
+    //==============================================================================================
+    //==============================================================================================
+    //==============================================================================================
+
+    public interface PlayStateListener {
+        void onPlay(BMusic music);
+
+        void onPause();
+    }
 
     /** 只在服务第一次创建时调用 */
     @Override
@@ -168,6 +269,30 @@ public class PlayService extends Service {
         mContext = this;
 
         initPlayer();
+
+        mPlayer.addListener(new ExoPlayerEventListenerAdapter() {
+            @Override
+            public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+                if (playbackState == ExoPlayer.STATE_ENDED) {
+                    next();
+                    return;
+                }
+
+                for (PlayStateListener listener : mPlayStateListeners) {
+                    if (playWhenReady) {
+                        listener.onPlay(mCurrentMusic);
+                    } else {
+                        listener.onPause();
+                    }
+                }
+            }
+        });
+
+        String currentMusic = SPHelper.getInstance().get("current_music", "");
+        if (!TextUtils.isEmpty(currentMusic)) {
+            mCurrentMusic = new Gson().fromJson(currentMusic, BMusic.class);
+            prepare(mCurrentMusic.path);
+        }
     }
 
     /** 每次调用startService()启用该服务时都被调用 */
@@ -225,7 +350,6 @@ public class PlayService extends Service {
         Uri uri = Uri.parse(path);
         MediaSource videoSource = new ExtractorMediaSource(uri, mDataSourceFactory, mExtractorsFactory, null, null);
         mPlayer.prepare(videoSource);
-        mPlayer.setPlayWhenReady(true);
     }
 
 

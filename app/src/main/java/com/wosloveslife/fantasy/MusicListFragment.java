@@ -94,7 +94,6 @@ public class MusicListFragment extends BaseFragment {
         mAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<BMusic>() {
             @Override
             public void onItemClick(BMusic music, View v, int position) {
-                //TODO
                 if (mCurrentMusic != music) {
                     mCurrentMusic = music;
                     mPlayBinder.play(music);
@@ -113,22 +112,24 @@ public class MusicListFragment extends BaseFragment {
         mControlView.setControlListener(new ControlView.ControlListener() {
             @Override
             public void previous() {
-                mAdapter.toPrevious();
+                mPlayBinder.previous();
+//                syncLogic();
             }
 
             @Override
             public void next() {
-                mAdapter.toNext();
+                mPlayBinder.next();
+//                syncLogic();
             }
 
             @Override
             public void play() {
-                mAdapter.togglePlay();
+                mPlayBinder.play();
             }
 
             @Override
             public void pause() {
-                mAdapter.togglePlay();
+                mPlayBinder.pause();
             }
         });
     }
@@ -144,10 +145,22 @@ public class MusicListFragment extends BaseFragment {
             Logger.d("连接到播放服务");
             mPlayBinder = (PlayService.PlayBinder) service;
 
-            //TODO
-            mCurrentMusic = mPlayBinder.getCurrentMusic();
+            mPlayBinder.addPlayStateListener(new PlayService.PlayStateListener() {
+
+                @Override
+                public void onPlay(BMusic music) {
+                    syncVisual(music);
+                }
+
+                @Override
+                public void onPause() {
+                    mControlView.syncPlayView(mCurrentMusic);
+                    mAdapter.togglePlay(false);
+                }
+            });
+
             mControlView.setPlayer(mPlayBinder.getExoPlayer());
-            mControlView.syncPlayView(mCurrentMusic);
+            syncVisual(mPlayBinder.getCurrentMusic());
         }
 
         /** 和服务断开连接后回调(比如unbindService()方法执行后) */
@@ -156,6 +169,20 @@ public class MusicListFragment extends BaseFragment {
             Logger.d("和服务断开连接");
         }
     };
+
+    //=======================================UI和逻辑的同步=========================================
+    private void syncLogic() {
+        syncVisual(mPlayBinder.getCurrentMusic());
+    }
+
+    private void syncVisual(BMusic music) {
+        mCurrentMusic = music;
+        mControlView.syncPlayView(mCurrentMusic);
+        int index = MusicManager.getInstance().getIndex(music);
+        mAdapter.setChosenItem(index, mPlayBinder.isPlaying());
+    }
+
+    //=======================================UI和逻辑的同步-end=====================================
 
     @Override
     protected void getData() {

@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.Intent;
 
 import com.orhanobut.logger.Logger;
+import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.manager.MusicManager;
 
 /**
@@ -27,6 +28,7 @@ public class App extends Application {
     }
 
     private void initManager() {
+        SPHelper.getInstance().init(this);
         MusicManager.getInstance().init(this);
     }
 }

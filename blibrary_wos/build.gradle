@@ -37,4 +37,5 @@ dependencies {
     compile 'com.github.chrisbanes.photoview:library:1.2.4'
     //===========Logger库
     compile 'com.orhanobut:logger:1.15'
+    compile 'com.google.code.gson:gson:2.2.4'
 }

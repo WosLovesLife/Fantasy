@@ -15,5 +15,36 @@ public class BMusic {
 
     //===========
     /** 0=idle;1=playing;2=pause */
-    public int playState;
+//    public int playState;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        BMusic bMusic = (BMusic) o;
+
+        if (id != bMusic.id) return false;
+        if (duration != bMusic.duration) return false;
+        if (size != bMusic.size) return false;
+        if (pinyinIndex != null ? !pinyinIndex.equals(bMusic.pinyinIndex) : bMusic.pinyinIndex != null)
+            return false;
+        if (title != null ? !title.equals(bMusic.title) : bMusic.title != null) return false;
+        if (album != null ? !album.equals(bMusic.album) : bMusic.album != null) return false;
+        if (artist != null ? !artist.equals(bMusic.artist) : bMusic.artist != null) return false;
+        return path != null ? path.equals(bMusic.path) : bMusic.path == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (id ^ (id >>> 32));
+        result = 31 * result + (pinyinIndex != null ? pinyinIndex.hashCode() : 0);
+        result = 31 * result + (title != null ? title.hashCode() : 0);
+        result = 31 * result + (album != null ? album.hashCode() : 0);
+        result = 31 * result + (artist != null ? artist.hashCode() : 0);
+        result = 31 * result + (path != null ? path.hashCode() : 0);
+        result = 31 * result + (int) (duration ^ (duration >>> 32));
+        result = 31 * result + (int) (size ^ (size >>> 32));
+        return result;
+    }
 }

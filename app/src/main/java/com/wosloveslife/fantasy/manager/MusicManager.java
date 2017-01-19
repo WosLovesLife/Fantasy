@@ -149,7 +149,7 @@ public class MusicManager {
 
     @Nullable
     public BMusic getMusic(int position) {
-        if (position > 0 && position < mMusicList.size()) {
+        if (position >= 0 && position < mMusicList.size()) {
             return mMusicList.get(position);
         }
         return null;
@@ -175,6 +175,10 @@ public class MusicManager {
     @Nullable
     public BMusic getNext(BMusic music) {
         if (music != null) {
+            int index = mMusicList.indexOf(music) + 1;
+            if (index < mMusicList.size()) {
+                return getMusic(index);
+            }
             return getNext(music.pinyinIndex);
         }
         return null;
@@ -192,6 +196,10 @@ public class MusicManager {
     @Nullable
     public BMusic getPrevious(BMusic music) {
         if (music != null) {
+            int index = mMusicList.indexOf(music) - 1;
+            if (index >= 0) {
+                return getMusic(index);
+            }
             return getPrevious(music.pinyinIndex);
         }
         return null;

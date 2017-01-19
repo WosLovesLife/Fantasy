@@ -16,13 +16,10 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
-import com.google.android.exoplayer2.source.TrackGroupArray;
-import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
-import com.orhanobut.logger.Logger;
+import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.utils.FormatUtils;
 
@@ -107,38 +104,20 @@ public class ControlView extends FrameLayout {
     public void setPlayer(SimpleExoPlayer player) {
         mPlayer = player;
 
-        mPlayer.addListener(new ExoPlayer.EventListener() {
-
-            @Override
-            public void onPlayerError(ExoPlaybackException error) {
-                Logger.d("error = " + error);
-            }
-
-            @Override
-            public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
-                Logger.d("trackGroups = " + trackGroups + "; trackSelections = " + trackSelections);
-            }
-
-            @Override
-            public void onLoadingChanged(boolean isLoading) {
-                Logger.d("isLoading = " + isLoading);
-            }
+        mPlayer.addListener(new ExoPlayerEventListenerAdapter(){
 
             @Override
             public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-                Logger.d("playWhenReady = " + playWhenReady + "; playbackState = " + playbackState);
                 updateProgress();
             }
 
             @Override
             public void onTimelineChanged(Timeline timeline, Object manifest) {
-                Logger.d("timeline = " + timeline + "; manifest = " + manifest);
                 updateProgress();
             }
 
             @Override
             public void onPositionDiscontinuity() {
-                Logger.d("onPositionDiscontinuity()");
                 updateProgress();
             }
         });
@@ -156,7 +135,7 @@ public class ControlView extends FrameLayout {
             throw new IllegalStateException("必须先设置Player");
         }
 
-        if (music.playState == 1) {
+        if (mPlayer.getPlayWhenReady()) {
             mIvPlayBtn.setImageResource(R.drawable.ic_pause);
         } else {
             mIvPlayBtn.setImageResource(R.drawable.ic_play_arrow);
@@ -183,9 +162,13 @@ public class ControlView extends FrameLayout {
     private void updateProgress() {
         long duration = mPlayer == null ? 0 : mPlayer.getDuration();
         long position = mPlayer == null ? 0 : mPlayer.getCurrentPosition();
-        if (mTvDuration != null) {
-            mTvDuration.setText(FormatUtils.stringForTime(duration));
+
+        if (duration >= 0) {
+            if (mTvDuration != null) {
+                mTvDuration.setText(FormatUtils.stringForTime(duration));
+            }
         }
+
         if (mTvProgress != null && !mDragging) {
             mTvProgress.setText(FormatUtils.stringForTime(position));
         }
@@ -244,7 +227,11 @@ public class ControlView extends FrameLayout {
             case R.id.iv_play_btn:
                 if (mControlListener != null) {
                     /* 判断是播放还是暂停, 回传 */
-                    mControlListener.play();
+                    if (mPlayer.getPlayWhenReady()) {
+                        mControlListener.pause();
+                    } else {
+                        mControlListener.play();
+                    }
                 }
                 break;
             case R.id.iv_next_btn:
