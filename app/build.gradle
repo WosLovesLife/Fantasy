@@ -43,4 +43,7 @@ dependencies {
 
     //============ExoPlayer音视频库
     compile 'com.google.android.exoplayer:exoplayer:r2.1.1'
+    
+    //============圆角图片
+    compile 'com.makeramen:roundedimageview:2.3.0'
 }

@@ -15,7 +15,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
-import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
@@ -32,7 +31,7 @@ import butterknife.OnClick;
  */
 
 public class ControlView extends FrameLayout {
-    private static final int PROGRESS_MAX = 100;
+    private static final float PROGRESS_MAX = 100;
 
     @BindView(R.id.iv_album)
     ImageView mIvAlbum;
@@ -104,7 +103,7 @@ public class ControlView extends FrameLayout {
     public void setPlayer(SimpleExoPlayer player) {
         mPlayer = player;
 
-        mPlayer.addListener(new ExoPlayerEventListenerAdapter(){
+        mPlayer.addListener(new ExoPlayerEventListenerAdapter() {
 
             @Override
             public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
@@ -167,6 +166,7 @@ public class ControlView extends FrameLayout {
             if (mTvDuration != null) {
                 mTvDuration.setText(FormatUtils.stringForTime(duration));
             }
+            mPbProgress.setMax((int) (duration / 1000));
         }
 
         if (mTvProgress != null && !mDragging) {
@@ -174,13 +174,13 @@ public class ControlView extends FrameLayout {
         }
 
         if (!mDragging) {
-            mPbProgress.setProgress(progressBarValue(position));
+            mPbProgress.setProgress((int) (position / 1000));
         }
 
         /* TODO 如果是网络资源,则显示缓存进度 */
         if (false) {
             long bufferedPosition = mPlayer == null ? 0 : mPlayer.getBufferedPosition();
-            mPbProgress.setSecondaryProgress(progressBarValue(bufferedPosition));
+            mPbProgress.setSecondaryProgress((int) (bufferedPosition / 1000));
         }
 
         removeCallbacks(updateProgressAction);
@@ -199,11 +199,6 @@ public class ControlView extends FrameLayout {
             }
             postDelayed(updateProgressAction, delayMs);
         }
-    }
-
-    private int progressBarValue(long position) {
-        long duration = mPlayer == null ? C.TIME_UNSET : mPlayer.getDuration();
-        return duration == C.TIME_UNSET || duration == 0 ? 0 : (int) ((position * PROGRESS_MAX) / duration);
     }
 
     /**
