@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy;
+package com.wosloveslife.fantasy.services;
 
 import android.app.Service;
 import android.content.Context;
@@ -14,18 +14,22 @@ import android.text.TextUtils;
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.ExoPlayerFactory;
+import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
 import com.google.android.exoplayer2.extractor.ExtractorsFactory;
+import com.google.android.exoplayer2.source.AdaptiveMediaSourceEventListener;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.trackselection.AdaptiveVideoTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelector;
 import com.google.android.exoplayer2.upstream.BandwidthMeter;
 import com.google.android.exoplayer2.upstream.DataSource;
+import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
@@ -39,6 +43,7 @@ import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 
 import java.io.FileDescriptor;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -153,17 +158,46 @@ public class PlayService extends Service {
     //==============================================================================================
 
     //========================================播放相关-start====================================
+
+    /**
+     * 播放给定的某一首歌曲资源<br/>
+     * 如果要播放网络资源,请调用重载方法<br/>
+     * 详细说明请看重载方法
+     *
+     * @param music 要播放的歌曲资源
+     * @see #play(BMusic, boolean)
+     */
     public void play(BMusic music) {
+        play(music, false);
+    }
+
+    /**
+     * 播放给定的某一首歌曲资源<br/>
+     * 将歌曲资源序列化存储本地<br/>
+     * 如果资源为null,尝试暂停现有播放<br/>
+     *
+     * @param music    要播放的歌曲资源
+     * @param isOnline 是否是网络资源
+     * @see #play(BMusic)
+     */
+    public void play(BMusic music, boolean isOnline) {
         mCurrentMusic = music;
         if (mCurrentMusic != null) {
-            prepare(music.path);
+            if (isOnline) {
+                prepareOnline(music.path);
+            } else {
+                prepare(music.path);
+            }
             mPlayer.setPlayWhenReady(true);
             SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
         } else {
-            mPlayer.setPlayWhenReady(false);
+            pause();
         }
     }
 
+    /**
+     * 切换播放/暂停两种状态.
+     */
     public void togglePlayOrPause() {
         if (mPlayer.getPlayWhenReady()) {
             pause();
@@ -172,6 +206,9 @@ public class PlayService extends Service {
         }
     }
 
+    /**
+     * 开始播放
+     */
     public void play() {
         if (mCurrentMusic != null) {
             mPlayer.setPlayWhenReady(true);
@@ -180,20 +217,26 @@ public class PlayService extends Service {
         }
     }
 
+    /**
+     * 暂停播放
+     */
     public void pause() {
         if (mCurrentMusic != null) {
             mPlayer.setPlayWhenReady(false);
         }
     }
 
+    /**
+     * 播放下一首<br/>
+     * 如果下一首没有了,则获取第1首歌曲<br/>
+     * 如果第一首歌也没有了,则抛出异常
+     */
     public void next() {
         BMusic next = MusicManager.getInstance().getNext(mCurrentMusic);
-            /* 如果下一首没有了,则获取第1首歌曲 */
         if (next == null) {
             next = MusicManager.getInstance().getFirst();
         }
 
-            /* 如果第一首歌也没有了,则说明发生了异常状况 */
         if (next == null) {
             WLogger.logE("next(); 获取下一首歌曲失败");
             //todo 传递异常
@@ -203,14 +246,19 @@ public class PlayService extends Service {
         play(next);
     }
 
+    /**
+     * 播放上一首<br/>
+     * 如果上一首没有了,则获取最后一首歌曲<br/>
+     * 如果最后一首歌也没有了,则抛出异常
+     */
     public void previous() {
         BMusic previous = MusicManager.getInstance().getPrevious(mCurrentMusic);
-            /* 如果下一首没有了,则获取第1首歌曲 */
+        /* 如果下一首没有了,则获取第1首歌曲 */
         if (previous == null) {
             previous = MusicManager.getInstance().getLast();
         }
 
-            /* 如果第一首歌也没有了,则说明发生了异常状况 */
+        /* 如果第一首歌也没有了,则说明发生了异常状况 */
         if (previous == null) {
             WLogger.logE("next(); 获取上一首歌曲失败");
         }
@@ -350,6 +398,41 @@ public class PlayService extends Service {
         Uri uri = Uri.parse(path);
         MediaSource videoSource = new ExtractorMediaSource(uri, mDataSourceFactory, mExtractorsFactory, null, null);
         mPlayer.prepare(videoSource);
+    }
+
+    private void prepareOnline(String path) {
+        MediaSource hls = new HlsMediaSource(Uri.parse(path), mDataSourceFactory, new Handler(), new AdaptiveMediaSourceEventListener() {
+            @Override
+            public void onLoadStarted(DataSpec dataSpec, int dataType, int trackType, Format trackFormat, int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs, long mediaEndTimeMs, long elapsedRealtimeMs) {
+
+            }
+
+            @Override
+            public void onLoadCompleted(DataSpec dataSpec, int dataType, int trackType, Format trackFormat, int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs, long mediaEndTimeMs, long elapsedRealtimeMs, long loadDurationMs, long bytesLoaded) {
+
+            }
+
+            @Override
+            public void onLoadCanceled(DataSpec dataSpec, int dataType, int trackType, Format trackFormat, int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs, long mediaEndTimeMs, long elapsedRealtimeMs, long loadDurationMs, long bytesLoaded) {
+
+            }
+
+            @Override
+            public void onLoadError(DataSpec dataSpec, int dataType, int trackType, Format trackFormat, int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs, long mediaEndTimeMs, long elapsedRealtimeMs, long loadDurationMs, long bytesLoaded, IOException error, boolean wasCanceled) {
+
+            }
+
+            @Override
+            public void onUpstreamDiscarded(int trackType, long mediaStartTimeMs, long mediaEndTimeMs) {
+
+            }
+
+            @Override
+            public void onDownstreamFormatChanged(int trackType, Format trackFormat, int trackSelectionReason, Object trackSelectionData, long mediaTimeMs) {
+
+            }
+        });
+        mPlayer.prepare(hls);
     }
 
 

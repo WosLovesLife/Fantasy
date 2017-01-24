@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy;
+package com.wosloveslife.fantasy.ui;
 
 import android.net.Uri;
 import android.os.Bundle;
@@ -31,6 +31,7 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
+import com.wosloveslife.fantasy.R;
 
 /**
  * Created by zhangh on 2017/1/15.

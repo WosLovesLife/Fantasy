@@ -6,6 +6,7 @@ import android.content.Intent;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.manager.MusicManager;
+import com.wosloveslife.fantasy.services.PlayService;
 
 /**
  * Created by zhangh on 2017/1/2.

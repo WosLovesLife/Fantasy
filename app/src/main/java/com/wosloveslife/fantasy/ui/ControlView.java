@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy;
+package com.wosloveslife.fantasy.ui;
 
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -18,6 +18,7 @@ import com.bumptech.glide.Glide;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
+import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.utils.FormatUtils;

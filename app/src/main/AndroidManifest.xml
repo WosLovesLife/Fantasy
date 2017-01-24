@@ -13,7 +13,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MusicListActivity">
+        <activity android:name=".ui.MusicListActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
@@ -22,7 +22,7 @@
         </activity>
 
         <service
-            android:name=".PlayService"
+            android:name=".services.PlayService"
             android:enabled="true"
             android:exported="true"/>
     </application>

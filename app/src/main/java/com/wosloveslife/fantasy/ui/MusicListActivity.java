@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy;
+package com.wosloveslife.fantasy.ui;
 
 import android.support.v4.app.Fragment;
 

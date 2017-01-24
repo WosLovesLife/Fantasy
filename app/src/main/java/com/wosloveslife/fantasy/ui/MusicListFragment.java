@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy;
+package com.wosloveslife.fantasy.ui;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -15,9 +15,11 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.orhanobut.logger.Logger;
+import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.MusicListAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
+import com.wosloveslife.fantasy.services.PlayService;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
 
 import org.greenrobot.eventbus.EventBus;
@@ -113,13 +115,11 @@ public class MusicListFragment extends BaseFragment {
             @Override
             public void previous() {
                 mPlayBinder.previous();
-//                syncLogic();
             }
 
             @Override
             public void next() {
                 mPlayBinder.next();
-//                syncLogic();
             }
 
             @Override
@@ -171,9 +171,6 @@ public class MusicListFragment extends BaseFragment {
     };
 
     //=======================================UI和逻辑的同步=========================================
-    private void syncLogic() {
-        syncVisual(mPlayBinder.getCurrentMusic());
-    }
 
     private void syncVisual(BMusic music) {
         mCurrentMusic = music;
