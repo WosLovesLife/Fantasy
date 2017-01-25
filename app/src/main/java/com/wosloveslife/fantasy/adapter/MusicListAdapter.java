@@ -88,6 +88,8 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
         TextView mTvArtist;
         @BindView(R.id.iv_state)
         ImageView mIvState;
+        @BindView(R.id.iv_source)
+        ImageView mIvSource;
 
         //=================
         private int mPosition;
@@ -113,9 +115,7 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
             mTvTitle.setText(music.title);
             mTvArtist.setText(music.artist);
 
-            if (position != mPlayingIndex) {
-                mIvState.setVisibility(View.INVISIBLE);
-            } else {
+            if (position == mPlayingIndex) {
                 mIvState.setVisibility(View.VISIBLE);
                 if (mPlaying) {
                     mIvState.setImageResource(R.drawable.ic_volume_up);
@@ -123,6 +123,14 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
                     mIvState.setImageResource(R.drawable.ic_volume_mute);
                 }
                 mPlayingIndex = position;
+            } else {
+                mIvState.setVisibility(View.GONE);
+            }
+
+            if (music.mIsOnline) {
+                mIvSource.setVisibility(View.VISIBLE);
+            } else {
+                mIvSource.setVisibility(View.GONE);
             }
         }
 

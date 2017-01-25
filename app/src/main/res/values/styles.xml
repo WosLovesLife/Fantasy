@@ -10,7 +10,10 @@
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
 
-        <item name="android:textColorPrimary">@color/black_blue_text</item>
+        <item name="android:textColorPrimary">@color/black_text_matt</item>
+        <item name="android:textColorSecondary">@color/black_blue_text</item>
+
+        <item name="android:textViewStyle">@style/TextAppearance.AppCompat</item>
     </style>
 
     <style name="TranslucentAppTheme" parent="AppTheme">

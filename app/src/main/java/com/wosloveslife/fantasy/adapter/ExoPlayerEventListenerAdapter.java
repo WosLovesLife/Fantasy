@@ -15,27 +15,27 @@ public class ExoPlayerEventListenerAdapter implements ExoPlayer.EventListener {
 
     @Override
     public void onPlayerError(ExoPlaybackException error) {
-        Logger.d("error = " + error);
+        Logger.e(error, "播放错误");
     }
 
     @Override
     public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
-        Logger.d("trackGroups = " + trackGroups + "; trackSelections = " + trackSelections);
+        Logger.i("trackGroups = " + trackGroups + "; trackSelections = " + trackSelections);
     }
 
     @Override
     public void onLoadingChanged(boolean isLoading) {
-        Logger.d("isLoading = " + isLoading);
+        Logger.i("isLoading = " + isLoading);
     }
 
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-        Logger.d("playWhenReady = " + playWhenReady + "; playbackState = " + playbackState);
+        Logger.i("playWhenReady = " + playWhenReady + "; playbackState = " + playbackState);
     }
 
     @Override
     public void onTimelineChanged(Timeline timeline, Object manifest) {
-        Logger.d("timeline = " + timeline + "; manifest = " + manifest);
+        Logger.i("timeline = " + timeline + "; manifest = " + manifest);
     }
 
     @Override

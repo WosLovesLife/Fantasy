@@ -18,6 +18,7 @@ import com.bumptech.glide.Glide;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
+import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
@@ -65,6 +66,7 @@ public class ControlView extends FrameLayout {
 
     //==============
     private BMusic mCurrentMusic;
+    private boolean mIsOnline;
 
     //=============
     private SimpleExoPlayer mPlayer;
@@ -146,16 +148,21 @@ public class ControlView extends FrameLayout {
         }
         mCurrentMusic = music;
 
-        Glide.with(getContext())
-                .load(music.album)
-                .placeholder(R.color.gray_disable)
-                .crossFade()
-                .into(mIvAlbum);
+        try {
+            Glide.with(getContext())
+                    .load(music.album)
+                    .placeholder(R.color.gray_disable)
+                    .crossFade()
+                    .into(mIvAlbum);
+        } catch (Throwable e) {
+            Logger.w("Glide错误,可忽略");
+        }
         mTvTitle.setText(TextUtils.isEmpty(music.title) ? "未知" : music.title);
         mTvArtist.setText(TextUtils.isEmpty(music.artist) ? "未知" : music.artist);
         mTvProgress.setText("00:00");
         mTvDuration.setText(DateFormat.format("mm:ss", music.duration).toString());
 
+        mIsOnline = mCurrentMusic.path.startsWith("http");
         updateProgress();
     }
 
@@ -178,8 +185,8 @@ public class ControlView extends FrameLayout {
             mPbProgress.setProgress((int) (position / 1000));
         }
 
-        /* TODO 如果是网络资源,则显示缓存进度 */
-        if (false) {
+        /* 如果是网络资源(播放地址以http开头)则显示缓存进度 */
+        if (mIsOnline) {
             long bufferedPosition = mPlayer == null ? 0 : mPlayer.getBufferedPosition();
             mPbProgress.setSecondaryProgress((int) (bufferedPosition / 1000));
         }

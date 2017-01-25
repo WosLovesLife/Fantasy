@@ -12,6 +12,22 @@ public class BMusic {
     public String path;
     public long duration;
     public long size;
+    public boolean mIsOnline;
+
+    public BMusic() {
+    }
+
+    public BMusic(long id, String pinyinIndex, String title, String album, String artist, String path, long duration, long size, boolean isOnline) {
+        this.id = id;
+        this.pinyinIndex = pinyinIndex;
+        this.title = title;
+        this.album = album;
+        this.artist = artist;
+        this.path = path;
+        this.duration = duration;
+        this.size = size;
+        mIsOnline = isOnline;
+    }
 
     //===========
     /** 0=idle;1=playing;2=pause */

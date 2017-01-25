@@ -6,36 +6,40 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.ExoPlayerFactory;
-import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
 import com.google.android.exoplayer2.extractor.ExtractorsFactory;
-import com.google.android.exoplayer2.source.AdaptiveMediaSourceEventListener;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.trackselection.AdaptiveVideoTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelector;
 import com.google.android.exoplayer2.upstream.BandwidthMeter;
 import com.google.android.exoplayer2.upstream.DataSource;
-import com.google.android.exoplayer2.upstream.DataSpec;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.upstream.cache.CacheDataSource;
+import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory;
+import com.google.android.exoplayer2.upstream.cache.NoOpCacheEvictor;
+import com.google.android.exoplayer2.upstream.cache.SimpleCache;
 import com.google.android.exoplayer2.util.Util;
 import com.google.gson.Gson;
+import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
+import com.wosloveslife.fantasy.helper.FileDataSourceFactory;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.interfaces.IPlay;
 import com.wosloveslife.fantasy.manager.MusicManager;
@@ -68,14 +72,15 @@ public class PlayService extends Service {
     //=============ExoPlayer相关
     private SimpleExoPlayer mPlayer;
     private DefaultBandwidthMeter mBandwidthMeter;
-    private DataSource.Factory mDataSourceFactory;
-    private ExtractorsFactory mExtractorsFactory;
+    public DataSource.Factory mDataSourceFactory;
+    public ExtractorsFactory mExtractorsFactory;
 
     //============数据
     BMusic mCurrentMusic;
 
     //============变量
     public int mPlayOrder;
+    private boolean mSaveCache;
 
     List<PlayStateListener> mPlayStateListeners = new ArrayList<>();
 
@@ -161,33 +166,15 @@ public class PlayService extends Service {
 
     /**
      * 播放给定的某一首歌曲资源<br/>
-     * 如果要播放网络资源,请调用重载方法<br/>
-     * 详细说明请看重载方法
-     *
-     * @param music 要播放的歌曲资源
-     * @see #play(BMusic, boolean)
-     */
-    public void play(BMusic music) {
-        play(music, false);
-    }
-
-    /**
-     * 播放给定的某一首歌曲资源<br/>
      * 将歌曲资源序列化存储本地<br/>
      * 如果资源为null,尝试暂停现有播放<br/>
      *
      * @param music    要播放的歌曲资源
-     * @param isOnline 是否是网络资源
-     * @see #play(BMusic)
      */
-    public void play(BMusic music, boolean isOnline) {
+    public void play(BMusic music) {
         mCurrentMusic = music;
         if (mCurrentMusic != null) {
-            if (isOnline) {
-                prepareOnline(music.path);
-            } else {
-                prepare(music.path);
-            }
+            prepare2(music.path);
             mPlayer.setPlayWhenReady(true);
             SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
         } else {
@@ -395,46 +382,73 @@ public class PlayService extends Service {
     }
 
     private void prepare(String path) {
+        if (TextUtils.isEmpty(path)) {
+            /* todo 没有播放地址,传递错误 */
+            Toaster.showShort(this, "找不到播放地址");
+            return;
+        }
+
+        DataSource.Factory factory = mDataSourceFactory;
+        if (mSaveCache && path.startsWith("http")) {
+            factory = new CacheDataSourceFactory(new SimpleCache(getExternalFilesDir(Environment.DIRECTORY_MUSIC), new NoOpCacheEvictor()), mDataSourceFactory, 1);
+        }
         Uri uri = Uri.parse(path);
-        MediaSource videoSource = new ExtractorMediaSource(uri, mDataSourceFactory, mExtractorsFactory, null, null);
-        mPlayer.prepare(videoSource);
-    }
-
-    private void prepareOnline(String path) {
-        MediaSource hls = new HlsMediaSource(Uri.parse(path), mDataSourceFactory, new Handler(), new AdaptiveMediaSourceEventListener() {
+        MediaSource videoSource = new ExtractorMediaSource(uri, factory, mExtractorsFactory, new Handler(getMainLooper()) {
             @Override
-            public void onLoadStarted(DataSpec dataSpec, int dataType, int trackType, Format trackFormat, int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs, long mediaEndTimeMs, long elapsedRealtimeMs) {
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
 
             }
-
+        }, new ExtractorMediaSource.EventListener() {
             @Override
-            public void onLoadCompleted(DataSpec dataSpec, int dataType, int trackType, Format trackFormat, int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs, long mediaEndTimeMs, long elapsedRealtimeMs, long loadDurationMs, long bytesLoaded) {
-
-            }
-
-            @Override
-            public void onLoadCanceled(DataSpec dataSpec, int dataType, int trackType, Format trackFormat, int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs, long mediaEndTimeMs, long elapsedRealtimeMs, long loadDurationMs, long bytesLoaded) {
-
-            }
-
-            @Override
-            public void onLoadError(DataSpec dataSpec, int dataType, int trackType, Format trackFormat, int trackSelectionReason, Object trackSelectionData, long mediaStartTimeMs, long mediaEndTimeMs, long elapsedRealtimeMs, long loadDurationMs, long bytesLoaded, IOException error, boolean wasCanceled) {
-
-            }
-
-            @Override
-            public void onUpstreamDiscarded(int trackType, long mediaStartTimeMs, long mediaEndTimeMs) {
-
-            }
-
-            @Override
-            public void onDownstreamFormatChanged(int trackType, Format trackFormat, int trackSelectionReason, Object trackSelectionData, long mediaTimeMs) {
+            public void onLoadError(IOException error) {
 
             }
         });
-        mPlayer.prepare(hls);
+        mPlayer.prepare(videoSource);
     }
 
+    private void prepare2(String path) {
+        if (TextUtils.isEmpty(path)) {
+            /* todo 没有播放地址,传递错误 */
+            Toaster.showShort(this, "找不到播放地址");
+            return;
+        }
+
+        Uri uri = Uri.parse(path);
+        SimpleCache simpleCache = new SimpleCache(getExternalFilesDir(Environment.DIRECTORY_MUSIC), new NoOpCacheEvictor());
+        long cacheFileSize = CacheDataSource.DEFAULT_MAX_CACHE_FILE_SIZE;
+
+        /* 构建带缓存的Source */
+        CacheDataSourceFactory cacheDataSourceFactory = new CacheDataSourceFactory(
+                simpleCache,
+                mDataSourceFactory,
+                new FileDataSourceFactory(null),
+                new com.wosloveslife.fantasy.helper.CacheDataSinkFactory(simpleCache, cacheFileSize, null),
+                1,
+                new CacheDataSource.EventListener() {
+                    @Override
+                    public void onCachedBytesRead(long cacheSizeBytes, long cachedBytesRead) {
+                        Logger.d("cacheSizeBytes = " + cacheSizeBytes + "; cachedBytesRead = " + cachedBytesRead);
+                    }
+                });
+
+        /* 将带缓存的source作为资源传入,构建普通多媒体播放资源 */
+        MediaSource videoSource = new ExtractorMediaSource(uri, cacheDataSourceFactory, mExtractorsFactory, new Handler(getMainLooper()) {
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+
+            }
+        }, new ExtractorMediaSource.EventListener() {
+            @Override
+            public void onLoadError(IOException error) {
+
+            }
+        });
+
+        mPlayer.prepare(videoSource);
+    }
 
     //==========================================事件处理============================================
 //    @Subscribe(threadMode = ThreadMode.MAIN)
