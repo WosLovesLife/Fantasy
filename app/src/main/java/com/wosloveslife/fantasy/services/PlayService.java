@@ -417,6 +417,12 @@ public class PlayService extends Service {
 
         Uri uri = Uri.parse(path);
         SimpleCache simpleCache = new SimpleCache(getExternalFilesDir(Environment.DIRECTORY_MUSIC), new NoOpCacheEvictor());
+        /* 这个文件大小指的是单个缓存文件的尺寸2MB, 例如一首歌10MB,则需要5个缓存文件
+         * 同时它也会影响到缓存的时机.
+         * Exo会一次性缓存一个缓存文件大小的数据,然后当播放进度接近缓存的末端时开启新的缓存文件
+         * 可以参考{@link FileDataSource#write(byte[] buffer, int offset, int length)}
+         * 方法和{@link FileDataSource#openNextOutputStream()}方法
+         * 当一个文件写满后会开启一个新的文件继续写入*/
         long cacheFileSize = CacheDataSource.DEFAULT_MAX_CACHE_FILE_SIZE;
 
         /* 构建带缓存的Source */
@@ -451,10 +457,6 @@ public class PlayService extends Service {
     }
 
     //==========================================事件处理============================================
-//    @Subscribe(threadMode = ThreadMode.MAIN)
-//    public void onGotMusic(MusicManager.OnGotMusicEvent event) {
-//        if (event == null || event.mBMusicList == null) return;
-//    }
 
     //==================================记录生命周期-忽略===========================================
 

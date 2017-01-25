@@ -243,6 +243,10 @@ public class MusicListFragment extends BaseFragment {
         musicList.add(new BMusic(0, "qiuniang", "秋酿", "", "房东的猫",
                 "http://yinyueshiting.baidu.com/data2/music/d31fdf4aceb28170563fe8c91b7c568e/275148779/275148779.mp3?xcode=2c52deb5e3da39649e9cdd6067ee2141",
                 0, 0, true));
+
+        musicList.add(new BMusic(0, "qiuniang", "龙港秘密", "", "尧十三",
+                "http://yinyueshiting.baidu.com/data2/music/256006854/256006854.mp3?xcode=85efd0ea655803e205ffee87c3adb48c",
+                0, 0, true));
         mAdapter.setData(musicList);
     }
 

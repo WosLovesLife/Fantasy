@@ -151,7 +151,7 @@ public class ControlView extends FrameLayout {
         try {
             Glide.with(getContext())
                     .load(music.album)
-                    .placeholder(R.color.gray_disable)
+                    .placeholder(R.color.colorCement)
                     .crossFade()
                     .into(mIvAlbum);
         } catch (Throwable e) {
