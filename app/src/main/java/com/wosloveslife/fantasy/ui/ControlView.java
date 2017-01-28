@@ -8,6 +8,7 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.NestedScrollingChild;
 import android.support.v4.view.NestedScrollingParent;
 import android.support.v4.view.NestedScrollingParentHelper;
@@ -79,6 +80,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     /** 进度条(不可拖动) */
     @BindView(R.id.pb_progress)
     ProgressBar mPbProgress;
+    /** 二段展开时的播放/暂停按钮 */
+    @BindView(R.id.fac_play_btn)
+    FloatingActionButton mFacPlayBtn;
 
     //==============
     private BMusic mCurrentMusic;
@@ -86,6 +90,10 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
     //=============
     private SimpleExoPlayer mPlayer;
+
+    //=============Var
+    /** 如果手正在拖动SeekBar,就不能让Progress自动跳转 */
+    boolean mDragging;
 
     //=============联动相关
     NestedScrollingParentHelper mParentHelper;
@@ -99,19 +107,23 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     int mMaxOffsetY;
     /** 用来记录当前头部布局的高度,因为mFlRoot.getHeight()获得到的高度可能正在设置中,会和真实的高度有偏差 */
     int mCurrentHeight;
-    /** 头部控件最后一次的展开/收起状态.true=展开中,false=收起中 */
+    /** 最后一次设置控件高度时是展开的还是收起的.true=展开中,false=收起中 */
     boolean mExpanding;
+    /** 记录当前控件的展开形态 */
+    boolean mIsExpanded;
     //======
+    /** 用于计算展开/收起的动画 */
     ValueAnimator mAnimator;
+    //======
     int mTouchSlop;
     int mMinimumFlingVelocity;
     //======
     /** 封面的最大弧度(为圆形时) */
     int mAlbumMaxRadius;
-
-    //====Var
-    /** 如果手正在拖动SeekBar,就不能让Progress自动跳转 */
-    boolean mDragging;
+    /** 歌曲名/艺术家/播放进度文字等的最小左边距,同时也是最大向左偏移量 */
+    int mMinLeftMargin;
+    /** 播放总时长文字的最大向右偏移量 */
+    int mDurationRightMargin;
 
     public ControlView(Context context) {
         this(context, null);
@@ -138,6 +150,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         mMaxOffsetY = mHeadMaxHeight - mHeadMinHeight;
         /* 圆形的角度等于边长的一半,因为布局中写死了48dp,因此这里取24dp,如果有需要,应该在onSizeChanged()方法中监听子控件的边长除2 */
         mAlbumMaxRadius = Dp2Px.toPX(getContext(), 24);
+        mMinLeftMargin = Dp2Px.toPX(getContext(), 56);
+        mDurationRightMargin = Dp2Px.toPX(getContext(), 62);
         mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
         mMinimumFlingVelocity = ViewConfiguration.get(getContext()).getScaledMinimumFlingVelocity();
 
@@ -163,6 +177,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             mPbProgress.setProgressBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.transparent)));
         }
+
+        mFacPlayBtn.hide();
     }
 
     public void setPlayer(SimpleExoPlayer player) {
@@ -201,8 +217,10 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         if (mPlayer.getPlayWhenReady()) {
             mIvPlayBtn.setImageResource(R.drawable.ic_pause);
+            mFacPlayBtn.setImageResource(R.drawable.ic_pause);
         } else {
             mIvPlayBtn.setImageResource(R.drawable.ic_play_arrow);
+            mFacPlayBtn.setImageResource(R.drawable.ic_play_arrow);
         }
 
         if (music.equals(mCurrentMusic)) {
@@ -281,7 +299,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
     };
 
-    @OnClick({R.id.iv_previous_btn, R.id.iv_play_btn, R.id.iv_next_btn})
+    @OnClick({R.id.iv_previous_btn, R.id.iv_play_btn, R.id.iv_next_btn, R.id.fac_play_btn})
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.iv_previous_btn:
@@ -290,6 +308,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 }
                 break;
             case R.id.iv_play_btn:
+            case R.id.fac_play_btn:
                 if (mControlListener != null) {
                     /* 判断是播放还是暂停, 回传 */
                     if (mPlayer.getPlayWhenReady()) {
@@ -374,46 +393,10 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             return false;
         }
 
-//        if (mIsNestedChildIdle && velocityY < 0) {
-//            toggleExpand(true);
-//            return true;
-//        } else if (!mExpanding && velocityY > 0) {
-//            toggleExpand(false);
-//            return true;
-//        }
-
         toggleExpand(velocityY < 0);
         /* 如果想让头部滚动不影响列表滚动,这里应该返回false */
         return false;
     }
-
-//    /**
-//     * Child 滑动以后，会调用onNestedScroll()，回调到 Parent 的onNestedScroll()，
-//     * 这里就是 Child 滑动后，剩下的给 Parent 处理，也就是 后于 Child 滑动。
-//     *
-//     * @param target       发起滚动的子控件
-//     * @param dxConsumed   表示view消费了x方向的距离长度
-//     * @param dyConsumed   表示view消费了y方向的距离长度
-//     * @param dxUnconsumed 表示滚动产生的x滚动距离还剩下多少没有消费
-//     * @param dyUnconsumed 表示滚动产生的y滚动距离还剩下多少没有消费
-//     */
-//    @Override
-//    public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed) {
-//        super.onNestedScroll(target, dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed);
-//        mIsNestedChildIdle = dyConsumed == 0;
-//        setOffsetBy(dyUnconsumed);
-//    }
-//
-//    boolean mIsNestedChildIdle;
-//
-//    @Override
-//    public boolean onNestedFling(View target, float velocityX, float velocityY, boolean consumed) {
-//        if (Math.abs(velocityY) < mMinimumFlingVelocity || (velocityY > 0 && mFlRoot.getHeight() <= mHeadMinHeight) || (velocityY < 0 && mFlRoot.getHeight() >= mHeadMaxHeight)) {
-//            return false;
-//        }
-//        toggleExpand(velocityY < 0);
-//        return false;
-//    }
 
     /**
      * 本次滑动结束
@@ -488,25 +471,33 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         mAnimator.start();
     }
 
-    boolean mIsExpanded;
-
     //========================================其它的联动效果========================================
 
     private void linkViews(float offsetRadius) {
         setAlbumRadius(offsetRadius);
+        setTextOffset(offsetRadius);
         if (mExpanding && !mIsExpanded && offsetRadius > 0.5f) {
             mIsExpanded = true;
             toggleControlBtn(true);
             toggleAlbumBg(true, offsetRadius);
+            mFacPlayBtn.show();
         } else if (!mExpanding && mIsExpanded && offsetRadius < 0.5) {
             mIsExpanded = false;
             toggleControlBtn(false);
             toggleAlbumBg(false, offsetRadius);
+            mFacPlayBtn.hide();
         }
     }
 
     private void setAlbumRadius(float offsetRadius) {
         mIvAlbum.setCornerRadius((1 - offsetRadius) * mAlbumMaxRadius);
+    }
+
+    private void setTextOffset(float offsetRadius) {
+        mTvTitle.setTranslationX(-offsetRadius * mMinLeftMargin);
+        mTvArtist.setTranslationX(-offsetRadius * mMinLeftMargin);
+        mTvProgress.setTranslationX(-offsetRadius * mMinLeftMargin);
+        mTvDuration.setTranslationX(offsetRadius * mDurationRightMargin);
     }
 
     private void toggleControlBtn(boolean expand) {
@@ -519,15 +510,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             controlBtnAnim(mIvPlayBtn, 1);
             controlBtnAnim(mIvPreviousBtn, 1);
         }
-    }
-
-    private void controlBtnAnim(View v, float value) {
-        ViewCompat.animate(v)
-                .scaleX(value)
-                .scaleY(value)
-                .alpha(value)
-                .setDuration(300)
-                .start();
     }
 
     private void toggleAlbumBg(boolean expand, float offsetRadius) {
@@ -554,7 +536,16 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         return offsetY / mMaxOffsetY;
     }
 
-    private TransitionDrawable getTransitionDrawable(Drawable source, Drawable target, int duration) {
+    private void controlBtnAnim(View v, float value) {
+        ViewCompat.animate(v)
+                .scaleX(value)
+                .scaleY(value)
+                .alpha(value)
+                .setDuration(300)
+                .start();
+    }
+
+    private static TransitionDrawable getTransitionDrawable(Drawable source, Drawable target, int duration) {
         TransitionDrawable transitionDrawable = new TransitionDrawable(new Drawable[]{source, target});
         transitionDrawable.setCrossFadeEnabled(true);
         transitionDrawable.startTransition(duration);

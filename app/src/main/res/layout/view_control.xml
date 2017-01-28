@@ -1,26 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<android.support.design.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/fl_root"
     android:layout_width="match_parent"
-    android:layout_height="56dp">
+    android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/iv_bg"
+    <FrameLayout
+        android:id="@+id/fl_root"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:contentDescription="@null"
-        android:scaleType="centerCrop"
-        android:src="@color/colorPrimary"/>
+        android:layout_height="56dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="horizontal"
-        android:paddingLeft="16dp"
-        android:paddingRight="6dp">
+        <ImageView
+            android:id="@+id/iv_bg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:scaleType="centerCrop"
+            android:src="@color/colorPrimary"/>
 
         <com.makeramen.roundedimageview.RoundedImageView
             android:id="@+id/iv_album"
@@ -28,66 +25,65 @@
             android:layout_height="48dp"
             android:layout_gravity="center_vertical"
             android:layout_marginBottom="1dp"
+            android:layout_marginLeft="16dp"
             android:clickable="true"
             android:src="@color/colorAccent"
             app:riv_corner_radius="28dp"/>
 
-        <FrameLayout
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginLeft="8dp"
-            android:layout_marginRight="8dp"
-            android:layout_weight="1"
-            android:paddingBottom="1dp">
+            android:layout_marginLeft="70dp"
+            android:layout_marginRight="120dp"
+            android:layout_marginTop="4dp"
+            android:ellipsize="marquee"
+            android:lines="1"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            tools:text="歌名"/>
 
-            <TextView
-                android:id="@+id/tv_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="marquee"
-                android:lines="1"
-                android:textColor="@android:color/white"
-                android:textSize="16sp"
-                tools:text="歌名"/>
+        <TextView
+            android:id="@+id/tv_artist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="70dp"
+            android:layout_marginRight="120dp"
+            android:layout_marginTop="24dp"
+            android:ellipsize="end"
+            android:lines="1"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            tools:text="艺术家"/>
 
-            <TextView
-                android:id="@+id/tv_artist"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:ellipsize="end"
-                android:lines="1"
-                android:textColor="@android:color/white"
-                android:textSize="12sp"
-                tools:text="艺术家"/>
+        <TextView
+            android:id="@+id/tv_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_marginBottom="4dp"
+            android:layout_marginLeft="70dp"
+            android:textColor="@android:color/white"
+            android:textSize="10sp"
+            tools:text="00:00"/>
 
-            <TextView
-                android:id="@+id/tv_progress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:layout_marginTop="36dp"
-                android:textColor="@android:color/white"
-                android:textSize="10sp"
-                tools:text="00:00"/>
-
-            <TextView
-                android:id="@+id/tv_duration"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|end"
-                android:layout_marginTop="36dp"
-                android:textColor="@android:color/white"
-                android:textSize="10sp"
-                tools:text="00:00"/>
-        </FrameLayout>
+        <TextView
+            android:id="@+id/tv_duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginBottom="4dp"
+            android:layout_marginRight="128dp"
+            android:textColor="@android:color/white"
+            android:textSize="10sp"
+            tools:text="00:00"/>
 
         <ImageView
             android:id="@+id/iv_previous_btn"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:layout_gravity="center_vertical"
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginRight="84dp"
             android:background="@drawable/ripple_btn_oval"
             android:clickable="true"
             android:contentDescription="@null"
@@ -98,9 +94,9 @@
             android:id="@+id/iv_play_btn"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:layout_gravity="center_vertical"
+            android:layout_gravity="center_vertical|end"
             android:layout_marginLeft="4dp"
-            android:layout_marginRight="4dp"
+            android:layout_marginRight="44dp"
             android:background="@drawable/ripple_btn_oval"
             android:clickable="true"
             android:contentDescription="@null"
@@ -110,22 +106,33 @@
             android:id="@+id/iv_next_btn"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:layout_gravity="center_vertical"
+            android:layout_gravity="center_vertical|end"
             android:layout_marginRight="2dp"
             android:background="@drawable/ripple_btn_oval"
             android:clickable="true"
             android:contentDescription="@null"
             android:padding="5dp"
             android:src="@drawable/ic_skip_next"/>
-    </LinearLayout>
 
-    <ProgressBar
-        android:id="@+id/pb_progress"
-        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="3dp"
-        android:layout_gravity="bottom"
-        android:layout_marginBottom="-2dp"
-        android:hapticFeedbackEnabled="true"
-        tools:progress="30"/>
-</FrameLayout>
+        <ProgressBar
+            android:id="@+id/pb_progress"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_gravity="bottom"
+            android:layout_marginBottom="-2dp"
+            android:hapticFeedbackEnabled="true"
+            tools:progress="30"/>
+    </FrameLayout>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fac_play_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@drawable/ic_play_arrow"
+        app:fabSize="mini"
+        app:layout_anchor="@id/fl_root"
+        app:layout_anchorGravity="bottom|end"
+        tools:visibility="visible"/>
+</android.support.design.widget.CoordinatorLayout>
