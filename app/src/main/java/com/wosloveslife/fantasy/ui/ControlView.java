@@ -13,6 +13,8 @@ import android.support.v4.view.NestedScrollingChild;
 import android.support.v4.view.NestedScrollingParent;
 import android.support.v4.view.NestedScrollingParentHelper;
 import android.support.v4.view.ViewCompat;
+import android.support.v4.view.ViewPropertyAnimatorCompat;
+import android.support.v4.view.ViewPropertyAnimatorListenerAdapter;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.AttributeSet;
@@ -473,19 +475,50 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
     //========================================其它的联动效果========================================
 
-    private void linkViews(float offsetRadius) {
-        setAlbumRadius(offsetRadius);
-        setTextOffset(offsetRadius);
+    private void linkViews(final float offsetRadius) {
+//        setAlbumRadius(offsetRadius);
+//        setTextOffset(offsetRadius);
         if (mExpanding && !mIsExpanded && offsetRadius > 0.5f) {
             mIsExpanded = true;
-            toggleControlBtn(true);
-            toggleAlbumBg(true, offsetRadius);
-            mFacPlayBtn.show();
         } else if (!mExpanding && mIsExpanded && offsetRadius < 0.5) {
             mIsExpanded = false;
-            toggleControlBtn(false);
+        } else {
+            return;
+        }
+
+//        toggleControlBtn(mIsExpanded);
+//        toggleAlbumBg(mIsExpanded, offsetRadius);
+//        mFacPlayBtn.hide();
+
+        final int value = mIsExpanded ? 0 : 1;
+        if (mIsExpanded) {
+            getScaleAlphaAnim(mIvAlbum, value)
+                    .setListener(new ViewPropertyAnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(View view) {
+                            toggleAlbumBg(mIsExpanded, offsetRadius);
+                            toggleTextOffset(mIsExpanded);
+                            toggleControlBtn(mIsExpanded);
+                            if (mIsExpanded) {
+                                mFacPlayBtn.show();
+                            } else {
+                                mFacPlayBtn.hide();
+                            }
+                        }
+                    })
+                    .start();
+        } else {
             toggleAlbumBg(false, offsetRadius);
-            mFacPlayBtn.hide();
+            toggleTextOffset(mIsExpanded);
+            toggleControlBtn(mIsExpanded);
+            if (mIsExpanded) {
+                mFacPlayBtn.show();
+            } else {
+                mFacPlayBtn.hide();
+            }
+            getScaleAlphaAnim(mIvAlbum, value)
+                    .setListener(null)
+                    .start();
         }
     }
 
@@ -498,6 +531,17 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         mTvArtist.setTranslationX(-offsetRadius * mMinLeftMargin);
         mTvProgress.setTranslationX(-offsetRadius * mMinLeftMargin);
         mTvDuration.setTranslationX(offsetRadius * mDurationRightMargin);
+    }
+
+    private void toggleAlbum(boolean expand) {
+
+    }
+
+    private void toggleTextOffset(boolean expand) {
+        controlTextOffsetAnim(mTvTitle, expand ? -mMinLeftMargin : 0);
+        controlTextOffsetAnim(mTvArtist, expand ? -mMinLeftMargin : 0);
+        controlTextOffsetAnim(mTvProgress, expand ? -mMinLeftMargin : 0);
+        controlTextOffsetAnim(mTvDuration, expand ? mDurationRightMargin : 0);
     }
 
     private void toggleControlBtn(boolean expand) {
@@ -514,19 +558,38 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
     private void toggleAlbumBg(boolean expand, float offsetRadius) {
         if (expand) {   // 展开时背景为专辑模糊图片
+            final Drawable targetDrawable = getResources().getDrawable(R.drawable.bg_control);
+//            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+//                Animator animator = ViewAnimationUtils.createCircularReveal(
+//                        mFlRoot,
+//                        mIvAlbum.getWidth() / 2,
+//                        mFlRoot.getHeight() / 2,
+//                        0,
+//                        mIvBg.getWidth());
+//                animator.setInterpolator(new AccelerateDecelerateInterpolator());
+//                animator.setDuration(320);
+//                animator.addListener(new AnimatorListenerAdapter() {
+//                    @Override
+//                    public void onAnimationEnd(Animator animation) {
+//                        super.onAnimationEnd(animation);
+//                        mIvBg.setImageDrawable(targetDrawable);
+//                    }
+//                });
+//                animator.start();
+//                return;
+//            }
             Drawable source = mIvBg.getBackground();
             if (source == null) {
                 source = new ColorDrawable(getResources().getColor(R.color.colorPrimary));
             }
-            Drawable targetDrawable = getResources().getDrawable(R.drawable.bg_control);
-            mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 280));
+            mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 240));
         } else {    // 收起时背景为专辑色调纯色
             Drawable source = mIvBg.getBackground();
             if (source == null) {
                 source = getResources().getDrawable(R.drawable.bg_control);
             }
             Drawable targetDrawable = new ColorDrawable(getResources().getColor(R.color.colorPrimary));
-            mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 280));
+            mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 240));
         }
     }
 
@@ -537,11 +600,21 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     }
 
     private void controlBtnAnim(View v, float value) {
-        ViewCompat.animate(v)
+        getScaleAlphaAnim(v, value).start();
+    }
+
+    private ViewPropertyAnimatorCompat getScaleAlphaAnim(View v, float value) {
+        return ViewCompat.animate(v)
                 .scaleX(value)
                 .scaleY(value)
                 .alpha(value)
-                .setDuration(300)
+                .setDuration(240);
+    }
+
+    private void controlTextOffsetAnim(View v, int value) {
+        ViewCompat.animate(v)
+                .translationX(value)
+                .setDuration(240)
                 .start();
     }
 
