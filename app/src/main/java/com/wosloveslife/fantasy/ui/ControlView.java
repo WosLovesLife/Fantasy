@@ -1,14 +1,24 @@
 package com.wosloveslife.fantasy.ui;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.TransitionDrawable;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
+import android.support.v4.view.NestedScrollingChild;
+import android.support.v4.view.NestedScrollingParent;
+import android.support.v4.view.NestedScrollingParentHelper;
+import android.support.v4.view.ViewCompat;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewConfiguration;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -18,11 +28,13 @@ import com.bumptech.glide.Glide;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
+import com.makeramen.roundedimageview.RoundedImageView;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.utils.FormatUtils;
+import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -32,11 +44,15 @@ import butterknife.OnClick;
  * Created by zhangh on 2017/1/15.
  */
 
-public class ControlView extends FrameLayout {
+public class ControlView extends FrameLayout implements NestedScrollingParent {
     private static final float PROGRESS_MAX = 100;
 
+    @BindView(R.id.fl_root)
+    FrameLayout mFlRoot;
+    @BindView(R.id.iv_bg)
+    ImageView mIvBg;
     @BindView(R.id.iv_album)
-    ImageView mIvAlbum;
+    RoundedImageView mIvAlbum;
     /** 歌曲名 */
     @BindView(R.id.tv_title)
     TextView mTvTitle;
@@ -71,6 +87,28 @@ public class ControlView extends FrameLayout {
     //=============
     private SimpleExoPlayer mPlayer;
 
+    //=============联动相关
+    NestedScrollingParentHelper mParentHelper;
+    View mNestedScrollingChild;
+    //=======
+    /** 展开时的高度 */
+    int mHeadMaxHeight;
+    /** 收起时的高度 */
+    int mHeadMinHeight;
+    /** 从收起到展开总共偏移的距离(即 mHeadMaxHeight - mHeadMinHeight ) */
+    int mMaxOffsetY;
+    /** 用来记录当前头部布局的高度,因为mFlRoot.getHeight()获得到的高度可能正在设置中,会和真实的高度有偏差 */
+    int mCurrentHeight;
+    /** 头部控件最后一次的展开/收起状态.true=展开中,false=收起中 */
+    boolean mExpanding;
+    //======
+    ValueAnimator mAnimator;
+    int mTouchSlop;
+    int mMinimumFlingVelocity;
+    //======
+    /** 封面的最大弧度(为圆形时) */
+    int mAlbumMaxRadius;
+
     //====Var
     /** 如果手正在拖动SeekBar,就不能让Progress自动跳转 */
     boolean mDragging;
@@ -95,6 +133,30 @@ public class ControlView extends FrameLayout {
     }
 
     private void init() {
+        mHeadMinHeight = Dp2Px.toPX(getContext(), 56);
+        mHeadMaxHeight = Dp2Px.toPX(getContext(), 160);
+        mMaxOffsetY = mHeadMaxHeight - mHeadMinHeight;
+        /* 圆形的角度等于边长的一半,因为布局中写死了48dp,因此这里取24dp,如果有需要,应该在onSizeChanged()方法中监听子控件的边长除2 */
+        mAlbumMaxRadius = Dp2Px.toPX(getContext(), 24);
+        mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
+        mMinimumFlingVelocity = ViewConfiguration.get(getContext()).getScaledMinimumFlingVelocity();
+
+        mParentHelper = new NestedScrollingParentHelper(this);
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        if (mFlRoot != null) return;
+
+        for (int i = 0; i < getChildCount(); i++) {
+            View childAt = getChildAt(i);
+            if (childAt instanceof NestedScrollingChild) {
+                mNestedScrollingChild = childAt;
+            }
+            childAt.setPadding(0, mHeadMinHeight, 0, 0);
+        }
+
         View view = LayoutInflater.from(getContext()).inflate(R.layout.view_control, this);
         ButterKnife.bind(this, view);
 
@@ -266,5 +328,236 @@ public class ControlView extends FrameLayout {
         void play();
 
         void pause();
+    }
+
+    //==============================================================================================
+    //=========================================View联动相关=========================================
+    //==============================================================================================
+
+    //========================================NestScroll-start======================================
+
+    /**
+     * 滑动开始的调用startNestedScroll()，Parent 收到onStartNestedScroll()回调，
+     * 决定是否需要配合 Child 一起进行处理滑动，
+     * 如果需要配合,还会回调{@link ControlView#onNestedScrollAccepted(View, View, int)}。
+     */
+    @Override
+    public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
+        return true;
+    }
+
+    @Override
+    public void onNestedScrollAccepted(View child, View target, int axes) {
+        super.onNestedScrollAccepted(child, target, axes);
+    }
+
+    /**
+     * 每次滑动前，Child 先询问 Parent 是否需要滑动，即dispatchNestedPreScroll()，
+     * 这就回调到 Parent 的onNestedPreScroll()，
+     * Parent 可以在这个回调中“劫持”掉 Child 的滑动，也就是先于 Child 滑动。
+     *
+     * @param dx       表示view本次x方向的滚动的总距离长度
+     * @param dy       表示view本次y方向的滚动的总距离长度
+     * @param consumed 表示父布局消费的距离,consumed[0]表示x方向,consumed[1]表示y方向
+     */
+    @Override
+    public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
+        super.onNestedPreScroll(target, dx, dy, consumed);
+        setOffsetBy(dy);
+    }
+
+    @Override
+    public boolean onNestedPreFling(View target, float velocityX, float velocityY) {
+        if (Math.abs(velocityY) < mMinimumFlingVelocity
+                || (velocityY > 0 && mFlRoot.getHeight() <= mHeadMinHeight)
+                || (velocityY < 0 && mFlRoot.getHeight() >= mHeadMaxHeight)) {
+            return false;
+        }
+
+//        if (mIsNestedChildIdle && velocityY < 0) {
+//            toggleExpand(true);
+//            return true;
+//        } else if (!mExpanding && velocityY > 0) {
+//            toggleExpand(false);
+//            return true;
+//        }
+
+        toggleExpand(velocityY < 0);
+        /* 如果想让头部滚动不影响列表滚动,这里应该返回false */
+        return false;
+    }
+
+//    /**
+//     * Child 滑动以后，会调用onNestedScroll()，回调到 Parent 的onNestedScroll()，
+//     * 这里就是 Child 滑动后，剩下的给 Parent 处理，也就是 后于 Child 滑动。
+//     *
+//     * @param target       发起滚动的子控件
+//     * @param dxConsumed   表示view消费了x方向的距离长度
+//     * @param dyConsumed   表示view消费了y方向的距离长度
+//     * @param dxUnconsumed 表示滚动产生的x滚动距离还剩下多少没有消费
+//     * @param dyUnconsumed 表示滚动产生的y滚动距离还剩下多少没有消费
+//     */
+//    @Override
+//    public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed) {
+//        super.onNestedScroll(target, dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed);
+//        mIsNestedChildIdle = dyConsumed == 0;
+//        setOffsetBy(dyUnconsumed);
+//    }
+//
+//    boolean mIsNestedChildIdle;
+//
+//    @Override
+//    public boolean onNestedFling(View target, float velocityX, float velocityY, boolean consumed) {
+//        if (Math.abs(velocityY) < mMinimumFlingVelocity || (velocityY > 0 && mFlRoot.getHeight() <= mHeadMinHeight) || (velocityY < 0 && mFlRoot.getHeight() >= mHeadMaxHeight)) {
+//            return false;
+//        }
+//        toggleExpand(velocityY < 0);
+//        return false;
+//    }
+
+    /**
+     * 本次滑动结束
+     */
+    @Override
+    public void onStopNestedScroll(View child) {
+        super.onStopNestedScroll(child);
+
+        if (mAnimator == null || !mAnimator.isRunning()) {
+            toggleExpand(mCurrentHeight > mHeadMinHeight + mMaxOffsetY / 2);
+        }
+    }
+
+    //========================================NestScroll-end========================================
+
+    private void setOffset(int height) {
+        if (height == mFlRoot.getHeight()) return;
+
+        mExpanding = height > mFlRoot.getHeight();
+
+        if (height < mHeadMinHeight) height = mHeadMinHeight;
+        if (height > mHeadMaxHeight) height = mHeadMaxHeight;
+        mCurrentHeight = height;
+
+        ViewGroup.LayoutParams params = mFlRoot.getLayoutParams();
+        params.height = height;
+        mFlRoot.setLayoutParams(params);
+
+        if (mNestedScrollingChild != null) {
+            mNestedScrollingChild.setPadding(0, height, 0, 0);
+        }
+
+        linkViews(getOffsetRadius(height));
+    }
+
+    private void setOffsetBy(int dy) {
+        if ((dy > 0 && mFlRoot.getHeight() <= mHeadMinHeight) || (dy < 0 && mFlRoot.getHeight() >= mHeadMaxHeight)) {
+            return;
+        }
+        setOffset(mFlRoot.getHeight() - dy);
+    }
+
+    private void toggleExpand(boolean expand) {
+        int targetY;
+        if (expand) {
+            targetY = mHeadMaxHeight;
+        } else {
+            targetY = mHeadMinHeight;
+        }
+
+        if (targetY == mCurrentHeight) return;
+
+        if (mAnimator == null) {
+            mAnimator = new ValueAnimator();
+            mAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    float value = (Float) animation.getAnimatedValue();
+                    setOffset((int) value);
+                }
+            });
+        } else if (mAnimator.isRunning()) {
+            mAnimator.cancel();
+        }
+
+        /* 这里的CurrentHeight是上次设置高度是记录的高度值,
+        因为上次设置的高度可能还没有被应用,所以这里如果通过mFlRoot.getHeight()来获取高度,可能是不及时的 */
+        mAnimator.setFloatValues(mCurrentHeight, targetY);
+        float offset = targetY + 0f - mCurrentHeight;
+        int duration = Math.min((int) (Math.abs(offset) / mMaxOffsetY * 320), 200);
+        mAnimator.setDuration(duration);
+        mAnimator.start();
+    }
+
+    boolean mIsExpanded;
+
+    //========================================其它的联动效果========================================
+
+    private void linkViews(float offsetRadius) {
+        setAlbumRadius(offsetRadius);
+        if (mExpanding && !mIsExpanded && offsetRadius > 0.5f) {
+            mIsExpanded = true;
+            toggleControlBtn(true);
+            toggleAlbumBg(true, offsetRadius);
+        } else if (!mExpanding && mIsExpanded && offsetRadius < 0.5) {
+            mIsExpanded = false;
+            toggleControlBtn(false);
+            toggleAlbumBg(false, offsetRadius);
+        }
+    }
+
+    private void setAlbumRadius(float offsetRadius) {
+        mIvAlbum.setCornerRadius((1 - offsetRadius) * mAlbumMaxRadius);
+    }
+
+    private void toggleControlBtn(boolean expand) {
+        if (expand) {
+            controlBtnAnim(mIvNextBtn, 0);
+            controlBtnAnim(mIvPlayBtn, 0);
+            controlBtnAnim(mIvPreviousBtn, 0);
+        } else {
+            controlBtnAnim(mIvNextBtn, 1);
+            controlBtnAnim(mIvPlayBtn, 1);
+            controlBtnAnim(mIvPreviousBtn, 1);
+        }
+    }
+
+    private void controlBtnAnim(View v, float value) {
+        ViewCompat.animate(v)
+                .scaleX(value)
+                .scaleY(value)
+                .alpha(value)
+                .setDuration(300)
+                .start();
+    }
+
+    private void toggleAlbumBg(boolean expand, float offsetRadius) {
+        if (expand) {   // 展开时背景为专辑模糊图片
+            Drawable source = mIvBg.getBackground();
+            if (source == null) {
+                source = new ColorDrawable(getResources().getColor(R.color.colorPrimary));
+            }
+            Drawable targetDrawable = getResources().getDrawable(R.drawable.bg_control);
+            mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 280));
+        } else {    // 收起时背景为专辑色调纯色
+            Drawable source = mIvBg.getBackground();
+            if (source == null) {
+                source = getResources().getDrawable(R.drawable.bg_control);
+            }
+            Drawable targetDrawable = new ColorDrawable(getResources().getColor(R.color.colorPrimary));
+            mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 280));
+        }
+    }
+
+    //==============================================================================================
+    private float getOffsetRadius(int height) {
+        float offsetY = height - mHeadMinHeight;
+        return offsetY / mMaxOffsetY;
+    }
+
+    private TransitionDrawable getTransitionDrawable(Drawable source, Drawable target, int duration) {
+        TransitionDrawable transitionDrawable = new TransitionDrawable(new Drawable[]{source, target});
+        transitionDrawable.setCrossFadeEnabled(true);
+        transitionDrawable.startTransition(duration);
+        return transitionDrawable;
     }
 }

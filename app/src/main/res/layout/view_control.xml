@@ -3,13 +3,21 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/fl_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="56dp">
+
+    <ImageView
+        android:id="@+id/iv_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        android:src="@color/colorPrimary"/>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/colorPrimary"
         android:orientation="horizontal"
         android:paddingLeft="16dp"
         android:paddingRight="6dp">
@@ -20,8 +28,9 @@
             android:layout_height="48dp"
             android:layout_gravity="center_vertical"
             android:layout_marginBottom="1dp"
-            app:riv_oval="true"
-            tools:src="@color/colorCement"/>
+            android:clickable="true"
+            android:src="@color/colorAccent"
+            app:riv_corner_radius="28dp"/>
 
         <FrameLayout
             android:layout_width="0dp"
@@ -93,6 +102,7 @@
             android:layout_marginLeft="4dp"
             android:layout_marginRight="4dp"
             android:background="@drawable/ripple_btn_oval"
+            android:clickable="true"
             android:contentDescription="@null"
             android:src="@drawable/ic_play_arrow"/>
 
@@ -103,6 +113,7 @@
             android:layout_gravity="center_vertical"
             android:layout_marginRight="2dp"
             android:background="@drawable/ripple_btn_oval"
+            android:clickable="true"
             android:contentDescription="@null"
             android:padding="5dp"
             android:src="@drawable/ic_skip_next"/>
