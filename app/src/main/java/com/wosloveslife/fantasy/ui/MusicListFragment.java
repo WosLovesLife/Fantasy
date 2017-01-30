@@ -65,6 +65,12 @@ public class MusicListFragment extends BaseFragment {
 
     //========================================生命周期-start========================================
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setRetainInstance(true);
+    }
+
+    @Override
     public void onStart() {
         super.onStart();
         EventBus.getDefault().register(this);

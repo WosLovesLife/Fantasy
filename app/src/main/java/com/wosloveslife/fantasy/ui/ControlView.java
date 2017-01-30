@@ -7,6 +7,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
 import android.os.Build;
+import android.os.Parcelable;
 import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.NestedScrollingChild;
@@ -126,6 +127,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     int mMinLeftMargin;
     /** 播放总时长文字的最大向右偏移量 */
     int mDurationRightMargin;
+    int mStatusBarHeight;
 
     public ControlView(Context context) {
         this(context, null);
@@ -153,7 +155,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         /* 圆形的角度等于边长的一半,因为布局中写死了48dp,因此这里取24dp,如果有需要,应该在onSizeChanged()方法中监听子控件的边长除2 */
         mAlbumMaxRadius = Dp2Px.toPX(getContext(), 24);
         mMinLeftMargin = Dp2Px.toPX(getContext(), 56);
-        mDurationRightMargin = Dp2Px.toPX(getContext(), 62);
+        mDurationRightMargin = Dp2Px.toPX(getContext(), 58);
+        mStatusBarHeight = (int) getResources().getDimension(R.dimen.statusBar_height);
         mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
         mMinimumFlingVelocity = ViewConfiguration.get(getContext()).getScaledMinimumFlingVelocity();
 
@@ -161,19 +164,62 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     }
 
     @Override
+    protected Parcelable onSaveInstanceState() {
+        ControlViewState state = new ControlViewState(super.onSaveInstanceState());
+        state.mIsExpanded = mIsExpanded;
+        state.mExpanding = mExpanding;
+        return state;
+    }
+
+    class ControlViewState extends BaseSavedState {
+        boolean mExpanding;
+        boolean mIsExpanded;
+
+        ControlViewState(Parcelable source) {
+            super(source);
+        }
+    }
+
+    @Override
+    public void onRestoreInstanceState(Parcelable state) {
+        if (!(state instanceof ControlViewState)) {
+            super.onRestoreInstanceState(state);
+            return;
+        }
+
+        ControlViewState cs = (ControlViewState) state;
+        super.onRestoreInstanceState(cs.getSuperState());
+
+        /* 恢复操作 */
+        mExpanding = cs.mExpanding;
+        mIsExpanded = cs.mIsExpanded;
+
+        toggleExpand(mIsExpanded);
+    }
+
+    @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        if (mFlRoot != null) return;
 
         for (int i = 0; i < getChildCount(); i++) {
             View childAt = getChildAt(i);
             if (childAt instanceof NestedScrollingChild) {
                 mNestedScrollingChild = childAt;
+                childAt.setPadding(0, mHeadMinHeight + mStatusBarHeight, 0, 0);
             }
-            childAt.setPadding(0, mHeadMinHeight, 0, 0);
         }
 
-        View view = LayoutInflater.from(getContext()).inflate(R.layout.view_control, this);
+        ViewGroup.LayoutParams params = mIvBg.getLayoutParams();
+        params.height = params.height + mStatusBarHeight;
+        mIvBg.setLayoutParams(params);
+    }
+
+    @Override
+    public void onViewAdded(View child) {
+        super.onViewAdded(child);
+
+        if (mFlRoot != null) return;
+        View view = LayoutInflater.from(getContext()).inflate(R.layout.view_control, this, false);
         ButterKnife.bind(this, view);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -181,6 +227,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
 
         mFacPlayBtn.hide();
+
+        addView(view);
     }
 
     public void setPlayer(SimpleExoPlayer player) {
@@ -427,8 +475,12 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         params.height = height;
         mFlRoot.setLayoutParams(params);
 
+        ViewGroup.LayoutParams params2 = mIvBg.getLayoutParams();
+        params2.height = height + mStatusBarHeight;
+        mIvBg.setLayoutParams(params2);
+
         if (mNestedScrollingChild != null) {
-            mNestedScrollingChild.setPadding(0, height, 0, 0);
+            mNestedScrollingChild.setPadding(0, height + mStatusBarHeight, 0, 0);
         }
 
         linkViews(getOffsetRadius(height));
@@ -476,8 +528,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     //========================================其它的联动效果========================================
 
     private void linkViews(final float offsetRadius) {
-//        setAlbumRadius(offsetRadius);
-//        setTextOffset(offsetRadius);
         if (mExpanding && !mIsExpanded && offsetRadius > 0.5f) {
             mIsExpanded = true;
         } else if (!mExpanding && mIsExpanded && offsetRadius < 0.5) {
@@ -485,10 +535,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         } else {
             return;
         }
-
-//        toggleControlBtn(mIsExpanded);
-//        toggleAlbumBg(mIsExpanded, offsetRadius);
-//        mFacPlayBtn.hide();
 
         final int value = mIsExpanded ? 0 : 1;
         if (mIsExpanded) {
@@ -522,21 +568,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
     }
 
-    private void setAlbumRadius(float offsetRadius) {
-        mIvAlbum.setCornerRadius((1 - offsetRadius) * mAlbumMaxRadius);
-    }
-
-    private void setTextOffset(float offsetRadius) {
-        mTvTitle.setTranslationX(-offsetRadius * mMinLeftMargin);
-        mTvArtist.setTranslationX(-offsetRadius * mMinLeftMargin);
-        mTvProgress.setTranslationX(-offsetRadius * mMinLeftMargin);
-        mTvDuration.setTranslationX(offsetRadius * mDurationRightMargin);
-    }
-
-    private void toggleAlbum(boolean expand) {
-
-    }
-
     private void toggleTextOffset(boolean expand) {
         controlTextOffsetAnim(mTvTitle, expand ? -mMinLeftMargin : 0);
         controlTextOffsetAnim(mTvArtist, expand ? -mMinLeftMargin : 0);
@@ -559,6 +590,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     private void toggleAlbumBg(boolean expand, float offsetRadius) {
         if (expand) {   // 展开时背景为专辑模糊图片
             final Drawable targetDrawable = getResources().getDrawable(R.drawable.bg_control);
+//            /* 圆角扩散模式,但是效果不好,太过于吸引用户眼球 */
 //            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
 //                Animator animator = ViewAnimationUtils.createCircularReveal(
 //                        mFlRoot,

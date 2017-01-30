@@ -6,18 +6,19 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <ImageView
+        android:id="@+id/iv_bg"
+        android:layout_width="match_parent"
+        android:layout_height="81dp"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        android:src="@color/colorPrimary"/>
+
     <FrameLayout
         android:id="@+id/fl_root"
         android:layout_width="match_parent"
-        android:layout_height="56dp">
-
-        <ImageView
-            android:id="@+id/iv_bg"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="@null"
-            android:scaleType="centerCrop"
-            android:src="@color/colorPrimary"/>
+        android:layout_height="56dp"
+        android:layout_marginTop="@dimen/statusBar_height">
 
         <com.makeramen.roundedimageview.RoundedImageView
             android:id="@+id/iv_album"
@@ -127,8 +128,8 @@
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fac_play_btn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_margin="16dp"
         android:src="@drawable/ic_play_arrow"
         app:fabSize="mini"
