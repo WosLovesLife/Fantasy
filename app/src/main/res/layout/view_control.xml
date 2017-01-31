@@ -10,9 +10,20 @@
         android:id="@+id/iv_bg"
         android:layout_width="match_parent"
         android:layout_height="81dp"
+        android:background="@color/whitish_common_bg"
         android:contentDescription="@null"
         android:scaleType="centerCrop"
         android:src="@color/colorPrimary"/>
+
+    <ImageView
+        android:id="@+id/iv_bg_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="81dp"
+        android:background="@color/whitish_common_bg"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        android:src="@color/colorPrimary"
+        android:visibility="gone"/>
 
     <FrameLayout
         android:id="@+id/fl_root"
@@ -28,6 +39,7 @@
             android:layout_marginBottom="1dp"
             android:layout_marginLeft="16dp"
             android:clickable="true"
+            android:scaleType="centerCrop"
             android:src="@color/colorAccent"
             app:riv_corner_radius="28dp"/>
 

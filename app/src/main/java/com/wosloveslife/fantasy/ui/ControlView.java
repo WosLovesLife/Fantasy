@@ -5,11 +5,15 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
 import android.os.Build;
 import android.os.Parcelable;
+import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.MotionEventCompat;
@@ -20,6 +24,7 @@ import android.support.v4.view.VelocityTrackerCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.view.ViewPropertyAnimatorCompat;
 import android.support.v4.view.ViewPropertyAnimatorListenerAdapter;
+import android.support.v7.graphics.Palette;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
@@ -37,21 +42,31 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.bumptech.glide.Glide;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
 import com.makeramen.roundedimageview.RoundedImageView;
+import com.mpatric.mp3agic.ID3v2;
+import com.mpatric.mp3agic.Mp3File;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.utils.FormatUtils;
+import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import rx.Observable;
+import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
+import stackblur_java.StackBlurManager;
+
+import static android.support.v7.graphics.Palette.from;
 
 /**
  * Created by zhangh on 2017/1/15.
@@ -64,6 +79,13 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     FrameLayout mFlRoot;
     @BindView(R.id.iv_bg)
     ImageView mIvBg;
+    /**
+     * 这个控件是专门用来覆盖在mIvBg上面用来在切换头部背景时的CircularReveal动画使用,
+     * 这样可以在原有背景色基础上有一个新的背景色展开的效果
+     * 应该有更好的实现方式,暂时用这个
+     */
+    @BindView(R.id.iv_bg_scrim)
+    ImageView mIvBgScrim;
     @BindView(R.id.iv_album)
     RoundedImageView mIvAlbum;
     /** 歌曲名 */
@@ -146,6 +168,20 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     int mDurationRightMargin;
     int mStatusBarHeight;
 
+    //============
+    private Drawable mDefAlbum;
+    private Drawable mDefBlurredAlbum;
+    private Drawable mDefColorMutedBg;
+    private Drawable mDefColorTitle;
+
+    private Drawable mAlbum;
+    /** 在当前封面的基础上进行了模糊处理,作为展开时的背景图片 */
+    private Drawable mBlurredAlbum;
+    private Drawable mColorMutedBg;
+    private Drawable mColorTitle;
+
+    private ID3v2 mCurrentId3v2;
+
     public ControlView(Context context) {
         this(context, null);
     }
@@ -177,6 +213,13 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
         mMinimumFlingVelocity = ViewConfiguration.get(getContext()).getScaledMinimumFlingVelocity();
         mMaximumFlingVelocity = ViewConfiguration.get(getContext()).getScaledMaximumFlingVelocity();
+
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.bg_control);
+
+        mDefAlbum = new BitmapDrawable(bitmap);
+        mDefBlurredAlbum = new BitmapDrawable(new StackBlurManager(bitmap).process(30));
+        mDefColorTitle = new ColorDrawable(getResources().getColor(R.color.white));
+        mDefColorMutedBg = new ColorDrawable(getResources().getColor(R.color.colorPrimary));
 
         mVelocityTracker = VelocityTracker.obtain();
         mParentHelper = new NestedScrollingParentHelper(this);
@@ -233,6 +276,11 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 childAt.setPadding(0, mHeadMinHeight + mStatusBarHeight, 0, 0);
             }
         }
+
+        ViewGroup.LayoutParams params = mIvBg.getLayoutParams();
+        params.height = (int) (mHeadMinHeight + getResources().getDimension(R.dimen.statusBar_height));
+        mIvBg.setLayoutParams(params);
+        mIvBgScrim.setLayoutParams(params);
     }
 
     @Override
@@ -351,26 +399,155 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         mTvProgress.setText("00:00");
         mTvDuration.setText(DateFormat.format("mm:ss", music.duration).toString());
 
-        updateAlbum(music.album);
+        if (mCurrentMusic == null) return;
+
+        label:
+        try {
+            Logger.d("开始解析封面 时间 = " + System.currentTimeMillis());
+            Mp3File mp3file = new Mp3File(mCurrentMusic.path);
+            if (mp3file.hasId3v2Tag()) {
+                ID3v2 id3v2Tag = mp3file.getId3v2Tag();
+                if (mCurrentId3v2 != null && TextUtils.equals(mCurrentId3v2.getAlbum(), id3v2Tag.getAlbum())) {
+                    break label;
+                }
+                mCurrentId3v2 = id3v2Tag;
+
+
+                /* 从歌曲文件的ID3v2字段中读取封面信息并更新封面
+                 * 如果没有本地封面,则尝试从网络获取 */
+                Observable.create(new Observable.OnSubscribe<Bitmap>() {
+                    @Override
+                    public void call(Subscriber<? super Bitmap> subscriber) {
+                        Bitmap bitmap = null;
+                        byte[] image = mCurrentId3v2.getAlbumImage();
+                        if (image != null) {
+                            Logger.d("从歌曲中读取封面结束 时间 = " + System.currentTimeMillis() + "; 大小 = " + image.length);
+                            /* 通过自定义Option缩减Bitmap生成的时间.以及避免OOM */
+                            bitmap = BitmapUtils.getScaledDrawable(image, mIvAlbum.getWidth(), mIvAlbum.getHeight(), Bitmap.Config.RGB_565);
+                        }
+                        subscriber.onNext(bitmap);
+                        subscriber.onCompleted();
+                    }
+                })
+                        .subscribeOn(Schedulers.computation())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new Action1<Bitmap>() {
+                            @Override
+                            public void call(Bitmap bitmap) {
+                                if (bitmap == null) {
+                                    /* TODO: 请求网络下载封面 */
+                                }
+                                updateAlbum(bitmap);
+                            }
+                        });
+
+                /* TODO 同步歌词 */
+
+
+            } else {
+                /* TODO 联网获取歌曲信息,并存储本地歌曲文件 */
+
+                if (mCurrentId3v2 != null) {
+                    mCurrentId3v2 = null;
+                    /* 在网络响应后再次调用该方法 */
+                    updateAlbum(null);
+                }
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            if (mCurrentId3v2 != null) {
+                mCurrentId3v2 = null;
+                /* 设置默认占位 */
+                updateAlbum(null);
+            }
+        }
+
         updateProgress();
     }
 
     /**
      * 通过Pattern获得封面的色调作为头部控件收起时和Toolbar的背景色<br/>
      * 对封面作模糊处理作为头部控件展开时的背景图<br/>
-     * 对封面信息做对比,如果是同样的封面(同专辑)就不作处理,避免不必要的开支和可能的延迟
+     * 对封面信息做对比,如果是同样的封面(同专辑)就不作处理,避免不必要的开支和可能的延迟<br/>
      *
-     * @param album 封面地址
+     * @param bitmap 如果等于null 则恢复默认的色彩和背景
      */
-    private void updateAlbum(String album) {
-        try {
-            Glide.with(getContext())
-                    .load(album)
-                    .placeholder(R.color.colorCement)
-                    .crossFade()
-                    .into(mIvAlbum);
-        } catch (Throwable e) {
-            Logger.w("Glide错误,可忽略");
+    private void updateAlbum(@Nullable final Bitmap bitmap) {
+        if (bitmap == null && mAlbum == mDefAlbum) return;
+
+        Logger.d("准备更新封面 时间 = " + System.currentTimeMillis());
+        if (bitmap == null) {
+            mAlbum = mDefAlbum;
+            mBlurredAlbum = mDefBlurredAlbum;
+            mColorTitle = mDefColorTitle;
+            mColorMutedBg = mDefColorMutedBg;
+            if (mIsExpanded) {
+                toggleAlbumBg(true);
+            }
+        } else {
+            mAlbum = new BitmapDrawable(bitmap);
+
+            Palette.Swatch mutedSwatch = from(bitmap).generate().getMutedSwatch();
+            if (mutedSwatch != null) {
+                mColorTitle = new ColorDrawable(mutedSwatch.getTitleTextColor());
+                mColorMutedBg = new ColorDrawable(mutedSwatch.getRgb());
+            }
+
+            Observable.create(new Observable.OnSubscribe<Bitmap>() {
+                @Override
+                public void call(Subscriber<? super Bitmap> subscriber) {
+                    /* 将这种用于处理模糊的Bitmap交给StackBlurManager托管 */
+                    Logger.d("背景模糊渲染开始 时间 = " + System.currentTimeMillis());
+                    subscriber.onNext(new StackBlurManager(bitmap).process(30));
+                    subscriber.onCompleted();
+                }
+            })
+                    .subscribeOn(Schedulers.computation())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(new Action1<Bitmap>() {
+                        @Override
+                        public void call(Bitmap b) {
+                            Logger.d("背景模糊渲染完成 时间 = " + System.currentTimeMillis());
+                            mBlurredAlbum = new BitmapDrawable(b);
+                            if (mIsExpanded) {
+                                toggleAlbumBg(true);
+                            }
+                        }
+                    });
+        }
+
+        mIvAlbum.setImageDrawable(mAlbum);
+        if (!mIsExpanded) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                mIvBgScrim.setVisibility(VISIBLE);
+                mIvBgScrim.setImageDrawable(mColorMutedBg);
+                Animator animator = ViewAnimationUtils.createCircularReveal(
+                        mIvBgScrim,
+                        mIvAlbum.getWidth() / 2 + mIvAlbum.getLeft(),
+                        mIvBg.getHeight() / 2,
+                        0,
+                        mIvBg.getWidth());
+                animator.setInterpolator(new AccelerateDecelerateInterpolator());
+                animator.setDuration(320);
+                animator.addListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        super.onAnimationEnd(animation);
+                        mIvBg.setImageDrawable(mColorMutedBg);
+                        mIvBgScrim.setVisibility(GONE);
+                    }
+
+                    @Override
+                    public void onAnimationCancel(Animator animation) {
+                        super.onAnimationCancel(animation);
+                        mIvBg.setImageDrawable(mColorMutedBg);
+                        mIvBgScrim.setVisibility(GONE);
+                    }
+                });
+                animator.start();
+            } else {
+                toggleAlbumBg(false);
+            }
         }
     }
 
@@ -385,13 +562,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             mPbProgress.setMax((int) (duration / 1000));
         }
 
-        if (mTvProgress != null && !mDragging) {
-            mTvProgress.setText(FormatUtils.stringForTime(position));
-        }
+        mTvProgress.setText(FormatUtils.stringForTime(position));
 
-        if (!mDragging) {
-            mPbProgress.setProgress((int) (position / 1000));
-        }
+        mPbProgress.setProgress((int) (position / 1000));
 
         /* 如果是网络资源(播放地址以http开头)则显示缓存进度 */
         if (mIsOnline) {
@@ -485,7 +658,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         void pause();
     }
 
-    public Toolbar getToolbar(){
+    public Toolbar getToolbar() {
         return mToolbar;
     }
 
@@ -496,7 +669,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     //========================================触摸事件-start======================================
 
     @Override
-    public boolean onInterceptTouchEvent(MotionEvent ev) {
+    public boolean dispatchTouchEvent(MotionEvent ev) {
         switch (ev.getAction()) {
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP:
@@ -507,7 +680,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 mDragging = true;
                 break;
         }
-        return super.onInterceptTouchEvent(ev);
+        return super.dispatchTouchEvent(ev);
     }
 
     //========================================NestScroll-start======================================
@@ -653,7 +826,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     .setListener(new ViewPropertyAnimatorListenerAdapter() {
                         @Override
                         public void onAnimationEnd(View view) {
-                            toggleAlbumBg(mIsExpanded, offsetRadius);
+                            toggleAlbumBg(mIsExpanded);
                             toggleTextOffset(mIsExpanded);
                             toggleControlBtn(mIsExpanded);
                             if (mIsExpanded) {
@@ -665,7 +838,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     })
                     .start();
         } else {
-            toggleAlbumBg(false, offsetRadius);
+            toggleAlbumBg(false);
             toggleTextOffset(mIsExpanded);
             toggleControlBtn(mIsExpanded);
             if (mIsExpanded) {
@@ -698,21 +871,41 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
     }
 
-    private void toggleAlbumBg(boolean expand, float offsetRadius) {
+    private void toggleAlbumBg(boolean expand) {
         if (expand) {   // 展开时背景为专辑模糊图片
-            final Drawable targetDrawable = getResources().getDrawable(R.drawable.bg_control);
-            Drawable source = mIvBg.getBackground();
-            if (source == null) {
-                source = new ColorDrawable(getResources().getColor(R.color.colorPrimary));
+            Drawable source;
+            if (mIvBg.getDrawable() != null) {
+                source = mIvBg.getDrawable();
+            } else {
+                source = getHeadColorDrawable();
             }
-            mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 240));
+            Drawable targetDrawable = getHeadDrawable();
+            mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 380));
         } else {    // 收起时背景为专辑色调纯色
-            Drawable source = mIvBg.getBackground();
-            if (source == null) {
-                source = getResources().getDrawable(R.drawable.bg_control);
+            Drawable source;
+            if (mIvBg.getDrawable() != null) {
+                source = mIvBg.getDrawable();
+            } else {
+                source = getHeadDrawable();
             }
-            Drawable targetDrawable = new ColorDrawable(getResources().getColor(R.color.colorPrimary));
-            mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 240));
+            Drawable targetDrawable = getHeadColorDrawable();
+            mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 380));
+        }
+    }
+
+    private Drawable getHeadDrawable() {
+        if (mBlurredAlbum == null) {
+            return mDefBlurredAlbum;
+        } else {
+            return mBlurredAlbum;
+        }
+    }
+
+    private Drawable getHeadColorDrawable() {
+        if (mColorMutedBg == null) {
+            return mDefColorMutedBg;
+        } else {
+            return mColorMutedBg;
         }
     }
 
@@ -759,6 +952,12 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     @Override
                     public void onAnimationEnd(Animator animation) {
                         super.onAnimationEnd(animation);
+                        mToolbar.setVisibility(GONE);
+                    }
+
+                    @Override
+                    public void onAnimationCancel(Animator animation) {
+                        super.onAnimationCancel(animation);
                         mToolbar.setVisibility(GONE);
                     }
                 });

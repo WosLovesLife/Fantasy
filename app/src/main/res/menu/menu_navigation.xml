@@ -12,9 +12,7 @@
         <item
             android:id="@+id/item_2"
             android:icon="@drawable/exo_controls_fastforward"
-            android:numericShortcut=""
             android:title="列表2"
-            android:titleCondensed="这是一个歌单"
             app:showAsAction="always"/>
     </group>
 </menu>
