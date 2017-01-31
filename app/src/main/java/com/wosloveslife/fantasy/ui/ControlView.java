@@ -485,6 +485,10 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         void pause();
     }
 
+    public Toolbar getToolbar(){
+        return mToolbar;
+    }
+
     //==============================================================================================
     //=========================================View联动相关=========================================
     //==============================================================================================
@@ -697,26 +701,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     private void toggleAlbumBg(boolean expand, float offsetRadius) {
         if (expand) {   // 展开时背景为专辑模糊图片
             final Drawable targetDrawable = getResources().getDrawable(R.drawable.bg_control);
-//            /* 圆角扩散模式,但是效果不好,太过于吸引用户眼球 */
-//            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-//                Animator animator = ViewAnimationUtils.createCircularReveal(
-//                        mFlRoot,
-//                        mIvAlbum.getWidth() / 2,
-//                        mFlRoot.getHeight() / 2,
-//                        0,
-//                        mIvBg.getWidth());
-//                animator.setInterpolator(new AccelerateDecelerateInterpolator());
-//                animator.setDuration(320);
-//                animator.addListener(new AnimatorListenerAdapter() {
-//                    @Override
-//                    public void onAnimationEnd(Animator animation) {
-//                        super.onAnimationEnd(animation);
-//                        mIvBg.setImageDrawable(targetDrawable);
-//                    }
-//                });
-//                animator.start();
-//                return;
-//            }
             Drawable source = mIvBg.getBackground();
             if (source == null) {
                 source = new ColorDrawable(getResources().getColor(R.color.colorPrimary));

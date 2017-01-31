@@ -8,10 +8,17 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
+import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -39,10 +46,15 @@ import butterknife.ButterKnife;
  * Created by zhangh on 2017/1/2.
  */
 public class MusicListFragment extends BaseFragment {
+    @BindView(R.id.drawer_layout)
+    DrawerLayout mDrawerLayout;
+    @BindView(R.id.navigation_view)
+    NavigationView mNavigationView;
     @BindView(R.id.control_view)
     ControlView mControlView;
     @BindView(R.id.recycler_view)
     RecyclerView mRecyclerView;
+    private Toolbar mToolbar;
 
     private Snackbar mSnackbar;
 
@@ -100,6 +112,8 @@ public class MusicListFragment extends BaseFragment {
     public void initView() {
         initServiceBinder();
 
+        initToolbar();
+
         mLayoutManager = new LinearLayoutManager(getActivity());
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.addItemDecoration(new DividerDecoration(
@@ -147,6 +161,24 @@ public class MusicListFragment extends BaseFragment {
                 mPlayBinder.pause();
             }
         });
+    }
+
+    private void initToolbar() {
+        mToolbar = mControlView.getToolbar();
+        AppCompatActivity activity = (AppCompatActivity) getActivity();
+        activity.setSupportActionBar(mToolbar);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(getActivity(), mDrawerLayout, mToolbar, R.string.app_name, R.string.app_name);
+        toggle.syncState();
+        mNavigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(MenuItem item) {
+                mToolbar.setTitle(item.getTitle());
+                mDrawerLayout.closeDrawer(Gravity.LEFT);
+                return true;
+            }
+        });
+        mNavigationView.setCheckedItem(R.id.item_1);
+        mToolbar.setTitle(mNavigationView.getMenu().getItem(0).getTitle());
     }
 
     private void initServiceBinder() {
@@ -201,6 +233,15 @@ public class MusicListFragment extends BaseFragment {
         super.getData();
 
         setData(MusicManager.getInstance().getMusicList());
+    }
+
+    @Override
+    protected boolean onBackPressed() {
+        if (mDrawerLayout.isDrawerOpen(Gravity.LEFT)) {
+            mDrawerLayout.closeDrawer(Gravity.LEFT);
+            return true;
+        }
+        return super.onBackPressed();
     }
 
     //==========================================事件================================================

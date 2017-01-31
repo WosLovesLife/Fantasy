@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+    <group
+        android:id="@+id/group_list"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/item_1"
+            android:icon="@drawable/exo_controls_fastforward"
+            android:title="列表1"
+            app:showAsAction="always"/>
+        <item
+            android:id="@+id/item_2"
+            android:icon="@drawable/exo_controls_fastforward"
+            android:numericShortcut=""
+            android:title="列表2"
+            android:titleCondensed="这是一个歌单"
+            app:showAsAction="always"/>
+    </group>
+</menu>

@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#3F51B5</color>
-    <color name="colorPrimaryDark">#303F9F</color>
-    <color name="colorAccent">#FF4081</color>
-
+    <color name="white">#FFF</color>
+    <color name="transparent">#00000000</color>
 
     <!---->
-    <color name="colorAccentDark">#1fa497</color>
+    <color name="greenGrass">#57AD68</color>
+    <color name="cyan">#1FA497</color>
+
     <color name="red_normal">#EC5330</color>
     <color name="red_touch">#F60505</color>
-    <color name="red_key_word">#d33737</color>
-    <color name="gray_light">#e5e5e5</color>
-    <color name="gray_text">#aacacaca</color>
-    <color name="gray_holy_light">#f7f4f4</color>
-    <color name="gray_disable">#B2B2B2</color>
-    <color name="black_blue_text">#3c4f5e</color>
-    <color name="black_text_matt">#5e5b5b</color>
-    <color name="black_title">#323232</color>
-    <color name="hyperlink">#27A1E1</color>
-    <color name="transparent">#00000000</color>
+    <color name="keepRed">#D33737</color>
+
     <color name="whitish_common_bg">#eff0f1</color>
     <color name="whitish_text">#eff0f1</color>
 
-    <color name="greenGrass">#57ad68</color>
+    <color name="gray_holy_light">#F7F4F4</color>
+    <color name="gray_light">#E5E5E5</color>
+    <color name="gray_text">#AACACACA</color>
+    <color name="gray_portrait">#B9BAB9</color>
+    <color name="gray_disable">#B2B2B2</color>
 
-    <color name="gray_portrait">#b9bab9</color>
+    <color name="black_text_matt">#5e5b5b</color>
+    <color name="black_blue_text">#3c4f5e</color>
+    <color name="black_title">#323232</color>
+
+    <color name="blue_light">#27A1E1</color>
 </resources>

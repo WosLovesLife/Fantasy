@@ -1,19 +1,34 @@
 package com.wosloveslife.fantasy.ui;
 
+import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v7.app.AppCompatActivity;
 
-import base.SingleActivity;
+import com.wosloveslife.fantasy.R;
 
-public class MusicListActivity extends SingleActivity {
+public class MusicListActivity extends AppCompatActivity {
 
     @Override
-    protected Fragment setFragment() {
-        return MusicListFragment.newInstance();
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_base);
+        initFragment();
     }
 
-    @Override
-    protected String setLabel() {
-        hideActionBar();
-        return "";
+    private void initFragment() {
+        FragmentManager manager = getSupportFragmentManager();
+        Fragment fragment = manager.findFragmentById(com.yesing.blibrary_wos.R.id.fl_fragment_container);
+        if (fragment == null) {
+            fragment = setFragment();
+            if (fragment != null) {
+                manager.beginTransaction().add(com.yesing.blibrary_wos.R.id.fl_fragment_container, fragment).commit();
+            }
+        }
+    }
+
+    protected Fragment setFragment() {
+        return MusicListFragment.newInstance();
     }
 }
