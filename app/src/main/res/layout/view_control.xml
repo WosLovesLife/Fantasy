@@ -126,6 +126,17 @@
             tools:progress="30"/>
     </FrameLayout>
 
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="@dimen/statusBar_height"
+        android:background="@color/colorPrimary"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        android:visibility="gone"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        app:title="Hello World"/>
+
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fac_play_btn"
         android:layout_width="48dp"

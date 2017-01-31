@@ -1,5 +1,7 @@
 package com.wosloveslife.fantasy.ui;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -10,19 +12,26 @@ import android.os.Build;
 import android.os.Parcelable;
 import android.support.annotation.RequiresApi;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.NestedScrollingChild;
 import android.support.v4.view.NestedScrollingParent;
 import android.support.v4.view.NestedScrollingParentHelper;
+import android.support.v4.view.VelocityTrackerCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.view.ViewPropertyAnimatorCompat;
 import android.support.v4.view.ViewPropertyAnimatorListenerAdapter;
+import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
+import android.view.ViewAnimationUtils;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -86,6 +95,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     /** 二段展开时的播放/暂停按钮 */
     @BindView(R.id.fac_play_btn)
     FloatingActionButton mFacPlayBtn;
+    @BindView(R.id.toolbar)
+    Toolbar mToolbar;
 
     //==============
     private BMusic mCurrentMusic;
@@ -110,16 +121,22 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     int mMaxOffsetY;
     /** 用来记录当前头部布局的高度,因为mFlRoot.getHeight()获得到的高度可能正在设置中,会和真实的高度有偏差 */
     int mCurrentHeight;
+    //=======
     /** 最后一次设置控件高度时是展开的还是收起的.true=展开中,false=收起中 */
     boolean mExpanding;
     /** 记录当前控件的展开形态 */
     boolean mIsExpanded;
+    /** 记录当前控件的显示模式: true普通Toolbar,false歌曲控制 */
+    private boolean mIsToolbarShown;
     //======
     /** 用于计算展开/收起的动画 */
     ValueAnimator mAnimator;
     //======
+    VelocityTracker mVelocityTracker;
     int mTouchSlop;
     int mMinimumFlingVelocity;
+    int mMaximumFlingVelocity;
+    int mScrollPointerId;
     //======
     /** 封面的最大弧度(为圆形时) */
     int mAlbumMaxRadius;
@@ -159,7 +176,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         mStatusBarHeight = (int) getResources().getDimension(R.dimen.statusBar_height);
         mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
         mMinimumFlingVelocity = ViewConfiguration.get(getContext()).getScaledMinimumFlingVelocity();
+        mMaximumFlingVelocity = ViewConfiguration.get(getContext()).getScaledMaximumFlingVelocity();
 
+        mVelocityTracker = VelocityTracker.obtain();
         mParentHelper = new NestedScrollingParentHelper(this);
     }
 
@@ -168,12 +187,14 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         ControlViewState state = new ControlViewState(super.onSaveInstanceState());
         state.mIsExpanded = mIsExpanded;
         state.mExpanding = mExpanding;
+        state.mIsToolbarShown = mIsToolbarShown;
         return state;
     }
 
     class ControlViewState extends BaseSavedState {
         boolean mExpanding;
         boolean mIsExpanded;
+        boolean mIsToolbarShown;
 
         ControlViewState(Parcelable source) {
             super(source);
@@ -194,7 +215,11 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         mExpanding = cs.mExpanding;
         mIsExpanded = cs.mIsExpanded;
 
-        toggleExpand(mIsExpanded);
+        if (cs.mIsToolbarShown) {
+            toggleToolbarShown(true);
+        } else {
+            toggleExpand(mIsExpanded);
+        }
     }
 
     @Override
@@ -208,10 +233,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 childAt.setPadding(0, mHeadMinHeight + mStatusBarHeight, 0, 0);
             }
         }
-
-        ViewGroup.LayoutParams params = mIvBg.getLayoutParams();
-        params.height = params.height + mStatusBarHeight;
-        mIvBg.setLayoutParams(params);
     }
 
     @Override
@@ -228,8 +249,59 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         mFacPlayBtn.hide();
 
+        mFlRoot.setOnTouchListener(new OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                boolean consume = false;
+                float y = event.getY();
+                mVelocityTracker.addMovement(event);
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        mScrollPointerId = MotionEventCompat.getPointerId(event, 0);
+                        mHeadDownY = y;
+                        mHeadClick = true;
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        if (Math.abs(mHeadDownY - y) > mTouchSlop) {
+                            int deltaY = Math.round(mHeadLastY - y);
+                            setOffsetBy(deltaY);
+                            consume = true;
+                            mHeadClick = false;
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        if (mHeadClick) {
+                            performClick();
+                            break;
+                        }
+                        mVelocityTracker.computeCurrentVelocity(1000, mMaximumFlingVelocity);
+                        float velocityY = VelocityTrackerCompat.getYVelocity(mVelocityTracker, mScrollPointerId);
+                        if (Math.abs(velocityY) < mMinimumFlingVelocity
+                                || (velocityY < 0 && mFlRoot.getHeight() <= mHeadMinHeight)
+                                || (velocityY > 0 && mFlRoot.getHeight() >= mHeadMaxHeight)) {
+                            if (mAnimator == null || !mAnimator.isRunning()) {
+                                toggleExpand(mCurrentHeight > mHeadMinHeight + mMaxOffsetY / 2);
+                            }
+                        } else {
+                            toggleExpand(velocityY > 0);
+                        }
+
+                        mVelocityTracker.clear();
+                        consume = true;
+                        break;
+                }
+                mHeadLastY = y;
+                return consume;
+            }
+        });
+
         addView(view);
     }
+
+    float mHeadLastY;
+    float mHeadDownY;
+    boolean mHeadClick;
 
     public void setPlayer(SimpleExoPlayer player) {
         mPlayer = player;
@@ -259,11 +331,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
      * @param music
      */
     public void syncPlayView(BMusic music) {
-        if (music == null) return;
-
-        if (mPlayer == null) {
-            throw new IllegalStateException("必须先设置Player");
-        }
+        if (music == null || mPlayer == null) return;
 
         if (mPlayer.getPlayWhenReady()) {
             mIvPlayBtn.setImageResource(R.drawable.ic_pause);
@@ -273,27 +341,37 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             mFacPlayBtn.setImageResource(R.drawable.ic_play_arrow);
         }
 
-        if (music.equals(mCurrentMusic)) {
-            return;
-        }
-        mCurrentMusic = music;
+        if (music.equals(mCurrentMusic)) return;
 
+        mCurrentMusic = music;
+        mIsOnline = mCurrentMusic.path.startsWith("http");
+
+        mTvTitle.setText(TextUtils.isEmpty(music.title) ? "未知" : music.title);
+        mTvArtist.setText(TextUtils.isEmpty(music.artist) ? "未知" : music.artist);
+        mTvProgress.setText("00:00");
+        mTvDuration.setText(DateFormat.format("mm:ss", music.duration).toString());
+
+        updateAlbum(music.album);
+        updateProgress();
+    }
+
+    /**
+     * 通过Pattern获得封面的色调作为头部控件收起时和Toolbar的背景色<br/>
+     * 对封面作模糊处理作为头部控件展开时的背景图<br/>
+     * 对封面信息做对比,如果是同样的封面(同专辑)就不作处理,避免不必要的开支和可能的延迟
+     *
+     * @param album 封面地址
+     */
+    private void updateAlbum(String album) {
         try {
             Glide.with(getContext())
-                    .load(music.album)
+                    .load(album)
                     .placeholder(R.color.colorCement)
                     .crossFade()
                     .into(mIvAlbum);
         } catch (Throwable e) {
             Logger.w("Glide错误,可忽略");
         }
-        mTvTitle.setText(TextUtils.isEmpty(music.title) ? "未知" : music.title);
-        mTvArtist.setText(TextUtils.isEmpty(music.artist) ? "未知" : music.artist);
-        mTvProgress.setText("00:00");
-        mTvDuration.setText(DateFormat.format("mm:ss", music.duration).toString());
-
-        mIsOnline = mCurrentMusic.path.startsWith("http");
-        updateProgress();
     }
 
     private void updateProgress() {
@@ -349,9 +427,16 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
     };
 
-    @OnClick({R.id.iv_previous_btn, R.id.iv_play_btn, R.id.iv_next_btn, R.id.fac_play_btn})
+    @OnClick({R.id.fl_root, R.id.toolbar, R.id.iv_previous_btn, R.id.iv_play_btn, R.id.iv_next_btn, R.id.fac_play_btn})
     public void onClick(View view) {
         switch (view.getId()) {
+            case R.id.fl_root:
+                if (mDragging) return;
+                toggleToolbarShown(true);
+                break;
+            case R.id.toolbar:
+                toggleToolbarShown(false);
+                break;
             case R.id.iv_previous_btn:
                 if (mControlListener != null) {
                     mControlListener.previous();
@@ -380,6 +465,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         removeCallbacks(updateProgressAction);
+        mVelocityTracker.recycle();
     }
 
     //==============================================================================================
@@ -402,6 +488,23 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     //==============================================================================================
     //=========================================View联动相关=========================================
     //==============================================================================================
+
+    //========================================触摸事件-start======================================
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_POINTER_UP:
+            case MotionEvent.ACTION_CANCEL:
+                mDragging = false;
+                break;
+            default:
+                mDragging = true;
+                break;
+        }
+        return super.onInterceptTouchEvent(ev);
+    }
 
     //========================================NestScroll-start======================================
 
@@ -528,6 +631,10 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     //========================================其它的联动效果========================================
 
     private void linkViews(final float offsetRadius) {
+        if (mToolbar.getVisibility() == VISIBLE) {
+            toggleToolbarShown(false);
+        }
+
         if (mExpanding && !mIsExpanded && offsetRadius > 0.5f) {
             mIsExpanded = true;
         } else if (!mExpanding && mIsExpanded && offsetRadius < 0.5) {
@@ -622,6 +729,69 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             }
             Drawable targetDrawable = new ColorDrawable(getResources().getColor(R.color.colorPrimary));
             mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 240));
+        }
+    }
+
+    /**
+     * 切换为普通Toolbar模式或者歌曲信息模式.<bar/>
+     * 注意, 如果当前头部处于展开状态,则不会进行任何切换处理.
+     *
+     * @param isToolbarShown true 将头部切换为Toolbar,显示导航键,列表名,menu等
+     */
+    private void toggleToolbarShown(boolean isToolbarShown) {
+        if (mIsExpanded || mIsToolbarShown == isToolbarShown) return;
+        mIsToolbarShown = isToolbarShown;
+        if (isToolbarShown && mToolbar.getVisibility() != VISIBLE) {
+            mToolbar.setVisibility(VISIBLE);
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                Animator animator = ViewAnimationUtils.createCircularReveal(
+                        mToolbar,
+                        mIvAlbum.getWidth() / 2 + mIvAlbum.getLeft(),
+                        mToolbar.getHeight() / 2,
+                        0,
+                        mToolbar.getWidth());
+                animator.setInterpolator(new AccelerateDecelerateInterpolator());
+                animator.setDuration(320);
+                animator.start();
+            } else {
+                ViewCompat.animate(mToolbar)
+                        .alpha(1)
+                        .setDuration(200)
+                        .setListener(null)
+                        .start();
+            }
+        } else if (!isToolbarShown && mToolbar.getVisibility() == VISIBLE) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                Animator animator = ViewAnimationUtils.createCircularReveal(
+                        mToolbar,
+                        mIvAlbum.getWidth() / 2 + mIvAlbum.getLeft(),
+                        mToolbar.getHeight() / 2,
+                        mToolbar.getWidth(),
+                        0);
+                animator.setInterpolator(new AccelerateDecelerateInterpolator());
+                animator.setDuration(320);
+                animator.addListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        super.onAnimationEnd(animation);
+                        mToolbar.setVisibility(GONE);
+                    }
+                });
+                animator.start();
+            } else {
+                ViewCompat.animate(mToolbar)
+                        .alpha(0)
+                        .setDuration(200)
+                        .setListener(new ViewPropertyAnimatorListenerAdapter() {
+                            @Override
+                            public void onAnimationEnd(View view) {
+                                super.onAnimationEnd(view);
+                                mToolbar.setVisibility(GONE);
+                            }
+                        })
+                        .start();
+            }
         }
     }
 
