@@ -2,14 +2,20 @@ package com.wosloveslife.fantasy.manager;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
 
+import com.mpatric.mp3agic.ID3v2;
+import com.mpatric.mp3agic.Mp3File;
+import com.orhanobut.logger.Logger;
+import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.event.RefreshEvent;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
+import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -18,7 +24,7 @@ import java.util.List;
 
 import rx.Observable;
 import rx.Subscriber;
-import rx.functions.Action1;
+import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
 /**
@@ -72,13 +78,15 @@ public class MusicManager {
                 EventBus.getDefault().post(new OnGotMusicEvent(mPinyinIndex, mMusicList));
                 EventBus.getDefault().post(new RefreshEventM(false));
 
-                subscriber.onNext("");
+                subscriber.onNext(null);
                 subscriber.onCompleted();
             }
-        }).subscribeOn(Schedulers.io())
-                .subscribe(new Action1<Object>() {
+        })
+                .subscribeOn(Schedulers.io())
+                .subscribe(new SubscriberAdapter<Object>() {
                     @Override
-                    public void call(Object o) {
+                    public void onNext(Object o) {
+                        super.onNext(o);
                         mLoading = false;
                     }
                 });
@@ -213,6 +221,64 @@ public class MusicManager {
         }
         return null;
     }
+
+    //=======================================工具方法=============================================
+
+    /**
+     * 获取歌曲封面, 会首先尝试从本地歌曲文件中通过ID3v2来获取封面,如果失败,会尝试从网络自动获取(如果开启了联网)
+     *
+     * @param resPath    本地歌曲路径
+     * @param bitmapSize 压缩后的大小,提高速度,避免OOM
+     */
+    public static Observable<Bitmap> getAlbum(final String resPath, final int bitmapSize) {
+        return Observable.create(new Observable.OnSubscribe<Bitmap>() {
+            @Override
+            public void call(Subscriber<? super Bitmap> subscriber) {
+                Logger.d("尝试从本地歌曲文件中解析 时间 = " + System.currentTimeMillis());
+                Bitmap bitmap = null;
+                try {
+                    Mp3File mp3file = new Mp3File(resPath);
+                    if (mp3file.hasId3v2Tag()) {
+                        Logger.d("开始从ID3v2中解析封面 时间 = " + System.currentTimeMillis());
+                        bitmap = getAlbumFromID3v2(mp3file.getId3v2Tag(), bitmapSize);
+                    }
+                } catch (Throwable e) {
+                    Logger.w("从本地歌曲中解析封面失败,可忽略 error : " + e);
+                }
+
+                subscriber.onNext(bitmap);
+                subscriber.onCompleted();
+            }
+        })
+                .map(new Func1<Bitmap, Bitmap>() {
+                    @Override
+                    public Bitmap call(Bitmap bitmap) {
+                        if (bitmap == null) {
+                            /* TODO 联网获取歌曲信息,并存储本地歌曲文件 */
+                        }
+                        return bitmap;
+                    }
+                })
+                .subscribeOn(Schedulers.computation());
+    }
+
+    /**
+     * 从歌曲文件的ID3v2字段中读取封面信息并更新封面
+     *
+     * @param id3v2Tag   ID3v2Tag,通过它来从歌曲文件中读取封面
+     * @param bitmapSize 对封面尺寸进行压缩,防止OOM和速度过慢问题.<=0时不压缩
+     */
+    @WorkerThread
+    public static Bitmap getAlbumFromID3v2(final ID3v2 id3v2Tag, final int bitmapSize) {
+        Bitmap bitmap = null;
+        byte[] image = id3v2Tag.getAlbumImage();
+        if (image != null && bitmapSize > 0) {
+            /* 通过自定义Option缩减Bitmap生成的时间.以及避免OOM */
+            bitmap = BitmapUtils.getScaledDrawable(image, bitmapSize, bitmapSize, Bitmap.Config.RGB_565);
+        }
+        return bitmap;
+    }
+
 
     //========================================事件==================================================
     public static class RefreshEventM extends RefreshEvent {

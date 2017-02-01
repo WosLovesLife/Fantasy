@@ -2,11 +2,18 @@ package com.wosloveslife.fantasy;
 
 import android.app.Application;
 import android.content.Intent;
+import android.support.annotation.MainThread;
+import android.support.annotation.WorkerThread;
 
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.services.PlayService;
+
+import rx.Observable;
+import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by zhangh on 2017/1/2.
@@ -31,5 +38,26 @@ public class App extends Application {
     private void initManager() {
         SPHelper.getInstance().init(this);
         MusicManager.getInstance().init(this);
+    }
+
+    @WorkerThread
+    public static void executeOnComputationThread(Subscriber subscriber) {
+        Observable.empty()
+                .observeOn(Schedulers.computation())
+                .subscribe(subscriber);
+    }
+
+    public static void executeOnIoThread(Subscriber subscriber) {
+        Observable.empty()
+                .observeOn(Schedulers.io())
+                .subscribe(subscriber);
+    }
+
+    @MainThread
+    public static void executeOnMainThread(Subscriber subscriber) {
+        Observable.empty()
+                .subscribeOn(Schedulers.immediate())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(subscriber);
     }
 }
