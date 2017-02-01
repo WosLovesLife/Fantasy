@@ -11,6 +11,7 @@ android {
         targetSdkVersion 22
         versionCode 1
         versionName "1.0"
+        vectorDrawables.useSupportLibrary = true
     }
     buildTypes {
         release {
@@ -41,5 +42,5 @@ dependencies {
     compile 'com.google.android.exoplayer:exoplayer:r2.1.1'
     //============圆角图片
     compile 'com.makeramen:roundedimageview:2.3.0'
-    compile 'com.android.support:palette-v7:25.1.0'
+    compile 'com.android.support:palette-v7:23.+'
 }
