@@ -2,8 +2,6 @@ package com.wosloveslife.fantasy;
 
 import android.app.Application;
 import android.content.Intent;
-import android.support.annotation.MainThread;
-import android.support.annotation.WorkerThread;
 
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.helper.SPHelper;
@@ -40,7 +38,6 @@ public class App extends Application {
         MusicManager.getInstance().init(this);
     }
 
-    @WorkerThread
     public static void executeOnComputationThread(Subscriber subscriber) {
         Observable.empty()
                 .observeOn(Schedulers.computation())
@@ -53,7 +50,6 @@ public class App extends Application {
                 .subscribe(subscriber);
     }
 
-    @MainThread
     public static void executeOnMainThread(Subscriber subscriber) {
         Observable.empty()
                 .subscribeOn(Schedulers.immediate())

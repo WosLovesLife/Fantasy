@@ -15,6 +15,8 @@ import android.os.Build;
 import android.os.Parcelable;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
+import android.support.annotation.UiThread;
+import android.support.annotation.WorkerThread;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.NestedScrollingChild;
@@ -257,14 +259,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         super.onRestoreInstanceState(cs.getSuperState());
 
         /* 恢复操作 */
-        mExpanding = cs.mExpanding;
-        mIsExpanded = cs.mIsExpanded;
-
-        if (cs.mIsToolbarShown) {
-            toggleToolbarShown(true);
-        } else {
-            toggleExpand(mIsExpanded);
-        }
+        toggleToolbarShown(cs.mIsToolbarShown);
+        toggleExpand(cs.mIsExpanded);
     }
 
     @Override
@@ -380,6 +376,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
      *
      * @param music
      */
+    @UiThread
     public void syncPlayView(BMusic music) {
         if (music == null || mPlayer == null) return;
 
@@ -428,6 +425,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
      *
      * @param bitmap 如果等于null 则恢复默认的色彩和背景
      */
+    @WorkerThread
     private void updateAlbum(@Nullable Bitmap bitmap) {
         if (bitmap == null && mAlbum == mDefAlbum) return;
 
@@ -439,17 +437,13 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             mColorBody = mDefColorBody;
         } else {
             mAlbum = new BitmapDrawable(bitmap);
+            mBlurredAlbum = new BitmapDrawable(new StackBlurManager(bitmap).process(30));
 
             Palette.Swatch mutedSwatch = from(bitmap).generate().getMutedSwatch();
             if (mutedSwatch != null) {
                 mColorMutedBg = new ColorDrawable(mutedSwatch.getRgb());
                 mColorTitle = new ColorDrawable(mutedSwatch.getTitleTextColor());
                 mColorBody = new ColorDrawable(mutedSwatch.getBodyTextColor());
-            }
-
-            mBlurredAlbum = new BitmapDrawable(new StackBlurManager(bitmap).process(30));
-            if (mIsExpanded) {
-                toggleAlbumBg(true);
             }
         }
 
@@ -494,6 +488,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         });
     }
 
+    @UiThread
     private void updateProgress() {
         long duration = mPlayer == null ? 0 : mPlayer.getDuration();
         long position = mPlayer == null ? 0 : mPlayer.getCurrentPosition();

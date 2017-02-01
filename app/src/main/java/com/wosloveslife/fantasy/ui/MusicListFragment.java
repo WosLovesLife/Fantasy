@@ -124,7 +124,7 @@ public class MusicListFragment extends BaseFragment {
         mAdapter = new MusicListAdapter();
         mAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<BMusic>() {
             @Override
-            public void onItemClick(BMusic music, View v, int position) {
+            public void onItemClick(final BMusic music, View v, int position) {
                 if (mCurrentMusic != music) {
                     mCurrentMusic = music;
                     mPlayBinder.play(music);
