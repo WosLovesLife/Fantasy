@@ -51,6 +51,7 @@ import com.mpatric.mp3agic.Mp3File;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
+import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.utils.FormatUtils;
 import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
@@ -62,7 +63,6 @@ import butterknife.OnClick;
 import rx.Observable;
 import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 import stackblur_java.StackBlurManager;
 
@@ -164,6 +164,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     int mAlbumMaxRadius;
     /** 歌曲名/艺术家/播放进度文字等的最小左边距,同时也是最大向左偏移量 */
     int mMinLeftMargin;
+    int mAlbumSize;
     /** 播放总时长文字的最大向右偏移量 */
     int mDurationRightMargin;
     int mStatusBarHeight;
@@ -208,6 +209,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         /* 圆形的角度等于边长的一半,因为布局中写死了48dp,因此这里取24dp,如果有需要,应该在onSizeChanged()方法中监听子控件的边长除2 */
         mAlbumMaxRadius = Dp2Px.toPX(getContext(), 24);
         mMinLeftMargin = Dp2Px.toPX(getContext(), 56);
+        mAlbumSize = Dp2Px.toPX(getContext(), 48);
         mDurationRightMargin = Dp2Px.toPX(getContext(), 58);
         mStatusBarHeight = (int) getResources().getDimension(R.dimen.statusBar_height);
         mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
@@ -423,7 +425,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                         if (image != null) {
                             Logger.d("从歌曲中读取封面结束 时间 = " + System.currentTimeMillis() + "; 大小 = " + image.length);
                             /* 通过自定义Option缩减Bitmap生成的时间.以及避免OOM */
-                            bitmap = BitmapUtils.getScaledDrawable(image, mIvAlbum.getWidth(), mIvAlbum.getHeight(), Bitmap.Config.RGB_565);
+                            bitmap = BitmapUtils.getScaledDrawable(image, mAlbumSize, mAlbumSize, Bitmap.Config.RGB_565);
                         }
                         subscriber.onNext(bitmap);
                         subscriber.onCompleted();
@@ -431,9 +433,14 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 })
                         .subscribeOn(Schedulers.computation())
                         .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(new Action1<Bitmap>() {
+                        .subscribe(new SubscriberAdapter<Bitmap>() {
                             @Override
-                            public void call(Bitmap bitmap) {
+                            public void onError(Throwable e) {
+                                Logger.w("由于未知的原因ViewDetachedFromWindow导致CircularReveal动画报错,但是不影响最终效果,暂时忽略. " + e);
+                            }
+
+                            @Override
+                            public void onNext(Bitmap bitmap) {
                                 if (bitmap == null) {
                                     /* TODO: 请求网络下载封面 */
                                 }
@@ -504,9 +511,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             })
                     .subscribeOn(Schedulers.computation())
                     .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(new Action1<Bitmap>() {
+                    .subscribe(new SubscriberAdapter<Bitmap>() {
                         @Override
-                        public void call(Bitmap b) {
+                        public void onNext(Bitmap b) {
                             Logger.d("背景模糊渲染完成 时间 = " + System.currentTimeMillis());
                             mBlurredAlbum = new BitmapDrawable(b);
                             if (mIsExpanded) {
