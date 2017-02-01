@@ -217,7 +217,7 @@ public class PhotoViewActivity extends AppCompatActivity {
                             .diskCacheStrategy(DiskCacheStrategy.SOURCE)
                             .into(photoView);
                 } catch (Throwable e) {
-                    WLogger.logE("Glide", e);
+                    WLogger.e(e, "Glide");
                 }
             } else {
                 progressBar.setVisibility(View.GONE);
@@ -307,7 +307,7 @@ public class PhotoViewActivity extends AppCompatActivity {
                         }
                     });
         } catch (Throwable e) {
-            WLogger.logE("Glide发生错误", e);
+            WLogger.e(e, "Glide发生错误");
         }
     }
 

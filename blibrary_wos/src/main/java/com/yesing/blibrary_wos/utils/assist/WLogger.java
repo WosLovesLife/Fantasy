@@ -10,27 +10,39 @@ public class WLogger {
 
     public static boolean sIsDebug = true;
 
-    public static void logD(String message) {
+    public static void v(String message) {
         if (sIsDebug) {
-            Log.d(TAG, "logD: Log输出 " + message);
+            Log.d(TAG, "WLogger v : " + message);
         }
     }
 
-    public static void logW(String message) {
+    public static void d(String message) {
         if (sIsDebug) {
-            Log.w(TAG, "logD: Log输出 " + message);
+            Log.d(TAG, "WLogger d: " + message);
         }
     }
 
-    public static void logE(String message) {
+    public static void i(String message) {
         if (sIsDebug) {
-            Log.e(TAG, "logD: Log输出 " + message);
+            Log.d(TAG, "WLogger i: " + message);
         }
     }
 
-    public static void logE(String message, Throwable e) {
+    public static void w(String message) {
         if (sIsDebug) {
-            Log.e(TAG, "logD: Log输出 " + message, e);
+            Log.w(TAG, "WLogger w: " + message);
+        }
+    }
+
+    public static void e(String message) {
+        if (sIsDebug) {
+            Log.e(TAG, "WLogger e: " + message);
+        }
+    }
+
+    public static void e(Throwable e, String message) {
+        if (sIsDebug) {
+            Log.e(TAG, "WLogger e: " + message, e);
         }
     }
 }

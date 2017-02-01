@@ -12,9 +12,9 @@ import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.Mp3File;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
+import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.event.RefreshEvent;
-import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 
 import org.greenrobot.eventbus.EventBus;
@@ -123,7 +123,7 @@ public class MusicManager {
                 }
             }
         } catch (Throwable e) {
-            WLogger.logE("从系统数据库读取音乐失败", e);
+            Logger.e(e, "从系统数据库读取音乐失败");
         } finally {
             cursor.close();
         }
@@ -269,7 +269,7 @@ public class MusicManager {
      * @param bitmapSize 对封面尺寸进行压缩,防止OOM和速度过慢问题.<=0时不压缩
      */
     @WorkerThread
-    public static Bitmap getAlbumFromID3v2(final ID3v2 id3v2Tag, final int bitmapSize) {
+    private static Bitmap getAlbumFromID3v2(final ID3v2 id3v2Tag, final int bitmapSize) {
         Bitmap bitmap = null;
         byte[] image = id3v2Tag.getAlbumImage();
         if (image != null && bitmapSize > 0) {
@@ -277,6 +277,68 @@ public class MusicManager {
             bitmap = BitmapUtils.getScaledDrawable(image, bitmapSize, bitmapSize, Bitmap.Config.RGB_565);
         }
         return bitmap;
+    }
+
+    public static BLyric getLrc(final String resPath) {
+        BLyric bLyric = null;
+        try {
+            Mp3File mp3file = new Mp3File(resPath);
+            if (mp3file.hasId3v2Tag()) {
+                String lyrics = mp3file.getId3v2Tag().getLyrics();
+                if (!TextUtils.isEmpty(lyrics)) {
+                    bLyric = generateLrcData(lyrics);
+                }
+            }
+        } catch (Throwable e) {
+            Logger.w("从本地歌曲中解析歌词失败,可忽略 error : " + e);
+        }
+
+        if (bLyric == null) {
+            /* TODO 没有内嵌歌词 ,尝试从网络获取,如果开启了网络 */
+        }
+
+        return bLyric;
+    }
+
+    public static BLyric generateLrcData(String lrcContent) {
+        if (TextUtils.isEmpty(lrcContent)) return null;
+
+        List<BLyric.LyricLine> lrcLines = new ArrayList<>();
+        int startPoint = 0;
+        int leftIndex;
+        int rightIndex;
+        while ((leftIndex = lrcContent.indexOf("[", startPoint)) != -1) {
+            rightIndex = lrcContent.indexOf("]", ++startPoint);
+            if (rightIndex == -1) continue;
+            String time = lrcContent.substring(leftIndex + 1, rightIndex);
+            int timestamp = lrcTime2Timestamp(time);
+
+            startPoint = rightIndex + 1;
+            if (startPoint >= lrcContent.length()) break;
+
+            int i = lrcContent.indexOf("[", startPoint);
+
+            String content = lrcContent.substring(startPoint, i);
+
+            lrcLines.add(new BLyric.LyricLine(timestamp, content));
+        }
+        return new BLyric(lrcLines);
+    }
+
+    private static int lrcTime2Timestamp(String time) {
+        int minutes = string2Int(time.substring(0, 2));
+        int seconds = string2Int(time.substring(3, 5));
+        int milliseconds = string2Int(time.substring(6, 8));
+        return minutes * 60 * 1000 + seconds * 1000 + milliseconds * 10;
+    }
+
+    public static int string2Int(String str) {
+        try {
+            return Integer.parseInt(str);
+        } catch (Throwable e) {
+            Logger.w("时间转换错误");
+        }
+        return 0;
     }
 
 

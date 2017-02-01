@@ -90,7 +90,7 @@ public class PlayService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        WLogger.logW("onBind(Intent intent)");
+        WLogger.w("onBind(Intent intent)");
         return new PlayBinder();
     }
 
@@ -225,7 +225,7 @@ public class PlayService extends Service {
         }
 
         if (next == null) {
-            WLogger.logE("next(); 获取下一首歌曲失败");
+            WLogger.e("next(); 获取下一首歌曲失败");
             //todo 传递异常
             return;
         }
@@ -247,7 +247,7 @@ public class PlayService extends Service {
 
         /* 如果第一首歌也没有了,则说明发生了异常状况 */
         if (previous == null) {
-            WLogger.logE("next(); 获取上一首歌曲失败");
+            WLogger.e("next(); 获取上一首歌曲失败");
         }
 
         play(previous);
@@ -299,7 +299,7 @@ public class PlayService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        WLogger.logW("onCreate()");
+        WLogger.w("onCreate()");
 
         mContext = this;
 
@@ -333,7 +333,7 @@ public class PlayService extends Service {
     /** 每次调用startService()启用该服务时都被调用 */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        WLogger.logW("onStartCommand(Intent intent, int flags, int startId); startId = " + startId);
+        WLogger.w("onStartCommand(Intent intent, int flags, int startId); startId = " + startId);
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -344,7 +344,7 @@ public class PlayService extends Service {
     @Override
     public void onTaskRemoved(Intent rootIntent) {
         super.onTaskRemoved(rootIntent);
-        WLogger.logW("onTaskRemoved(Intent rootIntent)");
+        WLogger.w("onTaskRemoved(Intent rootIntent)");
 
         mPlayer.release();
     }
@@ -353,7 +353,7 @@ public class PlayService extends Service {
     public void onDestroy() {
         Toaster.showShort(getApplicationContext(), "onDestroy()");
         super.onDestroy();
-        WLogger.logW("onDestroy()");
+        WLogger.w("onDestroy()");
     }
 
     //==================================播放逻辑-start==============================================
@@ -463,36 +463,36 @@ public class PlayService extends Service {
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        WLogger.logW("onConfigurationChanged(Configuration newConfig)");
+        WLogger.w("onConfigurationChanged(Configuration newConfig)");
     }
 
     @Override
     public void onLowMemory() {
         super.onLowMemory();
-        WLogger.logW("onLowMemory()");
+        WLogger.w("onLowMemory()");
     }
 
     @Override
     public void onTrimMemory(int level) {
         super.onTrimMemory(level);
-        WLogger.logW("onTrimMemory(int level); level = " + level);
+        WLogger.w("onTrimMemory(int level); level = " + level);
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
-        WLogger.logW("onUnbind(Intent intent)");
+        WLogger.w("onUnbind(Intent intent)");
         return super.onUnbind(intent);
     }
 
     @Override
     public void onRebind(Intent intent) {
         super.onRebind(intent);
-        WLogger.logW("onRebind(Intent intent)");
+        WLogger.w("onRebind(Intent intent)");
     }
 
     @Override
     protected void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
         super.dump(fd, writer, args);
-        WLogger.logW("dump(FileDescriptor fd, PrintWriter writer, String[] args)");
+        WLogger.w("dump(FileDescriptor fd, PrintWriter writer, String[] args)");
     }
 }

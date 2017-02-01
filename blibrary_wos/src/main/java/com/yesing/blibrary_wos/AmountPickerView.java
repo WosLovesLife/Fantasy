@@ -128,7 +128,7 @@ public class AmountPickerView extends LinearLayout {
                     amount = amount < 1 ? 1 : amount;
 
                 } catch (NumberFormatException e) {
-                    WLogger.logE("数字转换错误", e);
+                    WLogger.e(e, "数字转换错误");
                     amount = 1;
                 }
                 mEditText.setSelection(mEditText.getText().length());
@@ -160,7 +160,7 @@ public class AmountPickerView extends LinearLayout {
         try {
             amount = Integer.parseInt(mEditText.getText().toString());
         } catch (NumberFormatException e) {
-            WLogger.logE("数字转换错误", e);
+            WLogger.e(e, "数字转换错误");
             amount = 1;
         }
         return amount;
