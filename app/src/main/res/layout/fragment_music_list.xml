@@ -17,13 +17,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
-
-        <com.wosloveslife.fantasy.ui.LrcView
-            android:id="@+id/lrc_view"
-            android:layout_width="match_parent"
-            android:layout_height="200dp"
-            android:layout_marginTop="@dimen/statusBar_height"
-            android:background="@color/greenGrass"/>
     </com.wosloveslife.fantasy.ui.ControlView>
 
     <android.support.design.widget.NavigationView

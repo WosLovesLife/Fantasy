@@ -17,6 +17,7 @@ import android.view.animation.DecelerateInterpolator;
 
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.bean.BLyric;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 
@@ -71,15 +72,11 @@ public class LrcView extends View {
     }
 
     private void init() {
-        mTextSize = Dp2Px.toPX(getContext(), 18);
-        mTextSpace = mTextSize + Dp2Px.toPX(getContext(), 8);
-
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mPaint.setTextSize(mTextSize);
         mPaint.setColor(getResources().getColor(R.color.gray_light));
         mChosenPaint = new Paint(mPaint);
         mChosenPaint.setColor(getResources().getColor(R.color.white));
-
+        setTextSize(16, 8);
 
         mScroller = ScrollerCompat.create(getContext(), new DecelerateInterpolator());
         mVelocityTracker = VelocityTracker.obtain();
@@ -122,14 +119,8 @@ public class LrcView extends View {
         }
     }
 
-    public void setLrc(BLyric lrc) {
-        mBLyric = lrc;
-        if (mBLyric != null && mBLyric.mLrc != null) {
-            mMaxScrollRange = (mBLyric.mLrc.size() - 1) * mTextSpace;
-        }
-        mChosenLine = 0;
-        scrollTo(0, 0);
-        invalidate();
+    private void postPlay() {
+
     }
 
     float mDownY;
@@ -147,6 +138,7 @@ public class LrcView extends View {
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                WLogger.d("onTouchEvent : ACTION_DOWN ");
                 mDownY = y;
                 mScrollPointerId = MotionEventCompat.getPointerId(event, 0);
                 if (!mScroller.isFinished()) {
@@ -156,7 +148,6 @@ public class LrcView extends View {
             case MotionEvent.ACTION_MOVE:
                 float deltaY = mLastY - y;
                 scrollYBy((int) deltaY);
-                consume = true;
                 break;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
@@ -183,9 +174,10 @@ public class LrcView extends View {
     private void fling(int yVelocity) {
         mScroller.fling(
                 getScrollX(), getScrollY(),
-                0, -yVelocity / 3,
+                0, -yVelocity,
                 Integer.MIN_VALUE, Integer.MAX_VALUE,
-                Integer.MIN_VALUE, Integer.MAX_VALUE);
+                0, mMaxScrollRange);
+        invalidate();
     }
 
     @Override
@@ -197,30 +189,50 @@ public class LrcView extends View {
     }
 
     public void scrollYBy(int y) {
-        int currentY = getScrollY();
-        if (y < 0 && currentY <= 0) return;
-        if (y > 0 && currentY >= mMaxScrollRange) return;
-
-        scrollYTo(currentY + y);
+        scrollYTo(getScrollY() + y);
     }
 
     public void scrollYTo(int targetY) {
         int currentY = getScrollY();
-        if (targetY == currentY) return;
+        if (targetY <= 0 && currentY <= 0) return;
+        if (targetY >= mMaxScrollRange && currentY >= mMaxScrollRange) return;
 
         if (targetY < 0) {
             targetY = 0;
         } else if (targetY > mMaxScrollRange) {
             targetY = mMaxScrollRange;
         }
-
-        int newChosen = Math.round(targetY * 1f / mTextSpace);
-
         super.scrollTo(0, targetY);
 
+        int newChosen = Math.round(targetY * 1f / mTextSpace);
         if (mChosenLine != newChosen) {
             mChosenLine = newChosen;
             invalidate();
         }
+    }
+
+    //==============================================================================================
+    public void setLrc(BLyric lrc) {
+        mBLyric = lrc;
+        if (mBLyric != null && mBLyric.mLrc != null) {
+            mMaxScrollRange = (mBLyric.mLrc.size() - 1) * mTextSpace;
+        }
+        mChosenLine = 0;
+
+        if (!mScroller.isFinished()) {
+            mScroller.abortAnimation();
+        }
+        scrollTo(0, 0);
+        invalidate();
+
+        postPlay();
+    }
+
+    public void setTextSize(float size, float span) {
+        mTextSize = (int) Dp2Px.toPX(getContext(), size);
+        mTextSpace = (int) (mTextSize + Dp2Px.toPX(getContext(), span));
+
+        mPaint.setTextSize(mTextSize);
+        mChosenPaint.setTextSize(mTextSize);
     }
 }

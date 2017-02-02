@@ -12,6 +12,9 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.os.Parcelable;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
@@ -54,9 +57,11 @@ import com.wosloveslife.fantasy.App;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
+import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.utils.FormatUtils;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import butterknife.BindView;
@@ -66,6 +71,7 @@ import rx.schedulers.Schedulers;
 import stackblur_java.StackBlurManager;
 
 import static android.support.v7.graphics.Palette.from;
+import static com.wosloveslife.fantasy.manager.MusicManager.LRC;
 
 /**
  * Created by zhangh on 2017/1/15.
@@ -118,6 +124,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     FloatingActionButton mFacPlayBtn;
     @BindView(R.id.toolbar)
     Toolbar mToolbar;
+
+    @BindView(R.id.lrc_view)
+    LrcView mLrcView;
 
     //==============
     private BMusic mCurrentMusic;
@@ -371,6 +380,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         });
     }
 
+    //==========================================状态同步-start======================================
+
     /**
      * 当歌曲切换时通过该功能同步该控件的状态
      *
@@ -416,6 +427,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
 
         updateProgress();
+
+        updateLrc(MusicManager.generateLrcData(LRC));
     }
 
     /**
@@ -510,13 +523,13 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             mPbProgress.setSecondaryProgress((int) (bufferedPosition / 1000));
         }
 
-        removeCallbacks(updateProgressAction);
+        mHandler.removeCallbacksAndMessages(null);
 
         // Schedule an update if necessary.
         int playbackState = mPlayer == null ? ExoPlayer.STATE_IDLE : mPlayer.getPlaybackState();
-        if (playbackState != ExoPlayer.STATE_IDLE && playbackState != ExoPlayer.STATE_ENDED) {
+        if (mPlayer.getPlayWhenReady() && playbackState != ExoPlayer.STATE_IDLE && playbackState != ExoPlayer.STATE_ENDED) {
             long delayMs;
-            if (mPlayer.getPlayWhenReady() && playbackState == ExoPlayer.STATE_READY) {
+            if (playbackState == ExoPlayer.STATE_READY) {
                 delayMs = 1000 - (position % 1000);
                 if (delayMs < 200) {
                     delayMs += 1000;
@@ -524,19 +537,23 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             } else {
                 delayMs = 1000;
             }
-            postDelayed(updateProgressAction, delayMs);
+            mHandler.sendEmptyMessageDelayed(0, delayMs);
         }
     }
 
-    /**
-     * 计数器回调
-     */
-    private final Runnable updateProgressAction = new Runnable() {
+    private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
-        public void run() {
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
             updateProgress();
         }
     };
+
+    private void updateLrc(BLyric bLyric) {
+        mLrcView.setLrc(bLyric);
+    }
+
+    //===========================================状态同步-end=======================================
 
     @OnClick({R.id.fl_root, R.id.toolbar, R.id.iv_previous_btn, R.id.iv_play_btn, R.id.iv_next_btn, R.id.fac_play_btn})
     public void onClick(View view) {
@@ -578,7 +595,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     @Override
     public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        removeCallbacks(updateProgressAction);
+        mHandler.removeCallbacksAndMessages(null);
         mVelocityTracker.recycle();
     }
 
@@ -763,30 +780,27 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         final int value = mIsExpanded ? 0 : 1;
         if (mIsExpanded) {
-            getScaleAlphaAnim(mIvAlbum, value)
-                    .setListener(new ViewPropertyAnimatorListenerAdapter() {
-                        @Override
-                        public void onAnimationEnd(View view) {
-                            toggleAlbumBg(mIsExpanded);
-                            toggleTextOffset(mIsExpanded);
-                            toggleControlBtn(mIsExpanded);
-                            if (mIsExpanded) {
-                                mFacPlayBtn.show();
-                            } else {
-                                mFacPlayBtn.hide();
-                            }
-                        }
-                    })
-                    .start();
+            getScaleAlphaAnim(mIvAlbum, value).setListener(new ViewPropertyAnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(View view) {
+                    toggleAlbumBg(mIsExpanded);
+                    toggleTextOffset(mIsExpanded);
+                    toggleControlBtn(mIsExpanded);
+                    if (mIsExpanded) {
+                        mFacPlayBtn.show();
+                        mLrcView.setVisibility(VISIBLE);
+                    } else {
+                        mFacPlayBtn.hide();
+                        mLrcView.setVisibility(GONE);
+                    }
+                }
+            }).start();
         } else {
             toggleAlbumBg(false);
-            toggleTextOffset(mIsExpanded);
-            toggleControlBtn(mIsExpanded);
-            if (mIsExpanded) {
-                mFacPlayBtn.show();
-            } else {
-                mFacPlayBtn.hide();
-            }
+            toggleTextOffset(false);
+            toggleControlBtn(false);
+            mFacPlayBtn.hide();
+            mLrcView.setVisibility(GONE);
             getScaleAlphaAnim(mIvAlbum, value)
                     .setListener(null)
                     .start();
