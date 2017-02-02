@@ -61,7 +61,6 @@ import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.utils.FormatUtils;
-import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import butterknife.BindView;
@@ -268,6 +267,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         super.onRestoreInstanceState(cs.getSuperState());
 
         /* 恢复操作 */
+        syncPlayView(mCurrentMusic);
         toggleToolbarShown(cs.mIsToolbarShown);
         toggleExpand(cs.mIsExpanded);
     }
@@ -394,9 +394,11 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         if (mPlayer.getPlayWhenReady()) {
             mIvPlayBtn.setImageResource(R.drawable.ic_pause);
             mFacPlayBtn.setImageResource(R.drawable.ic_pause);
+            mLrcView.setAutoSyncLrc(true, mPlayer.getCurrentPosition());
         } else {
             mIvPlayBtn.setImageResource(R.drawable.ic_play_arrow);
             mFacPlayBtn.setImageResource(R.drawable.ic_play_arrow);
+            mLrcView.setAutoSyncLrc(false, 0);
         }
 
         if (music.equals(mCurrentMusic)) return;
