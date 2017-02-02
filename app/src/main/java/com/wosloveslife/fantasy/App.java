@@ -1,6 +1,7 @@
 package com.wosloveslife.fantasy;
 
 import android.app.Application;
+import android.content.Context;
 import android.content.Intent;
 
 import com.orhanobut.logger.Logger;
@@ -17,9 +18,12 @@ import rx.schedulers.Schedulers;
  * Created by zhangh on 2017/1/2.
  */
 public class App extends Application {
+    private static Context sContext;
+
     @Override
     public void onCreate() {
         super.onCreate();
+        sContext = this;
 
         initKits();
 
@@ -55,5 +59,9 @@ public class App extends Application {
                 .subscribeOn(Schedulers.immediate())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(subscriber);
+    }
+
+    public static Context getAppContent() {
+        return sContext;
     }
 }

@@ -12,9 +12,11 @@ import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.Mp3File;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
+import com.wosloveslife.fantasy.baidu.BaiduLrc;
 import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.event.RefreshEvent;
+import com.wosloveslife.fantasy.presenter.MusicPresenter;
 import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 
 import org.greenrobot.eventbus.EventBus;
@@ -24,6 +26,7 @@ import java.util.List;
 
 import rx.Observable;
 import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
@@ -107,6 +110,7 @@ public class MusicManager {
             "[03:20.88]我终于圆了梦";
 
     Context mContext;
+    MusicPresenter mPresenter;
 
     //=============Var
     boolean mLoading;
@@ -123,7 +127,7 @@ public class MusicManager {
 
     public void init(Context context) {
         mContext = context.getApplicationContext();
-
+        mPresenter = new MusicPresenter(mContext);
         dispose();
     }
 
@@ -359,10 +363,17 @@ public class MusicManager {
         return bitmap;
     }
 
-    public static BLyric getLrc(final String resPath) {
+    public void getLrc(final BMusic bMusic, final Subscriber<BLyric> subscriber) {
+        if (subscriber == null) return;
+        if (bMusic == null) {
+            subscriber.onError(new IllegalArgumentException("BMusic不能为null"));
+            subscriber.onCompleted();
+            return;
+        }
+
         BLyric bLyric = null;
         try {
-            Mp3File mp3file = new Mp3File(resPath);
+            Mp3File mp3file = new Mp3File(bMusic.path);
             if (mp3file.hasId3v2Tag()) {
                 String lyrics = mp3file.getId3v2Tag().getLyrics();
                 if (!TextUtils.isEmpty(lyrics)) {
@@ -375,9 +386,23 @@ public class MusicManager {
 
         if (bLyric == null) {
             /* TODO 没有内嵌歌词 ,尝试从网络获取,如果开启了网络 */
+            String query = bMusic.title + (TextUtils.equals(bMusic.artist, "<unknown>") ? "" : bMusic.artist);
+            mPresenter.searchLrc(query, AndroidSchedulers.mainThread(), new SubscriberAdapter<BaiduLrc>() {
+                @Override
+                public void onNext(BaiduLrc baiduLrc) {
+                    super.onNext(baiduLrc);
+                    BLyric bLyric1 = null;
+                    if (baiduLrc != null) {
+                        bLyric1 = generateLrcData(baiduLrc.getLrcContent());
+                    }
+                    subscriber.onNext(bLyric1);
+                    subscriber.onCompleted();
+                }
+            });
+        } else {
+            subscriber.onNext(bLyric);
+            subscriber.onCompleted();
         }
-
-        return bLyric;
     }
 
     public static BLyric generateLrcData(String lrcContent) {

@@ -35,6 +35,12 @@ dependencies {
     apt 'com.jakewharton:butterknife-compiler:8.0.1'
     //============Event
     compile 'org.greenrobot:eventbus:3.0.0'
+    //============网络基础
+    compile 'com.squareup.okhttp3:okhttp:3.4.1'
+    //============Retrofit
+    compile 'com.squareup.retrofit2:retrofit:+'
+    compile 'com.squareup.retrofit2:converter-gson:+'
+    compile 'com.squareup.retrofit2:adapter-rxjava:+'
     //============Rx
     compile 'io.reactivex:rxjava:1.0.14'
     compile 'io.reactivex:rxandroid:1.0.1'

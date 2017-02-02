@@ -61,6 +61,7 @@ import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.utils.FormatUtils;
+import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import butterknife.BindView;
@@ -70,7 +71,6 @@ import rx.schedulers.Schedulers;
 import stackblur_java.StackBlurManager;
 
 import static android.support.v7.graphics.Palette.from;
-import static com.wosloveslife.fantasy.manager.MusicManager.LRC;
 
 /**
  * Created by zhangh on 2017/1/15.
@@ -177,6 +177,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     int mStatusBarHeight;
 
     //============
+    private Drawable mPlayDrawable;
+    private Drawable mPauseDrawable;
+
     private Drawable mDefAlbum;
     private Drawable mDefBlurredAlbum;
     private Drawable mDefColorMutedBg;
@@ -226,6 +229,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         mMaximumFlingVelocity = ViewConfiguration.get(getContext()).getScaledMaximumFlingVelocity();
 
         Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.bg_control);
+
+        mPlayDrawable = getResources().getDrawable(R.drawable.ic_play_arrow);
+        mPauseDrawable = getResources().getDrawable(R.drawable.ic_pause);
 
         mDefAlbum = new BitmapDrawable(bitmap);
         mDefBlurredAlbum = new BitmapDrawable(new StackBlurManager(bitmap).process(30));
@@ -392,14 +398,14 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         if (music == null || mPlayer == null) return;
 
         if (mPlayer.getPlayWhenReady()) {
-            mIvPlayBtn.setImageResource(R.drawable.ic_pause);
-            mFacPlayBtn.setImageResource(R.drawable.ic_pause);
-            mLrcView.setAutoSyncLrc(true, mPlayer.getCurrentPosition());
+            mIvPlayBtn.setImageDrawable(mPauseDrawable);
+            mFacPlayBtn.setImageDrawable(mPauseDrawable);
         } else {
-            mIvPlayBtn.setImageResource(R.drawable.ic_play_arrow);
-            mFacPlayBtn.setImageResource(R.drawable.ic_play_arrow);
-            mLrcView.setAutoSyncLrc(false, 0);
+            mIvPlayBtn.setImageDrawable(mPlayDrawable);
+            mFacPlayBtn.setImageDrawable(mPlayDrawable);
         }
+
+        toggleLrcLoop();
 
         if (music.equals(mCurrentMusic)) return;
 
@@ -430,7 +436,19 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         updateProgress();
 
-        updateLrc(MusicManager.generateLrcData(LRC));
+        MusicManager.getInstance().getLrc(mCurrentMusic, new SubscriberAdapter<BLyric>() {
+            @Override
+            public void onError(Throwable e) {
+                super.onError(e);
+                Toaster.showShort(getContext(), "错误 " + e);
+            }
+
+            @Override
+            public void onNext(BLyric bLyric) {
+                super.onNext(bLyric);
+                updateLrc(bLyric);
+            }
+        });
     }
 
     /**
@@ -553,6 +571,17 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
     private void updateLrc(BLyric bLyric) {
         mLrcView.setLrc(bLyric);
+        toggleLrcLoop();
+    }
+
+    private void toggleLrcLoop() {
+        if (mPlayer != null) {
+            if (mPlayer.getPlayWhenReady()) {
+                mLrcView.setAutoSyncLrc(true, mPlayer.getCurrentPosition());
+            } else {
+                mLrcView.setAutoSyncLrc(false, 0);
+            }
+        }
     }
 
     //===========================================状态同步-end=======================================
