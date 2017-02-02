@@ -5,8 +5,15 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
+import android.support.v4.view.MotionEventCompat;
+import android.support.v4.view.VelocityTrackerCompat;
+import android.support.v4.widget.ScrollerCompat;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
+import android.view.VelocityTracker;
 import android.view.View;
+import android.view.ViewConfiguration;
+import android.view.animation.DecelerateInterpolator;
 
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.bean.BLyric;
@@ -23,6 +30,17 @@ public class LrcView extends View {
     private int mTextSize;
     private int mTextSpace;
     private int mWidth;
+    private int mHeight;
+    private int mMaxScrollRange;
+
+    private ScrollerCompat mScroller;
+    private VelocityTracker mVelocityTracker;
+    private int mTouchSlop;
+    private int mMinimumFlingVelocity;
+    private int mMaximumFlingVelocity;
+    private int mScrollPointerId;
+    private int mChosenLine;
+    private Paint mChosenPaint;
 
     public LrcView(Context context) {
         this(context, null);
@@ -45,22 +63,43 @@ public class LrcView extends View {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        setMeasuredDimension(1080, 500);
+        if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.AT_MOST) {
+            heightMeasureSpec = MeasureSpec.makeMeasureSpec(Dp2Px.toPX(getContext(), 100), MeasureSpec.EXACTLY);
+        }
+
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
     private void init() {
-        mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mPaint.setColor(getResources().getColor(R.color.colorAccent));
+        mTextSize = Dp2Px.toPX(getContext(), 18);
+        mTextSpace = mTextSize + Dp2Px.toPX(getContext(), 8);
 
-        mTextSize = Dp2Px.toPX(getContext(), 16);
-        mTextSpace = mTextSize + Dp2Px.toPX(getContext(), 2);
+        mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mPaint.setTextSize(mTextSize);
+        mPaint.setColor(getResources().getColor(R.color.gray_light));
+        mChosenPaint = new Paint(mPaint);
+        mChosenPaint.setColor(getResources().getColor(R.color.white));
+
+
+        mScroller = ScrollerCompat.create(getContext(), new DecelerateInterpolator());
+        mVelocityTracker = VelocityTracker.obtain();
+        ViewConfiguration viewConfiguration = ViewConfiguration.get(getContext());
+        mTouchSlop = viewConfiguration.getScaledTouchSlop();
+        mMinimumFlingVelocity = viewConfiguration.getScaledMinimumFlingVelocity();
+        mMaximumFlingVelocity = viewConfiguration.getScaledMaximumFlingVelocity();
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        mVelocityTracker.recycle();
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         mWidth = w;
+        mHeight = h;
     }
 
     @Override
@@ -69,16 +108,119 @@ public class LrcView extends View {
 
         if (mBLyric == null || mBLyric.mLrc == null) return;
 
-        int v = mTextSpace;
+        int v = mTextSpace / 2 + mHeight / 2;
+        int lineCount = 0;
         for (BLyric.LyricLine lyricLine : mBLyric.mLrc) {
             float measureText = mPaint.measureText(lyricLine.content);
-            canvas.drawText(lyricLine.content, (mWidth - measureText) / 2, v, mPaint);
+            if (lineCount == mChosenLine) {
+                canvas.drawText(lyricLine.content, (mWidth - measureText) / 2, v, mChosenPaint);
+            } else {
+                canvas.drawText(lyricLine.content, (mWidth - measureText) / 2, v, mPaint);
+            }
             v += mTextSpace;
+            ++lineCount;
         }
     }
 
     public void setLrc(BLyric lrc) {
         mBLyric = lrc;
+        if (mBLyric != null && mBLyric.mLrc != null) {
+            mMaxScrollRange = (mBLyric.mLrc.size() - 1) * mTextSpace;
+        }
+        mChosenLine = 0;
+        scrollTo(0, 0);
         invalidate();
+    }
+
+    float mDownY;
+    float mLastX;
+    float mLastY;
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        boolean addVelocityTracker = false;
+        boolean consume = true;
+        float x = event.getX();
+        float y = event.getY();
+
+        final MotionEvent vtev = MotionEvent.obtain(event);
+
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mDownY = y;
+                mScrollPointerId = MotionEventCompat.getPointerId(event, 0);
+                if (!mScroller.isFinished()) {
+                    mScroller.abortAnimation();
+                }
+                break;
+            case MotionEvent.ACTION_MOVE:
+                float deltaY = mLastY - y;
+                scrollYBy((int) deltaY);
+                consume = true;
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                addVelocityTracker = true;
+                mVelocityTracker.addMovement(vtev);
+                mVelocityTracker.computeCurrentVelocity(1000, mMaximumFlingVelocity);
+                float yVelocity = VelocityTrackerCompat.getYVelocity(mVelocityTracker, mScrollPointerId);
+                if (Math.abs(yVelocity) > mMinimumFlingVelocity) {
+                    fling((int) yVelocity);
+                }
+                mVelocityTracker.clear();
+                break;
+        }
+
+        if (!addVelocityTracker) {
+            mVelocityTracker.addMovement(vtev);
+        }
+
+        mLastX = x;
+        mLastY = y;
+        return consume;
+    }
+
+    private void fling(int yVelocity) {
+        mScroller.fling(
+                getScrollX(), getScrollY(),
+                0, -yVelocity / 3,
+                Integer.MIN_VALUE, Integer.MAX_VALUE,
+                Integer.MIN_VALUE, Integer.MAX_VALUE);
+    }
+
+    @Override
+    public void computeScroll() {
+        super.computeScroll();
+        if (mScroller.computeScrollOffset()) {
+            scrollYTo(mScroller.getCurrY());
+        }
+    }
+
+    public void scrollYBy(int y) {
+        int currentY = getScrollY();
+        if (y < 0 && currentY <= 0) return;
+        if (y > 0 && currentY >= mMaxScrollRange) return;
+
+        scrollYTo(currentY + y);
+    }
+
+    public void scrollYTo(int targetY) {
+        int currentY = getScrollY();
+        if (targetY == currentY) return;
+
+        if (targetY < 0) {
+            targetY = 0;
+        } else if (targetY > mMaxScrollRange) {
+            targetY = mMaxScrollRange;
+        }
+
+        int newChosen = Math.round(targetY * 1f / mTextSpace);
+
+        super.scrollTo(0, targetY);
+
+        if (mChosenLine != newChosen) {
+            mChosenLine = newChosen;
+            invalidate();
+        }
     }
 }

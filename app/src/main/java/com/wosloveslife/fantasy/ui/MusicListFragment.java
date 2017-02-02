@@ -117,8 +117,7 @@ public class MusicListFragment extends BaseFragment {
             "[03:04.56]我终于圆了梦\n" +
             "[03:06.64]\n" +
             "[03:18.87]你就是我的全部\n" +
-            "[03:20.88]我终于圆了梦\n" +
-            "[03:22.62]";
+            "[03:20.88]我终于圆了梦";
 
     @BindView(R.id.drawer_layout)
     DrawerLayout mDrawerLayout;

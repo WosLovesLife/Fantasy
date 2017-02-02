@@ -303,6 +303,7 @@ public class MusicManager {
     public static BLyric generateLrcData(String lrcContent) {
         if (TextUtils.isEmpty(lrcContent)) return null;
 
+        lrcContent = lrcContent.replaceAll("\\n", "");
         List<BLyric.LyricLine> lrcLines = new ArrayList<>();
         int startPoint = 0;
         int leftIndex;
@@ -317,6 +318,9 @@ public class MusicManager {
             if (startPoint >= lrcContent.length()) break;
 
             int i = lrcContent.indexOf("[", startPoint);
+            if (i == -1) {
+                i = lrcContent.length();
+            }
 
             String content = lrcContent.substring(startPoint, i);
 
