@@ -2,6 +2,7 @@ package com.wosloveslife.fantasy.ui;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.animation.TimeInterpolator;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -29,12 +30,16 @@ import android.support.v4.view.VelocityTrackerCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.view.ViewPropertyAnimatorCompat;
 import android.support.v4.view.ViewPropertyAnimatorListenerAdapter;
+import android.support.v4.view.animation.FastOutLinearInInterpolator;
+import android.support.v4.view.animation.LinearOutSlowInInterpolator;
+import android.support.v4.widget.PopupWindowCompat;
 import android.support.v7.graphics.Palette;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.AttributeSet;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -45,6 +50,7 @@ import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -63,6 +69,7 @@ import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.utils.FormatUtils;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import butterknife.BindView;
@@ -138,6 +145,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     //=============Var
     /** 如果手正在拖动SeekBar,就不能让Progress自动跳转 */
     boolean mDragging;
+    int mWidth;
+    int m16dp;
+    int m48dp;
 
     //=============联动相关
     NestedScrollingParentHelper mParentHelper;
@@ -176,6 +186,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     /** 播放总时长文字的最大向右偏移量 */
     int mDurationRightMargin;
     int mStatusBarHeight;
+    //======SeekProgress相关
+    /** 用于显示Seek进度的悬浮框 */
+    PopupWindow mProgressPop;
 
     //============
     private Drawable mPlayDrawable;
@@ -216,13 +229,16 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     }
 
     private void init() {
+        m16dp = Dp2Px.toPX(getContext(), 16);
+        m48dp = Dp2Px.toPX(getContext(), 48);
+
         mHeadMinHeight = Dp2Px.toPX(getContext(), 56);
         mHeadMaxHeight = Dp2Px.toPX(getContext(), 160);
         mMaxOffsetY = mHeadMaxHeight - mHeadMinHeight;
         /* 圆形的角度等于边长的一半,因为布局中写死了48dp,因此这里取24dp,如果有需要,应该在onSizeChanged()方法中监听子控件的边长除2 */
         mAlbumMaxRadius = Dp2Px.toPX(getContext(), 24);
         mMinLeftMargin = Dp2Px.toPX(getContext(), 56);
-        mAlbumSize = Dp2Px.toPX(getContext(), 48);
+        mAlbumSize = m48dp;
         mDurationRightMargin = Dp2Px.toPX(getContext(), 58);
         mStatusBarHeight = (int) getResources().getDimension(R.dimen.statusBar_height);
         mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
@@ -290,6 +306,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 childAt.setPadding(0, mHeadMinHeight + mStatusBarHeight, 0, 0);
             }
         }
+
+        mWidth = w;
     }
 
     @Override
@@ -528,7 +546,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         mTvProgress.setText(FormatUtils.stringForTime(position));
 
-        mPbProgress.setProgress((int) (position / 1000));
+        if (!mDragging) {
+            mPbProgress.setProgress((int) (position / 1000));
+        }
 
         /* 如果是网络资源(播放地址以http开头)则显示缓存进度 */
         if (mIsOnline) {
@@ -663,6 +683,197 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 break;
         }
         return super.dispatchTouchEvent(ev);
+    }
+
+    /**
+     * 这个值是为了防止从别的形态到第二阶段的滑动过程中拦截了触摸事件而开启了Seek
+     * 也就是说,只有已经是展开了的形态下再次触摸并横向滑动,才可能拦截事件
+     */
+    boolean mIntercept;
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        if (!mIsExpanded) return false;
+
+        boolean intercept = false;
+        float x = ev.getX();
+        float y = ev.getY();
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mDownX = x;
+                mIntercept = mIsExpanded;
+                WLogger.d("onInterceptTouchEvent :  ");
+            case MotionEvent.ACTION_MOVE:
+                if (!mIntercept || y < mFlRoot.getBottom() - m16dp || y > mFlRoot.getBottom() + m16dp) {
+                    intercept = false;
+                } else if (Math.abs(mDownX - x) > mTouchSlop && Math.abs(mLastX - x) > Math.abs(mLastY - y)) {
+                    intercept = true;
+                }
+                break;
+        }
+        mLastX = x;
+        mLastY = y;
+        return intercept;
+    }
+
+    float mDownX;
+    float mLastX;
+    float mLastY;
+    boolean mSeeking;
+
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        if (!mIsExpanded) return false;
+
+        boolean consume = true;
+        float x = ev.getX();
+        float y = ev.getY();
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mDownX = x;
+                if (y < mFlRoot.getBottom() - m16dp || y > mFlRoot.getBottom() + m16dp) {
+                    consume = false;
+                }
+                break;
+            case MotionEvent.ACTION_MOVE:
+                seekProgress(x, y, false);
+                break;
+            case MotionEvent.ACTION_UP:
+                if (y < mFlRoot.getBottom() + m48dp) {
+                    seekProgress(x, y, true);
+                    break;
+                }
+            case MotionEvent.ACTION_CANCEL:
+                recoverProgress();
+                break;
+        }
+        mLastX = x;
+        mLastY = y;
+        return consume;
+    }
+
+    private void seekProgress(float x, float y, boolean seek) {
+        int smallSize = (int) (mFacPlayBtn.getWidth() * 0.3f);
+
+        if (!mSeeking) {
+            mSeeking = true;
+            startFlowBtnAnim(0.3f, x - mFacPlayBtn.getLeft() - mFacPlayBtn.getWidth() / 2, new FastOutLinearInInterpolator());
+        }
+        mFacPlayBtn.setTranslationX(x - mFacPlayBtn.getLeft() - mFacPlayBtn.getWidth() / 2);
+
+        int max = mPbProgress.getMax();
+        float ratio = x / mWidth;
+        int progress = Math.round(ratio * max);
+        mPbProgress.setProgress(progress);
+
+        if (mProgressPop == null) {
+            mProgressPop = generateProgressPop();
+        } else if (mProgressPop.isShowing()) {
+            mProgressPop.update(mFacPlayBtn, mProgressPop.getWidth(), mProgressPop.getHeight());
+        } else {
+            int offX = (smallSize - mProgressPop.getWidth()) / 2;
+            int offY = -mFacPlayBtn.getHeight() - mProgressPop.getHeight() - Dp2Px.toPX(getContext(), 3);
+            PopupWindowCompat.showAsDropDown(mProgressPop, mFacPlayBtn, offX, offY, Gravity.TOP);
+            View contentView = mProgressPop.getContentView();
+            contentView.setScaleX(0);
+            contentView.setScaleY(0);
+            contentView.animate().cancel();
+            contentView.animate()
+                    .scaleX(1)
+                    .scaleY(1)
+                    .setDuration(200)
+                    .setStartDelay(100)
+                    .setInterpolator(new LinearOutSlowInInterpolator())
+                    .setListener(null);
+        }
+        TextView contentView = (TextView) mProgressPop.getContentView();
+        if (y > mFlRoot.getBottom() + m48dp && mProgressPop != null) {
+            contentView.setText("取消");
+        } else {
+            contentView.setText(FormatUtils.stringForTime(progress * 1000));
+        }
+
+        if (seek) {
+            if (mPlayer != null) {
+                mPlayer.seekTo(progress * 1000);
+                mLrcView.setAutoSyncLrc(mPlayer.getPlayWhenReady(), mPlayer.getCurrentPosition());
+            }
+            recoverProgress();
+        }
+    }
+
+    private PopupWindow generateProgressPop() {
+        TextView textView = new TextView(getContext());
+        textView.setBackgroundResource(R.drawable.ic_location);
+        textView.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        int pad = Dp2Px.toPX(getContext(), 8);
+        textView.setPadding(0, pad, 0, 0);
+        textView.setTextSize(12);
+        textView.setTextColor(getResources().getColor(R.color.white));
+        return new PopupWindow(textView, m48dp, m48dp, false);
+    }
+
+    private void recoverProgress() {
+        mSeeking = false;
+
+        if (mProgressPop != null && mProgressPop.isShowing()) {
+            View contentView = mProgressPop.getContentView();
+            contentView.animate().cancel();
+            contentView.animate()
+                    .scaleX(0)
+                    .scaleY(0)
+                    .setDuration(200)
+                    .setInterpolator(new FastOutLinearInInterpolator())
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationCancel(Animator animation) {
+                            super.onAnimationCancel(animation);
+                            mProgressPop.dismiss();
+                            startFlowBtnAnim(1, 0, new LinearOutSlowInInterpolator());
+                        }
+
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            super.onAnimationEnd(animation);
+                            mProgressPop.dismiss();
+                            startFlowBtnAnim(1, 0, new LinearOutSlowInInterpolator());
+                        }
+                    });
+        }
+
+        ValueAnimator animator = ValueAnimator.ofInt(mPbProgress.getProgress(), mPlayer != null ? (int) mPlayer.getCurrentPosition() / 1000 : 0);
+        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                int progress = (Integer) animation.getAnimatedValue();
+                mPbProgress.setProgress(progress);
+            }
+        });
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                super.onAnimationCancel(animation);
+                updateProgress();
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                super.onAnimationEnd(animation);
+                updateProgress();
+            }
+        });
+        animator.setDuration(340);
+        animator.start();
+    }
+
+    private void startFlowBtnAnim(float scale, float tranX, TimeInterpolator interpolator) {
+        mFacPlayBtn.animate().cancel();
+        mFacPlayBtn.animate()
+                .scaleX(scale)
+                .scaleY(scale)
+                .setDuration(200)
+                .translationX(tranX)
+                .setInterpolator(interpolator);
     }
 
     //========================================NestScroll-start======================================
@@ -824,6 +1035,10 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             toggleTextOffset(false);
             toggleControlBtn(false);
             mFacPlayBtn.hide();
+            mFacPlayBtn.setTranslationX(0);
+            if (mProgressPop != null) {
+                mProgressPop.dismiss();
+            }
             mLrcView.setVisibility(GONE);
             getScaleAlphaAnim(mIvAlbum, value)
                     .setListener(null)

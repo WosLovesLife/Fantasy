@@ -11,6 +11,7 @@ import android.support.annotation.RequiresApi;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.VelocityTrackerCompat;
 import android.support.v4.widget.ScrollerCompat;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -126,12 +127,13 @@ public class LrcView extends View {
         int lineCount = 0;
         for (BLyric.LyricLine lyricLine : mBLyric.mLrc) {
             float measureText = mPaint.measureText(lyricLine.content);
+            String content = TextUtils.isEmpty(lyricLine.content) ? "." : lyricLine.content;
             if (lineCount == mCurrentLine) {
-                canvas.drawText(lyricLine.content, (mWidth - measureText) / 2, v, mPlayingPaint);
+                canvas.drawText(content, (mWidth - measureText) / 2, v, mPlayingPaint);
             } else if (lineCount == mChosenLine) {
-                canvas.drawText(lyricLine.content, (mWidth - measureText) / 2, v, mChosenPaint);
+                canvas.drawText(content, (mWidth - measureText) / 2, v, mChosenPaint);
             } else {
-                canvas.drawText(lyricLine.content, (mWidth - measureText) / 2, v, mPaint);
+                canvas.drawText(content, (mWidth - measureText) / 2, v, mPaint);
             }
             v += mTextSpace;
             ++lineCount;
@@ -168,7 +170,11 @@ public class LrcView extends View {
     }
 
     public void setAutoSyncLrc(boolean enable, long offsetProgress) {
-        mHandler.removeCallbacksAndMessages(null);
+        mHandler.removeMessages(0);
+        if (offsetProgress > 0) {
+            syncLrc(offsetProgress);
+        }
+
         if (!enable || mLyricLines == null || mCurrentLine + 1 >= mLyricLines.size()) return;
 
         long cTime = 0;
@@ -176,12 +182,6 @@ public class LrcView extends View {
             cTime = mLyricLines.get(mCurrentLine).time;
         }
         long nTime = mLyricLines.get(mCurrentLine + 1).time;
-
-        if (offsetProgress > nTime) {
-            syncLrc(offsetProgress);
-            setAutoSyncLrc(true, 0);
-            return;
-        }
 
         long delay = nTime - cTime;
         if (offsetProgress > cTime) {
@@ -243,6 +243,7 @@ public class LrcView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (mLyricLines == null || mLyricLines.size() == 0) return false;
+        mHandler.removeMessages(1);
 
         boolean addVelocityTracker = false;
         boolean consume = true;
@@ -275,11 +276,8 @@ public class LrcView extends View {
                 if (Math.abs(yVelocity) > mMinimumFlingVelocity) {
                     fling((int) yVelocity);
                 }
-                scrollDef();
                 mVelocityTracker.clear();
-                break;
             case MotionEvent.ACTION_CANCEL:
-                WLogger.d("onTouchEvent : ACTION_CANCEL ");
                 scrollDef();
                 break;
         }
@@ -304,7 +302,7 @@ public class LrcView extends View {
 
     private void scrollDef() {
         mHandler.removeMessages(1);
-        mHandler.sendEmptyMessageDelayed(1, 5000);
+        mHandler.sendEmptyMessageDelayed(1, 2000);
         WLogger.d("scrollDef :  ");
     }
 
