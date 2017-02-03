@@ -118,7 +118,7 @@ public class MusicListFragment extends BaseFragment {
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.addItemDecoration(new DividerDecoration(
                 new ColorDrawable(getResources().getColor(R.color.gray_light)),
-                Dp2Px.toPX(getContext(), 1),
+                (int) Math.max(Dp2Px.toPX(getContext(), 0.5f), 1),
                 Dp2Px.toPX(getContext(), 48)));
 
         mAdapter = new MusicListAdapter();

@@ -30,6 +30,7 @@ import android.support.v4.view.ViewCompat;
 import android.support.v4.view.ViewPropertyAnimatorCompat;
 import android.support.v4.view.ViewPropertyAnimatorListenerAdapter;
 import android.support.v7.graphics.Palette;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
@@ -88,8 +89,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
      * 这样可以在原有背景色基础上有一个新的背景色展开的效果
      * 应该有更好的实现方式,暂时用这个
      */
-    @BindView(R.id.iv_bg_scrim)
-    ImageView mIvBgScrim;
+    @BindView(R.id.card_view)
+    CardView mCardView;
     @BindView(R.id.iv_album)
     RoundedImageView mIvAlbum;
     /** 歌曲名 */
@@ -289,11 +290,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 childAt.setPadding(0, mHeadMinHeight + mStatusBarHeight, 0, 0);
             }
         }
-
-        ViewGroup.LayoutParams params = mIvBg.getLayoutParams();
-        params.height = (int) (mHeadMinHeight + getResources().getDimension(R.dimen.statusBar_height));
-        mIvBg.setLayoutParams(params);
-        mIvBgScrim.setLayoutParams(params);
     }
 
     @Override
@@ -487,10 +483,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 Logger.d("准备设置封面2 时间 = " + System.currentTimeMillis());
                 mIvAlbum.setImageDrawable(mAlbum);
                 if (!mIsExpanded && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                    mIvBgScrim.setVisibility(VISIBLE);
-                    mIvBgScrim.setImageDrawable(mColorMutedBg);
+                    mIvBg.setImageDrawable(mColorMutedBg);
                     Animator animator = ViewAnimationUtils.createCircularReveal(
-                            mIvBgScrim,
+                            mIvBg,
                             mIvAlbum.getWidth() / 2 + mIvAlbum.getLeft(),
                             mIvBg.getHeight() / 2,
                             0,
@@ -501,15 +496,13 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                         @Override
                         public void onAnimationEnd(Animator animation) {
                             super.onAnimationEnd(animation);
-                            mIvBg.setImageDrawable(mColorMutedBg);
-                            mIvBgScrim.setVisibility(GONE);
+                            mCardView.setCardBackgroundColor(((ColorDrawable) mColorMutedBg).getColor());
                         }
 
                         @Override
                         public void onAnimationCancel(Animator animation) {
                             super.onAnimationCancel(animation);
-                            mIvBg.setImageDrawable(mColorMutedBg);
-                            mIvBgScrim.setVisibility(GONE);
+                            mCardView.setCardBackgroundColor(((ColorDrawable) mColorMutedBg).getColor());
                         }
                     });
                     animator.start();

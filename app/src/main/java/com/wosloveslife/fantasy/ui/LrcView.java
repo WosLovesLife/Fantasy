@@ -50,6 +50,7 @@ public class LrcView extends View {
     private int mChosenLine = -1;
     private int mCurrentLine;
     boolean mTouching;
+    private int mIgnoreEdge;
 
     BLyric mBLyric;
     private List<BLyric.LyricLine> mLyricLines;
@@ -90,6 +91,8 @@ public class LrcView extends View {
         mChosenPaint = new Paint(mPaint);
         mChosenPaint.setColor(getResources().getColor(R.color.gray_light));
         setTextSize(16, 8);
+
+        mIgnoreEdge = Dp2Px.toPX(getContext(), 16);
 
         mScroller = ScrollerCompat.create(getContext(), new DecelerateInterpolator());
         mVelocityTracker = VelocityTracker.obtain();
@@ -239,6 +242,8 @@ public class LrcView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (mLyricLines == null || mLyricLines.size() == 0) return false;
+
         boolean addVelocityTracker = false;
         boolean consume = true;
         float x = event.getX();
@@ -251,7 +256,9 @@ public class LrcView extends View {
                 WLogger.d("onTouchEvent : ACTION_DOWN ");
                 mDownY = y;
                 mScrollPointerId = MotionEventCompat.getPointerId(event, 0);
-                if (!mScroller.isFinished()) {
+                if (x < mIgnoreEdge || x > mWidth - mIgnoreEdge || y < mIgnoreEdge || y > mHeight - mIgnoreEdge) {
+                    consume = false;
+                } else if (!mScroller.isFinished()) {
                     mScroller.abortAnimation();
                 }
                 break;
