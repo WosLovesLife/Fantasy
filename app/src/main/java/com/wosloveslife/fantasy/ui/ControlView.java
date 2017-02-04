@@ -365,12 +365,36 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             }
         });
 
+        mLrcView.setOnSeekLrcProgressListener(new LrcView.OnSeekLrcProgressListener() {
+            @Override
+            public void onSeekingProgress(long progress) {
+                mLrcSeeking = true;
+                mLrcProgress = progress;
+                if (mPlayer != null) {
+                    if (progress > mPlayer.getCurrentPosition()) {
+                        mFacPlayBtn.setImageResource(R.drawable.ic_fast_forward);
+                    } else if (progress < mPlayer.getCurrentPosition()) {
+                        mFacPlayBtn.setImageResource(R.drawable.ic_fast_rewind);
+                    }
+                }
+            }
+
+            @Override
+            public void onSeekFinish(long progress) {
+                mLrcSeeking = false;
+                toggleFacBtn(isPlaying());
+            }
+        });
+
         addView(view);
     }
 
     float mHeadLastY;
     float mHeadDownY;
     boolean mHeadClick;
+
+    boolean mLrcSeeking;
+    long mLrcProgress;
 
     public void setPlayer(SimpleExoPlayer player) {
         mPlayer = player;
@@ -405,13 +429,12 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     public void syncPlayView(BMusic music) {
         if (music == null || mPlayer == null) return;
 
-        if (mPlayer.getPlayWhenReady()) {
+        if (isPlaying()) {
             mIvPlayBtn.setImageDrawable(mPauseDrawable);
-            mFacPlayBtn.setImageDrawable(mPauseDrawable);
         } else {
             mIvPlayBtn.setImageDrawable(mPlayDrawable);
-            mFacPlayBtn.setImageDrawable(mPlayDrawable);
         }
+        toggleFacBtn(mPlayer.getPlayWhenReady());
 
         toggleLrcLoop();
 
@@ -554,7 +577,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         // Schedule an update if necessary.
         int playbackState = mPlayer == null ? ExoPlayer.STATE_IDLE : mPlayer.getPlaybackState();
-        if (mPlayer.getPlayWhenReady() && playbackState != ExoPlayer.STATE_IDLE && playbackState != ExoPlayer.STATE_ENDED) {
+        if (isPlaying() && playbackState != ExoPlayer.STATE_IDLE && playbackState != ExoPlayer.STATE_ENDED) {
             long delayMs;
             if (playbackState == ExoPlayer.STATE_READY) {
                 delayMs = 1000 - (position % 1000);
@@ -576,18 +599,29 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
     };
 
+    private boolean isPlaying() {
+        return mPlayer != null && mPlayer.getPlayWhenReady();
+    }
+
+    private void toggleFacBtn(boolean play) {
+        if (play) {
+            mFacPlayBtn.setImageDrawable(mPauseDrawable);
+        } else {
+            mFacPlayBtn.setImageDrawable(mPlayDrawable);
+        }
+    }
+
     private void updateLrc(BLyric bLyric) {
         mLrcView.setLrc(bLyric);
         toggleLrcLoop();
     }
 
     private void toggleLrcLoop() {
-        if (mPlayer != null) {
-            if (mPlayer.getPlayWhenReady()) {
-                mLrcView.setAutoSyncLrc(true, mPlayer.getCurrentPosition());
-            } else {
-                mLrcView.setAutoSyncLrc(false, 0);
-            }
+        if (mPlayer == null) return;
+        if (isPlaying()) {
+            mLrcView.setAutoSyncLrc(true, mPlayer.getCurrentPosition());
+        } else {
+            mLrcView.setAutoSyncLrc(false, 0);
         }
     }
 
@@ -613,13 +647,18 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     break;
                 }
             case R.id.fac_play_btn:
-                if (mControlListener != null) {
-                    /* 判断是播放还是暂停, 回传 */
-                    if (mPlayer.getPlayWhenReady()) {
-                        mControlListener.pause();
-                    } else {
-                        mControlListener.play();
-                    }
+                if (mPlayer == null || mControlListener == null) break;
+                if (mLrcSeeking) {
+                    mLrcSeeking = false;
+                    mPlayer.seekTo(mLrcProgress);
+                    toggleFacBtn(isPlaying());
+                    break;
+                }
+                /* 判断是播放还是暂停, 回传 */
+                if (isPlaying()) {
+                    mControlListener.pause();
+                } else {
+                    mControlListener.play();
                 }
                 break;
             case R.id.iv_next_btn:
@@ -748,8 +787,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     }
 
     private void seekProgress(float x, float y, boolean seek) {
-        int smallSize = (int) (mFacPlayBtn.getWidth() * 0.3f);
-
         if (!mSeeking) {
             mSeeking = true;
             startFlowBtnAnim(0.3f, x - mFacPlayBtn.getLeft() - mFacPlayBtn.getWidth() / 2, new FastOutLinearInInterpolator());
@@ -787,7 +824,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         if (seek) {
             if (mPlayer != null) {
                 mPlayer.seekTo(progress * 1000);
-                mLrcView.setAutoSyncLrc(mPlayer.getPlayWhenReady(), mPlayer.getCurrentPosition());
+                mLrcView.setAutoSyncLrc(isPlaying(), mPlayer.getCurrentPosition());
             }
             recoverProgress();
         }

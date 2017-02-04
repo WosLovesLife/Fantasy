@@ -130,7 +130,7 @@ public class LrcView extends View {
             String content = TextUtils.isEmpty(lyricLine.content) ? "." : lyricLine.content;
             if (lineCount == mCurrentLine) {
                 canvas.drawText(content, (mWidth - measureText) / 2, v, mPlayingPaint);
-            } else if (lineCount == mChosenLine) {
+            } else if (mTouching && lineCount == mChosenLine) {
                 canvas.drawText(content, (mWidth - measureText) / 2, v, mChosenPaint);
             } else {
                 canvas.drawText(content, (mWidth - measureText) / 2, v, mPaint);
@@ -210,10 +210,13 @@ public class LrcView extends View {
                     int targetY = mCurrentLine * mTextSpace;
                     int offset = targetY - getScrollY();
                     if (offset != 0) {
-                        mChosenLine = -1;
+                        mChosenLine = 0;
                         int duration = (int) Math.min(Math.max(240, Math.abs(offset) / 1000f * 300), 400);
                         mScroller.startScroll(0, getScrollY(), 0, offset, duration);
                         invalidate();
+                    }
+                    if (mOnSeekLrcProgressListener != null && mLyricLines.size() > mChosenLine) {
+                        mOnSeekLrcProgressListener.onSeekFinish(mLyricLines.get(mCurrentLine).time);
                     }
                     break;
             }
@@ -266,6 +269,9 @@ public class LrcView extends View {
             case MotionEvent.ACTION_MOVE:
                 float deltaY = mLastY - y;
                 scrollYBy((int) deltaY);
+                if (mOnSeekLrcProgressListener != null && mLyricLines.size() > mChosenLine) {
+                    mOnSeekLrcProgressListener.onSeekingProgress(mLyricLines.get(mChosenLine).time);
+                }
                 break;
             case MotionEvent.ACTION_UP:
                 WLogger.d("onTouchEvent : ACTION_UP ");
@@ -331,11 +337,11 @@ public class LrcView extends View {
         super.scrollTo(0, targetY);
 
         int newChosen = Math.round(targetY * 1f / mTextSpace);
-        if (mTouching && mChosenLine != newChosen) {
-            mChosenLine = newChosen;
+        if (!mTouching) {
+            mChosenLine = 0;
             invalidate();
-        } else if (!mTouching && mChosenLine >= 0) {
-            mChosenLine = -1;
+        } else if (mChosenLine != newChosen) {
+            mChosenLine = newChosen;
             invalidate();
         }
     }
@@ -346,9 +352,11 @@ public class LrcView extends View {
         if (mBLyric != null && mBLyric.mLrc != null) {
             mLyricLines = mBLyric.mLrc;
             mMaxScrollRange = (mLyricLines.size() - 1) * mTextSpace;
+        }else {
+            mLyricLines = null;
         }
-        mChosenLine = -1;
-        mCurrentLine = -1;
+        mChosenLine = 0;
+        mCurrentLine = 0;
 
         if (!mScroller.isFinished()) {
             mScroller.abortAnimation();
@@ -365,5 +373,17 @@ public class LrcView extends View {
         mPaint.setTextSize(mTextSize);
         mPlayingPaint.setTextSize(mTextSize);
         mChosenPaint.setTextSize(mTextSize);
+    }
+
+    OnSeekLrcProgressListener mOnSeekLrcProgressListener;
+
+    public void setOnSeekLrcProgressListener(OnSeekLrcProgressListener listener) {
+        mOnSeekLrcProgressListener = listener;
+    }
+
+    interface OnSeekLrcProgressListener {
+        void onSeekingProgress(long progress);
+
+        void onSeekFinish(long progress);
     }
 }
