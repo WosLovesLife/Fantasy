@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         app:cardBackgroundColor="@color/colorPrimary"
         app:cardCornerRadius="0dp"
-        app:cardElevation="4dp">
+        app:cardElevation="6dp">
 
         <ImageView
             android:id="@+id/iv_bg"
@@ -140,6 +140,21 @@
                 android:layout_marginBottom="-2dp"
                 android:hapticFeedbackEnabled="true"
                 tools:progress="30"/>
+
+            <TextView
+                android:id="@+id/tv_seek_value"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="bottom"
+                android:layout_marginBottom="6dp"
+                android:background="@drawable/ic_location2"
+                android:gravity="center_horizontal"
+                android:paddingTop="10dp"
+                android:text="03:20"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:visibility="gone"
+                tools:visibility="visible"/>
         </FrameLayout>
 
         <android.support.v7.widget.Toolbar
@@ -159,6 +174,7 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_margin="16dp"
+        app:elevation="7dp"
         app:fabSize="mini"
         app:layout_anchor="@id/fl_root"
         app:layout_anchorGravity="bottom|end"

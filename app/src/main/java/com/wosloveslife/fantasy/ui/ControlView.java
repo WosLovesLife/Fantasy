@@ -32,14 +32,12 @@ import android.support.v4.view.ViewPropertyAnimatorCompat;
 import android.support.v4.view.ViewPropertyAnimatorListenerAdapter;
 import android.support.v4.view.animation.FastOutLinearInInterpolator;
 import android.support.v4.view.animation.LinearOutSlowInInterpolator;
-import android.support.v4.widget.PopupWindowCompat;
 import android.support.v7.graphics.Palette;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.AttributeSet;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -50,7 +48,6 @@ import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -77,8 +74,6 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import rx.schedulers.Schedulers;
 import stackblur_java.StackBlurManager;
-
-import static android.support.v7.graphics.Palette.from;
 
 /**
  * Created by zhangh on 2017/1/15.
@@ -129,6 +124,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     /** 二段展开时的播放/暂停按钮 */
     @BindView(R.id.fac_play_btn)
     FloatingActionButton mFacPlayBtn;
+    @BindView(R.id.tv_seek_value)
+    TextView mTvSeekValue;
     @BindView(R.id.toolbar)
     Toolbar mToolbar;
 
@@ -186,9 +183,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     /** 播放总时长文字的最大向右偏移量 */
     int mDurationRightMargin;
     int mStatusBarHeight;
-    //======SeekProgress相关
-    /** 用于显示Seek进度的悬浮框 */
-    PopupWindow mProgressPop;
 
     //============
     private Drawable mPlayDrawable;
@@ -484,9 +478,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             mColorBody = mDefColorBody;
         } else {
             mAlbum = new BitmapDrawable(bitmap);
-            mBlurredAlbum = new BitmapDrawable(new StackBlurManager(bitmap).process(30));
+            mBlurredAlbum = new BitmapDrawable(new StackBlurManager(bitmap).process(60));
 
-            Palette.Swatch mutedSwatch = from(bitmap).generate().getMutedSwatch();
+            Palette.Swatch mutedSwatch = Palette.from(bitmap).generate().getMutedSwatch();
             if (mutedSwatch != null) {
                 mColorMutedBg = new ColorDrawable(mutedSwatch.getRgb());
                 mColorTitle = new ColorDrawable(mutedSwatch.getTitleTextColor());
@@ -500,7 +494,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             public void onCompleted() {
                 Logger.d("准备设置封面2 时间 = " + System.currentTimeMillis());
                 mIvAlbum.setImageDrawable(mAlbum);
-                if (!mIsExpanded && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                if (ViewCompat.isAttachedToWindow(mIvBg) && !mIsExpanded && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
                     mIvBg.setImageDrawable(mColorMutedBg);
                     Animator animator = ViewAnimationUtils.createCircularReveal(
                             mIvBg,
@@ -520,7 +514,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                         @Override
                         public void onAnimationCancel(Animator animation) {
                             super.onAnimationCancel(animation);
-                            mCardView.setCardBackgroundColor(((ColorDrawable) mColorMutedBg).getColor());
+                            mCardView.setCardBackgroundColor(((ColorDrawable) mColorBody).getColor());
                         }
                     });
                     animator.start();
@@ -693,19 +687,20 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        if (!mIsExpanded) return false;
-
         boolean intercept = false;
         float x = ev.getX();
         float y = ev.getY();
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 mDownX = x;
-                mIntercept = mIsExpanded;
+                if (mIsExpanded && y > mFlRoot.getBottom() - m16dp && y < mFlRoot.getBottom() + m16dp) {
+                    mIntercept = true;
+                }
                 WLogger.d("onInterceptTouchEvent :  ");
             case MotionEvent.ACTION_MOVE:
                 if (!mIntercept || y < mFlRoot.getBottom() - m16dp || y > mFlRoot.getBottom() + m16dp) {
                     intercept = false;
+                    mIntercept = false;
                 } else if (Math.abs(mDownX - x) > mTouchSlop && Math.abs(mLastX - x) > Math.abs(mLastY - y)) {
                     intercept = true;
                 }
@@ -766,19 +761,12 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         int progress = Math.round(ratio * max);
         mPbProgress.setProgress(progress);
 
-        if (mProgressPop == null) {
-            mProgressPop = generateProgressPop();
-        } else if (mProgressPop.isShowing()) {
-            mProgressPop.update(mFacPlayBtn, mProgressPop.getWidth(), mProgressPop.getHeight());
-        } else {
-            int offX = (smallSize - mProgressPop.getWidth()) / 2;
-            int offY = -mFacPlayBtn.getHeight() - mProgressPop.getHeight() - Dp2Px.toPX(getContext(), 3);
-            PopupWindowCompat.showAsDropDown(mProgressPop, mFacPlayBtn, offX, offY, Gravity.TOP);
-            View contentView = mProgressPop.getContentView();
-            contentView.setScaleX(0);
-            contentView.setScaleY(0);
-            contentView.animate().cancel();
-            contentView.animate()
+        if (mTvSeekValue.getVisibility() != VISIBLE) {
+            mTvSeekValue.setScaleX(0);
+            mTvSeekValue.setScaleY(0);
+            mTvSeekValue.setVisibility(VISIBLE);
+            mTvSeekValue.animate().cancel();
+            mTvSeekValue.animate()
                     .scaleX(1)
                     .scaleY(1)
                     .setDuration(200)
@@ -786,11 +774,14 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     .setInterpolator(new LinearOutSlowInInterpolator())
                     .setListener(null);
         }
-        TextView contentView = (TextView) mProgressPop.getContentView();
-        if (y > mFlRoot.getBottom() + m48dp && mProgressPop != null) {
-            contentView.setText("取消");
+        float tX = x - mTvSeekValue.getWidth() / 2;
+        if (tX < 0) tX = 0;
+        if (tX > mWidth - mTvSeekValue.getWidth()) tX = mWidth - mTvSeekValue.getWidth();
+        mTvSeekValue.setTranslationX(tX);
+        if (y > mFlRoot.getBottom() + m48dp) {
+            mTvSeekValue.setText("取消");
         } else {
-            contentView.setText(FormatUtils.stringForTime(progress * 1000));
+            mTvSeekValue.setText(FormatUtils.stringForTime(progress * 1000));
         }
 
         if (seek) {
@@ -802,24 +793,13 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
     }
 
-    private PopupWindow generateProgressPop() {
-        TextView textView = new TextView(getContext());
-        textView.setBackgroundResource(R.drawable.ic_location);
-        textView.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-        int pad = Dp2Px.toPX(getContext(), 8);
-        textView.setPadding(0, pad, 0, 0);
-        textView.setTextSize(12);
-        textView.setTextColor(getResources().getColor(R.color.white));
-        return new PopupWindow(textView, m48dp, m48dp, false);
-    }
-
     private void recoverProgress() {
         mSeeking = false;
 
-        if (mProgressPop != null && mProgressPop.isShowing()) {
-            View contentView = mProgressPop.getContentView();
-            contentView.animate().cancel();
-            contentView.animate()
+        if (mTvSeekValue.getVisibility() == VISIBLE) {
+            mTvSeekValue.setVisibility(VISIBLE);
+            mTvSeekValue.animate().cancel();
+            mTvSeekValue.animate()
                     .scaleX(0)
                     .scaleY(0)
                     .setDuration(200)
@@ -828,14 +808,14 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                         @Override
                         public void onAnimationCancel(Animator animation) {
                             super.onAnimationCancel(animation);
-                            mProgressPop.dismiss();
+                            mTvSeekValue.setVisibility(GONE);
                             startFlowBtnAnim(1, 0, new LinearOutSlowInInterpolator());
                         }
 
                         @Override
                         public void onAnimationEnd(Animator animation) {
                             super.onAnimationEnd(animation);
-                            mProgressPop.dismiss();
+                            mTvSeekValue.setVisibility(GONE);
                             startFlowBtnAnim(1, 0, new LinearOutSlowInInterpolator());
                         }
                     });
@@ -1036,9 +1016,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             toggleControlBtn(false);
             mFacPlayBtn.hide();
             mFacPlayBtn.setTranslationX(0);
-            if (mProgressPop != null) {
-                mProgressPop.dismiss();
-            }
+            mTvSeekValue.setVisibility(GONE);
             mLrcView.setVisibility(GONE);
             getScaleAlphaAnim(mIvAlbum, value)
                     .setListener(null)
@@ -1112,7 +1090,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     private void toggleToolbarShown(boolean isToolbarShown) {
         if (mIsExpanded || mIsToolbarShown == isToolbarShown) return;
         mIsToolbarShown = isToolbarShown;
-        if (isToolbarShown && mToolbar.getVisibility() != VISIBLE) {
+        if (ViewCompat.isAttachedToWindow(mToolbar) && isToolbarShown && mToolbar.getVisibility() != VISIBLE) {
             mToolbar.setVisibility(VISIBLE);
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
                 Animator animator = ViewAnimationUtils.createCircularReveal(
@@ -1132,7 +1110,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                         .start();
             }
         } else if (!isToolbarShown && mToolbar.getVisibility() == VISIBLE) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            if (ViewCompat.isAttachedToWindow(mToolbar) && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
                 Animator animator = ViewAnimationUtils.createCircularReveal(
                         mToolbar,
                         mIvAlbum.getWidth() / 2 + mIvAlbum.getLeft(),
