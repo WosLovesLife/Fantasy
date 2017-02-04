@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Environment;
@@ -39,12 +40,18 @@ import com.google.gson.Gson;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
+import com.wosloveslife.fantasy.broadcast.AudioBroadcast;
+import com.wosloveslife.fantasy.broadcast.BroadcastManager;
 import com.wosloveslife.fantasy.helper.FileDataSourceFactory;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.interfaces.IPlay;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -169,7 +176,7 @@ public class PlayService extends Service {
      * 将歌曲资源序列化存储本地<br/>
      * 如果资源为null,尝试暂停现有播放<br/>
      *
-     * @param music    要播放的歌曲资源
+     * @param music 要播放的歌曲资源
      */
     public void play(BMusic music) {
         mCurrentMusic = music;
@@ -317,6 +324,8 @@ public class PlayService extends Service {
                     if (playWhenReady) {
                         listener.onPlay(mCurrentMusic);
                     } else {
+                        /* 在这里重置该值, 避免影响后续的播放状态 */
+                        mSavePlay = false;
                         listener.onPause();
                     }
                 }
@@ -328,7 +337,40 @@ public class PlayService extends Service {
             mCurrentMusic = new Gson().fromJson(currentMusic, BMusic.class);
             prepare(mCurrentMusic.path);
         }
+
+        EventBus.getDefault().register(this);
+        BroadcastManager.getInstance().init(this);
+        registerAudioEvent();
     }
+
+    /**
+     * 监听声音播放的焦点变化,当有别的应用抢占了焦点时(例如拨打电话).终止播放,并在重新获取焦点后根据之前保存的状态而判断是否继续播放
+     */
+    private void registerAudioEvent() {
+        AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        audioManager.requestAudioFocus(new AudioManager.OnAudioFocusChangeListener() {
+            @Override
+            public void onAudioFocusChange(int focusChange) {
+                switch (focusChange) {
+                    case AudioManager.ADJUST_LOWER:
+                    case -2:
+                        pause();
+                        mSavePlay = isPlaying();
+                        break;
+                    case AudioManager.AUDIOFOCUS_GAIN:
+                        if (mSavePlay) {
+                            /* 在这里重置该值, 避免影响后续的播放状态 */
+                            mSavePlay = false;
+                            play();
+                        }
+                        break;
+                }
+                WLogger.d("requestAudioFocus onAudioFocusChange : [focusChange] = " + focusChange);
+            }
+        }, 1, AudioManager.AUDIOFOCUS_GAIN);
+    }
+
+    boolean mSavePlay;
 
     /** 每次调用startService()启用该服务时都被调用 */
     @Override
@@ -354,6 +396,8 @@ public class PlayService extends Service {
         Toaster.showShort(getApplicationContext(), "onDestroy()");
         super.onDestroy();
         WLogger.w("onDestroy()");
+        EventBus.getDefault().unregister(this);
+        BroadcastManager.getInstance().unregisterAllBroadcasts();
     }
 
     //==================================播放逻辑-start==============================================
@@ -457,6 +501,11 @@ public class PlayService extends Service {
     }
 
     //==========================================事件处理============================================
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onBroadcastEvent(AudioBroadcast.AudioNoisyEvent event) {
+        pause();
+    }
 
     //==================================记录生命周期-忽略===========================================
 
