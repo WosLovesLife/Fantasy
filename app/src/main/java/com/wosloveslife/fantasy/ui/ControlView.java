@@ -621,7 +621,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         if (isPlaying()) {
             mLrcView.setAutoSyncLrc(true, mPlayer.getCurrentPosition());
         } else {
-            mLrcView.setAutoSyncLrc(false, 0);
+            mLrcView.setAutoSyncLrc(false, mPlayer.getCurrentPosition());
         }
     }
 
@@ -652,6 +652,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     mLrcSeeking = false;
                     mPlayer.seekTo(mLrcProgress);
                     toggleFacBtn(isPlaying());
+                    toggleLrcLoop();
                     break;
                 }
                 /* 判断是播放还是暂停, 回传 */
