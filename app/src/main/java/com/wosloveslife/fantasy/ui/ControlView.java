@@ -227,7 +227,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         m48dp = Dp2Px.toPX(getContext(), 48);
 
         mHeadMinHeight = Dp2Px.toPX(getContext(), 56);
-        mHeadMaxHeight = Dp2Px.toPX(getContext(), 160);
+        mHeadMaxHeight = Dp2Px.toPX(getContext(), 200);
         mMaxOffsetY = mHeadMaxHeight - mHeadMinHeight;
         /* 圆形的角度等于边长的一半,因为布局中写死了48dp,因此这里取24dp,如果有需要,应该在onSizeChanged()方法中监听子控件的边长除2 */
         mAlbumMaxRadius = Dp2Px.toPX(getContext(), 24);
