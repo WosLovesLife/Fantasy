@@ -19,12 +19,48 @@
             app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
     </com.wosloveslife.fantasy.ui.ControlView>
 
-    <android.support.design.widget.NavigationView
+    <!--<android.support.design.widget.NavigationView
         android:id="@+id/navigation_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         app:elevation="8dp"
         app:headerLayout="@layout/layout_navigation_header"
-        app:menu="@menu/menu_navigation"/>
+        app:menu="@menu/menu_navigation"/>-->
+
+    <com.wosloveslife.fantasy.ui.ScrollLinearLayout
+        android:id="@+id/ll_drawer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="@color/white"
+        android:orientation="vertical">
+
+        <include layout="@layout/layout_navigation_header"/>
+
+        <FrameLayout
+            android:id="@+id/fl_local"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="@drawable/ripple_btn">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center_vertical"
+                android:layout_margin="16dp"
+                android:contentDescription="@null"
+                app:srcCompat="@drawable/ic_phone"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginLeft="56dp"
+                android:layout_marginRight="16dp"
+                android:text="本地音乐"
+                android:textColor="@color/black_blue_text"
+                android:textSize="18sp"/>
+        </FrameLayout>
+    </com.wosloveslife.fantasy.ui.ScrollLinearLayout>
 </android.support.v4.widget.DrawerLayout>

@@ -471,6 +471,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             @Override
             public void onError(Throwable e) {
                 super.onError(e);
+                updateLrc(null);
                 Toaster.showShort(getContext(), "错误 " + e);
             }
 
@@ -618,10 +619,12 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
     private void toggleLrcLoop() {
         if (mPlayer == null) return;
+        long progress = mPlayer.getCurrentPosition();
+        WLogger.d("toggleLrcLoop : progress =  " + progress);
         if (isPlaying()) {
-            mLrcView.setAutoSyncLrc(true, mPlayer.getCurrentPosition());
+            mLrcView.setAutoSyncLrc(true, progress < 0 ? 0 : progress);
         } else {
-            mLrcView.setAutoSyncLrc(false, mPlayer.getCurrentPosition());
+            mLrcView.setAutoSyncLrc(false, progress < 0 ? 0 : progress);
         }
     }
 
@@ -825,7 +828,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         if (seek) {
             if (mPlayer != null) {
                 mPlayer.seekTo(progress * 1000);
-                mLrcView.setAutoSyncLrc(isPlaying(), mPlayer.getCurrentPosition());
+                toggleLrcLoop();
             }
             recoverProgress();
         }

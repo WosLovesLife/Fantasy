@@ -8,8 +8,8 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
-import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
+import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
@@ -18,9 +18,9 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Gravity;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.R;
@@ -48,10 +48,12 @@ import butterknife.ButterKnife;
 public class MusicListFragment extends BaseFragment {
     @BindView(R.id.drawer_layout)
     DrawerLayout mDrawerLayout;
-    @BindView(R.id.navigation_view)
-    NavigationView mNavigationView;
+    //    @BindView(R.id.navigation_view)
+//    NavigationView mNavigationView;
     @BindView(R.id.control_view)
     ControlView mControlView;
+    @BindView(R.id.ll_drawer)
+    LinearLayout mLlDrawer;
     @BindView(R.id.recycler_view)
     RecyclerView mRecyclerView;
     private Toolbar mToolbar;
@@ -169,16 +171,8 @@ public class MusicListFragment extends BaseFragment {
         activity.setSupportActionBar(mToolbar);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(getActivity(), mDrawerLayout, mToolbar, R.string.app_name, R.string.app_name);
         toggle.syncState();
-        mNavigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
-            @Override
-            public boolean onNavigationItemSelected(MenuItem item) {
-                mToolbar.setTitle(item.getTitle());
-                mDrawerLayout.closeDrawer(Gravity.LEFT);
-                return true;
-            }
-        });
-        mNavigationView.setCheckedItem(R.id.item_1);
-        mToolbar.setTitle(mNavigationView.getMenu().getItem(0).getTitle());
+        mToolbar.setTitle("本地音乐");
+        ViewCompat.setElevation(mLlDrawer, 8);
     }
 
     private void initServiceBinder() {
@@ -286,14 +280,6 @@ public class MusicListFragment extends BaseFragment {
 
             return;
         }
-
-        musicList.add(new BMusic(0, "qiuniang", "秋酿", "", "房东的猫",
-                "http://yinyueshiting.baidu.com/data2/music/d31fdf4aceb28170563fe8c91b7c568e/275148779/275148779.mp3?xcode=2c52deb5e3da39649e9cdd6067ee2141",
-                0, 0, true));
-
-        musicList.add(new BMusic(0, "qiuniang", "龙港秘密", "", "尧十三",
-                "http://yinyueshiting.baidu.com/data2/music/256006854/256006854.mp3?xcode=85efd0ea655803e205ffee87c3adb48c",
-                0, 0, true));
         mAdapter.setData(musicList);
     }
 
