@@ -20,7 +20,6 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
 
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.R;
@@ -52,8 +51,8 @@ public class MusicListFragment extends BaseFragment {
 //    NavigationView mNavigationView;
     @BindView(R.id.control_view)
     ControlView mControlView;
-    @BindView(R.id.ll_drawer)
-    LinearLayout mLlDrawer;
+    @BindView(R.id.wos_navigation)
+    WosNavigationLayout mWosNavigation;
     @BindView(R.id.recycler_view)
     RecyclerView mRecyclerView;
     private Toolbar mToolbar;
@@ -172,7 +171,9 @@ public class MusicListFragment extends BaseFragment {
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(getActivity(), mDrawerLayout, mToolbar, R.string.app_name, R.string.app_name);
         toggle.syncState();
         mToolbar.setTitle("本地音乐");
-        ViewCompat.setElevation(mLlDrawer, 8);
+
+        ViewCompat.setElevation(mWosNavigation, 8);
+        mWosNavigation.setCheckedItem(1);
     }
 
     private void initServiceBinder() {

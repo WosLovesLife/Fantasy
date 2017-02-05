@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.wosloveslife.fantasy.ui.WosNavigationLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/wos_navigation"
+    android:layout_width="290dp"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:orientation="vertical">
+
+    <include layout="@layout/layout_navigation_header"/>
+
+    <FrameLayout
+        android:id="@+id/fl_local"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/ripple_btn">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center_vertical"
+            android:layout_margin="16dp"
+            android:contentDescription="@null"
+            app:srcCompat="@drawable/ic_phone"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="56dp"
+            android:layout_marginRight="16dp"
+            android:text="本地音乐"
+            android:textColor="@color/black_blue_text"
+            android:textSize="18sp"/>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/fl_favorite"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/ripple_btn">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center_vertical"
+            android:layout_margin="16dp"
+            android:contentDescription="@null"
+            app:srcCompat="@drawable/ic_favorite_border"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="56dp"
+            android:layout_marginRight="16dp"
+            android:text="我的收藏"
+            android:textColor="@color/black_blue_text"
+            android:textSize="18sp"/>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/fl_recently_rewind"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/ripple_btn">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center_vertical"
+            android:layout_margin="16dp"
+            android:contentDescription="@null"
+            app:srcCompat="@drawable/ic_clock"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="56dp"
+            android:layout_marginRight="16dp"
+            android:text="最近播放"
+            android:textColor="@color/black_blue_text"
+            android:textSize="18sp"/>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/fl_download_manage"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/ripple_btn">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center_vertical"
+            android:layout_margin="16dp"
+            android:contentDescription="@null"
+            app:srcCompat="@drawable/ic_download"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="56dp"
+            android:layout_marginRight="16dp"
+            android:text="下载管理"
+            android:textColor="@color/black_blue_text"
+            android:textSize="18sp"/>
+    </FrameLayout>
+</com.wosloveslife.fantasy.ui.WosNavigationLayout>
