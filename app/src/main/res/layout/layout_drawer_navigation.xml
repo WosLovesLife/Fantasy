@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.wosloveslife.fantasy.ui.WosNavigationLayout
+<com.wosloveslife.fantasy.ui.ScrollLinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/wos_navigation"
+    android:id="@+id/sll_navigation"
     android:layout_width="290dp"
     android:layout_height="match_parent"
     android:background="@color/white"
@@ -109,4 +109,4 @@
             android:textColor="@color/black_blue_text"
             android:textSize="18sp"/>
     </FrameLayout>
-</com.wosloveslife.fantasy.ui.WosNavigationLayout>
+</com.wosloveslife.fantasy.ui.ScrollLinearLayout>

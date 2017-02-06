@@ -24,7 +24,7 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
     boolean mPlaying;
 
     @Override
-    protected BaseRecyclerViewHolder<BMusic> onCreateItemViewHolder(ViewGroup parent) {
+    protected BaseRecyclerViewHolder<BMusic> onCreateItemViewHolder(ViewGroup parent,int viewType) {
         return new Holder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_music, parent, false));
     }
 

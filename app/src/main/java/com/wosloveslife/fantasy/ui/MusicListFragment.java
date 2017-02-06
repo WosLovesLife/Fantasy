@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
@@ -13,9 +14,11 @@ import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,16 +28,21 @@ import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.MusicListAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
+import com.wosloveslife.fantasy.bean.NavigationItem;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.services.PlayService;
+import com.wosloveslife.fantasy.ui.swapablenavigation.SwapNavigationAdapter;
+import com.wosloveslife.fantasy.ui.swapablenavigation.VerticalSwapItemTouchHelperCallBack;
 import com.wosloveslife.fantasy.utils.DividerDecoration;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
+import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import base.BaseFragment;
@@ -47,14 +55,19 @@ import butterknife.ButterKnife;
 public class MusicListFragment extends BaseFragment {
     @BindView(R.id.drawer_layout)
     DrawerLayout mDrawerLayout;
-    //    @BindView(R.id.navigation_view)
-//    NavigationView mNavigationView;
     @BindView(R.id.control_view)
     ControlView mControlView;
-    @BindView(R.id.wos_navigation)
-    WosNavigationLayout mWosNavigation;
+    //    @BindView(R.id.navigation_view)
+//    NavigationView mNavigationView;
+    //    @BindView(R.id.sll_navigation)
+//    ScrollLinearLayout mSllNavigation;
     @BindView(R.id.recycler_view)
     RecyclerView mRecyclerView;
+    @BindView(R.id.card_view_navigation)
+    CardView mCardViewNavigation;
+    @BindView(R.id.rv_navigation)
+    RecyclerView mRvNavigation;
+
     private Toolbar mToolbar;
 
     private Snackbar mSnackbar;
@@ -172,8 +185,62 @@ public class MusicListFragment extends BaseFragment {
         toggle.syncState();
         mToolbar.setTitle("本地音乐");
 
-        ViewCompat.setElevation(mWosNavigation, 8);
-        mWosNavigation.setCheckedItem(1);
+        ViewCompat.setElevation(mCardViewNavigation, 8);
+        mRvNavigation.setLayoutManager(new LinearLayoutManager(getContext()));
+        SwapNavigationAdapter adapter = new SwapNavigationAdapter();
+        View header = LayoutInflater.from(getActivity()).inflate(R.layout.layout_navigation_header, mRvNavigation, false);
+        adapter.addHeaderView(header);
+        adapter.setData(generateNavigationItems());
+        adapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<NavigationItem>() {
+            @Override
+            public void onItemClick(NavigationItem navigationItem, View v, int position) {
+                switch (navigationItem.mTitle) {
+                    case "本地音乐":
+                        break;
+                    case "我的收藏":
+                        break;
+                    case "最近播放":
+                        break;
+                    case "下载管理":
+                        break;
+                    case "定时停止播放":
+                        CountDownTimer c = new CountDownTimer(10000, 1000) {
+
+                            @Override
+                            public void onTick(long millisUntilFinished) {
+                                Toaster.showShort(getActivity(), "还有" + (millisUntilFinished / 1000) + "s退出");
+                            }
+
+                            @Override
+                            public void onFinish() {
+                                Toaster.showShort(getActivity(), "退出");
+                            }
+                        };
+                        c.start();
+                        break;
+                }
+            }
+        });
+        mRvNavigation.setAdapter(adapter);
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new VerticalSwapItemTouchHelperCallBack(adapter));
+        itemTouchHelper.attachToRecyclerView(mRvNavigation);
+    }
+
+    private List<NavigationItem> generateNavigationItems() {
+        List<NavigationItem> navigationItems = new ArrayList<>();
+        NavigationItem item = new NavigationItem(0, R.drawable.ic_phone, "本地音乐");
+        NavigationItem item2 = new NavigationItem(1, R.drawable.ic_favorite_border, "我的收藏");
+        NavigationItem item3 = new NavigationItem(1, R.drawable.ic_clock, "最近播放");
+        NavigationItem item4 = new NavigationItem(1, R.drawable.ic_download, "下载管理");
+        navigationItems.add(item);
+        navigationItems.add(item2);
+        navigationItems.add(item3);
+        navigationItems.add(item4);
+        NavigationItem item5 = new NavigationItem(3, 0, "工具");
+        navigationItems.add(item5);
+        NavigationItem item6 = new NavigationItem(0, 1, R.drawable.ic_countdown_tiemr, "定时停止播放");
+        navigationItems.add(item6);
+        return navigationItems;
     }
 
     private void initServiceBinder() {

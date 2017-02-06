@@ -19,18 +19,15 @@
             app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
     </com.wosloveslife.fantasy.ui.ControlView>
 
-    <!--<android.support.design.widget.NavigationView
-        android:id="@+id/navigation_view"
+    <android.support.v7.widget.CardView
+        android:id="@+id/card_view_navigation"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="start"
-        app:elevation="8dp"
-        app:headerLayout="@layout/layout_navigation_header"
-        app:menu="@menu/menu_navig vation"/>-->
+        android:layout_gravity="start">
 
-    <include
-        layout="@layout/layout_drawer_navigation"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_gravity="start"/>
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv_navigation"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+    </android.support.v7.widget.CardView>
 </android.support.v4.widget.DrawerLayout>

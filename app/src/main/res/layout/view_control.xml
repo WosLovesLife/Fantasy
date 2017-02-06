@@ -147,7 +147,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
                 android:layout_marginBottom="6dp"
-                android:background="@drawable/ic_location2"
+                android:background="@drawable/ic_location"
                 android:gravity="center_horizontal"
                 android:minHeight="48dp"
                 android:minWidth="48dp"

@@ -78,7 +78,7 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
                 }
             };
         }
-        return onCreateItemViewHolder(parent);
+        return onCreateItemViewHolder(parent,viewType);
     }
 
     /**
@@ -87,7 +87,7 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
      * @param parent 父控件
      * @return ViewHolder
      */
-    protected abstract BaseRecyclerViewHolder<T> onCreateItemViewHolder(ViewGroup parent);
+    protected abstract BaseRecyclerViewHolder<T> onCreateItemViewHolder(ViewGroup parent,int viewType);
 
     /**
      * 根据判断position所在的集合 从而返回对应的ViewType
