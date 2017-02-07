@@ -231,7 +231,6 @@ public class MusicListFragment extends BaseFragment {
             case 0: // 用户选择了计时关闭后, 如果开启,则将时间和是否播放完后再结束同步给计时器服务和播放服务以及导航栏中更新倒计时进度
                 long pickDate = CountdownPickDialog.getPickDate(data);
                 boolean closeAfterPlayComplete = CountdownPickDialog.isCloseAfterPlayComplete(data);
-                pickDate = 10000;
                 mIsCountdown = pickDate > 0;
                 if (mIsCountdown) {
                     Intent intent = CountdownTimerService.createIntent(getActivity(), pickDate);

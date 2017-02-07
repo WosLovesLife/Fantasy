@@ -155,6 +155,13 @@ public class LrcView extends View {
             return;
         }
 
+        if (!isSupportAutoScroll()) {
+            float measureText = mPaint.measureText("当前歌词不支持自动滚动");
+            canvas.drawText("当前歌词不支持自动滚动", (mWidth - measureText) / 2, v, mPaint);
+            v += mTextSpace;
+            ++lineCount;
+        }
+
         for (BLyric.LyricLine lyricLine : mBLyric.mLrc) {
             float measureText = mPaint.measureText(lyricLine.content);
             String content = TextUtils.isEmpty(lyricLine.content) ? "." : lyricLine.content;
@@ -201,12 +208,14 @@ public class LrcView extends View {
     }
 
     public void setAutoSyncLrc(boolean enable, long offsetProgress) {
+        if (!isSupportAutoScroll()) return;
+
         mHandler.removeMessages(0);
         if (offsetProgress > 0) {
             syncLrc(offsetProgress);
         }
 
-        if (!enable || !isLrcEnable() || mCurrentLine + 1 >= mLyricLines.size()) return;
+        if (!enable || mCurrentLine + 1 >= mLyricLines.size()) return;
 
         long cTime = 0;
         if (mCurrentLine > 0) {
@@ -342,6 +351,7 @@ public class LrcView extends View {
     }
 
     private void scrollDef() {
+        if (!isSupportAutoScroll()) return;
         mHandler.removeMessages(1);
         mHandler.sendEmptyMessageDelayed(1, 2000);
         WLogger.d("scrollDef :  ");
@@ -371,6 +381,8 @@ public class LrcView extends View {
         }
         super.scrollTo(0, targetY);
 
+        if (!isSupportAutoScroll()) return;
+
         int newChosen = Math.round(targetY * 1f / mTextSpace);
         if (!isSeeking()) {
             mChosenLine = 0;
@@ -391,6 +403,10 @@ public class LrcView extends View {
         return mLyricLines != null && mLyricLines.size() > 0;
     }
 
+    private boolean isSupportAutoScroll() {
+        return isLrcEnable() && mLyricLines.get(0).time > 0;
+    }
+
     private BLyric.LyricLine getLrcLine(int index) {
         if (!isLrcEnable() || index < 0 || index >= mLyricLines.size()) return null;
         return mLyricLines.get(index);
@@ -404,14 +420,20 @@ public class LrcView extends View {
     private void notifySeekingProgress() {
         mSeeking = true;
         if (mOnSeekLrcProgressListener != null && mLyricLines.size() > mChosenLine) {
-            mOnSeekLrcProgressListener.onSeekingProgress(getLrcTimeLien(mChosenLine));
+            long lrcTimeLien = getLrcTimeLien(mChosenLine);
+            if (lrcTimeLien > 0) {
+                mOnSeekLrcProgressListener.onSeekingProgress(lrcTimeLien);
+            }
         }
     }
 
     private void notifySeekingFinish() {
         mSeeking = false;
         if (mOnSeekLrcProgressListener != null && isLrcEnable()) {
-            mOnSeekLrcProgressListener.onSeekFinish(getLrcTimeLien(mCurrentLine));
+            long lrcTimeLien = getLrcTimeLien(mChosenLine);
+            if (lrcTimeLien > 0) {
+                mOnSeekLrcProgressListener.onSeekFinish(lrcTimeLien);
+            }
         }
     }
 

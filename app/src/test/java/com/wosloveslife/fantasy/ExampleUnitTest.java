@@ -6,6 +6,8 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.wosloveslife.fantasy.manager.MusicManager.string2Int;
 import static org.junit.Assert.assertEquals;
@@ -95,34 +97,39 @@ public class ExampleUnitTest {
 
     @Test
     public void test() {
-        List<BLyric.LyricLine> lrcLines = new ArrayList<>();
-        int startPoint = 0;
-        int leftIndex;
-        int rightIndex;
         String lrc = LRC.replaceAll("\\n", "");
-        while ((leftIndex = lrc.indexOf("[", startPoint)) != -1) {
-            rightIndex = lrc.indexOf("]", ++startPoint);
-            if (rightIndex == -1) continue;
-            String time = lrc.substring(leftIndex + 1, rightIndex);
-            int timestamp = lrcTime2Timestamp(time);
+        Matcher matcher = Pattern.compile("\\u005b[0-9]{2}:[0-9]{2}\\u002e[0-9]{2}\\u005d").matcher(lrc);
+        List<BLyric.LyricLine> match = match(matcher, lrc);
+        System.out.println("match = " + match);
 
-            startPoint = rightIndex + 1;
-            if (startPoint >= lrc.length()) break;
-
-            int i = lrc.indexOf("[", startPoint);
-            String content = lrc.substring(startPoint, i);
-
-            lrcLines.add(new BLyric.LyricLine(timestamp, content));
-        }
-
-        System.out.println("lrcLines = " + lrcLines.toString());
-        assertEquals(lrcLines.size(), 0);
+        assertEquals(0, 0);
     }
 
     private static int lrcTime2Timestamp(String time) {
-        int minutes = string2Int(time.substring(0, 2));
-        int seconds = string2Int(time.substring(3, 5));
-        int milliseconds = string2Int(time.substring(6, 8));
+        if (time == null || time.equals("")) return 0;
+        int minutes = string2Int(time.substring(1, 3));
+        int seconds = string2Int(time.substring(4, 6));
+        int milliseconds = string2Int(time.substring(7, 9));
         return minutes * 60 * 1000 + seconds * 1000 + milliseconds * 10;
+    }
+
+    private List<BLyric.LyricLine> match(Matcher matcher, String content) {
+        List<BLyric.LyricLine> lyricLines = new ArrayList<>();
+        int start = 0;
+        int end;
+        String time = null;
+        while (matcher.find()) {
+            /* 时间字段开始处为上一次遍历的内容的起始处 */
+            end = matcher.start();
+            if (end > 0) {
+                String lrcLine = content.substring(start, end);
+                System.out.println("lrcLine = " + lrcLine);
+                lyricLines.add(new BLyric.LyricLine(lrcTime2Timestamp(time), lrcLine));
+            }
+            /* 本次的时间结尾处作为下一次查询的本次内容的起始处 */
+            start = matcher.end();
+            time = matcher.group();
+        }
+        return lyricLines;
     }
 }

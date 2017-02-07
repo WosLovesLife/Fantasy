@@ -23,6 +23,8 @@ import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -34,6 +36,7 @@ import rx.schedulers.Schedulers;
  * Created by zhangh on 2017/1/2.
  */
 public class MusicManager {
+    private static final Pattern PATTERN_LRC_INTERVAL = Pattern.compile("\\u005b[0-9]{2}:[0-9]{2}\\u002e[0-9]{2}\\u005d");
     private static MusicManager sMusicManager;
 
     public static final String LRC = "[00:00.79]一生为你感动\n" +
@@ -408,36 +411,47 @@ public class MusicManager {
     public static BLyric generateLrcData(String lrcContent) {
         if (TextUtils.isEmpty(lrcContent)) return null;
 
-        lrcContent = lrcContent.replaceAll("\\n", "");
-        List<BLyric.LyricLine> lrcLines = new ArrayList<>();
-        int startPoint = 0;
-        int leftIndex;
-        int rightIndex;
-        while ((leftIndex = lrcContent.indexOf("[", startPoint)) != -1) {
-            rightIndex = lrcContent.indexOf("]", ++startPoint);
-            if (rightIndex == -1) continue;
-            String time = lrcContent.substring(leftIndex + 1, rightIndex);
-            int timestamp = lrcTime2Timestamp(time);
-
-            startPoint = rightIndex + 1;
-            if (startPoint >= lrcContent.length()) break;
-
-            int i = lrcContent.indexOf("[", startPoint);
-            if (i == -1) {
-                i = lrcContent.length();
+        List<BLyric.LyricLine> lrcLines;
+        if (PATTERN_LRC_INTERVAL.matcher(lrcContent).find()) {
+            lrcContent = lrcContent.replaceAll("\\n", "");
+            lrcLines = match(lrcContent);
+        } else {
+            String[] split = lrcContent.split("\r\n");
+            lrcLines = new ArrayList<>();
+            for (String s : split) {
+                lrcLines.add(new BLyric.LyricLine(-1, s));
             }
-
-            String content = lrcContent.substring(startPoint, i);
-
-            lrcLines.add(new BLyric.LyricLine(timestamp, content));
         }
+
         return new BLyric(lrcLines);
     }
 
+    private static List<BLyric.LyricLine> match(String content) {
+        List<BLyric.LyricLine> lyricLines = new ArrayList<>();
+        int start = 0;
+        int end;
+        String time = null;
+        Matcher matcher = PATTERN_LRC_INTERVAL.matcher(content);
+        while (matcher.find()) {
+            /* 时间字段开始处为上一次遍历的内容的起始处 */
+            end = matcher.start();
+            if (end > 0) {
+                String lrcLine = content.substring(start, end);
+                System.out.println("lrcLine = " + lrcLine);
+                lyricLines.add(new BLyric.LyricLine(lrcTime2Timestamp(time), lrcLine));
+            }
+            /* 本次的时间结尾处作为下一次查询的本次内容的起始处 */
+            start = matcher.end();
+            time = matcher.group();
+        }
+        return lyricLines;
+    }
+
     private static int lrcTime2Timestamp(String time) {
-        int minutes = string2Int(time.substring(0, 2));
-        int seconds = string2Int(time.substring(3, 5));
-        int milliseconds = string2Int(time.substring(6, 8));
+        if (time == null || time.equals("")) return 0;
+        int minutes = string2Int(time.substring(1, 3));
+        int seconds = string2Int(time.substring(4, 6));
+        int milliseconds = string2Int(time.substring(7, 9));
         return minutes * 60 * 1000 + seconds * 1000 + milliseconds * 10;
     }
 
