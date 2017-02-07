@@ -3,9 +3,15 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="200dp"
-    android:background="@drawable/bg_simple"
+    android:layout_height="190dp"
+    android:background="@color/colorPrimary"
     android:orientation="vertical">
+
+    <!--<ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_nv_header"/>-->
 
     <com.makeramen.roundedimageview.RoundedImageView
         android:id="@+id/riv_sheet_album"
@@ -38,6 +44,6 @@
         android:layout_marginRight="16dp"
         android:layout_marginTop="8dp"
         android:text="创建日期:2017.01.31"
-        android:textColor="@color/gray_light"
+        android:textColor="@color/white"
         android:textSize="12sp"/>
 </RelativeLayout>

@@ -239,13 +239,13 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         mMinimumFlingVelocity = ViewConfiguration.get(getContext()).getScaledMinimumFlingVelocity();
         mMaximumFlingVelocity = ViewConfiguration.get(getContext()).getScaledMaximumFlingVelocity();
 
-        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.bg_control);
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_portrait_chicken_174);
 
         mPlayDrawable = getResources().getDrawable(R.drawable.ic_play_arrow);
         mPauseDrawable = getResources().getDrawable(R.drawable.ic_pause);
 
         mDefAlbum = new BitmapDrawable(bitmap);
-        mDefBlurredAlbum = new BitmapDrawable(new StackBlurManager(bitmap).process(30));
+        mDefBlurredAlbum = getResources().getDrawable(R.drawable.bg_blur);
         mDefColorTitle = new ColorDrawable(getResources().getColor(R.color.white));
         mDefColorMutedBg = new ColorDrawable(getResources().getColor(R.color.colorPrimary));
         mDefColorBody = new ColorDrawable(getResources().getColor(R.color.colorAccent));
