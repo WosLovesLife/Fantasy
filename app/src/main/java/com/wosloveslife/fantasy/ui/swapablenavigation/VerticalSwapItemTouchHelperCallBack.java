@@ -49,7 +49,7 @@ public class VerticalSwapItemTouchHelperCallBack extends ItemTouchHelper.Callbac
     @Override
     public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
         if (viewHolder instanceof SwapNavigationAdapter.Holder && target instanceof SwapNavigationAdapter.Holder
-                && ((SwapNavigationAdapter.Holder) target).mType == 0) {
+                && ((SwapNavigationAdapter.Holder) target).mType == 1) {
             int group = ((SwapNavigationAdapter.Holder) viewHolder).mGroup;
             int tGroup = ((SwapNavigationAdapter.Holder) target).mGroup;
             if (group == tGroup) {

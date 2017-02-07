@@ -108,6 +108,29 @@ public class LrcView extends View {
         super.onDetachedFromWindow();
         mHandler.removeCallbacksAndMessages(null);
         notifySeekingFinish();
+        recycleVelocityTracker();
+    }
+
+    private void initOrResetVelocityTracker() {
+        if (mVelocityTracker == null) {
+            mVelocityTracker = VelocityTracker.obtain();
+        } else {
+            mVelocityTracker.clear();
+        }
+    }
+
+    private void initVelocityTrackerIfNotExists() {
+        if (mVelocityTracker == null) {
+            mVelocityTracker = VelocityTracker.obtain();
+        }
+    }
+
+    private void recycleVelocityTracker() {
+        if (mVelocityTracker != null) {
+            mVelocityTracker.clear();
+            mVelocityTracker.recycle();
+            mVelocityTracker = null;
+        }
     }
 
     @Override
@@ -121,10 +144,17 @@ public class LrcView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        if (mBLyric == null || mBLyric.mLrc == null) return;
-
         int v = mTextSpace / 2 + mHeight / 2;
         int lineCount = 0;
+
+        canvas.save();
+        if (mBLyric == null || mBLyric.mLrc == null) {
+            float measureText = mPaint.measureText("暂无歌词,请期待后续优化");
+            canvas.drawText("暂无歌词,请期待后续优化", (mWidth - measureText) / 2, v, mPlayingPaint);
+            canvas.restore();
+            return;
+        }
+
         for (BLyric.LyricLine lyricLine : mBLyric.mLrc) {
             float measureText = mPaint.measureText(lyricLine.content);
             String content = TextUtils.isEmpty(lyricLine.content) ? "." : lyricLine.content;
@@ -138,6 +168,7 @@ public class LrcView extends View {
             v += mTextSpace;
             ++lineCount;
         }
+        canvas.restore();
     }
 
     private void syncLrc(long progress) {
@@ -267,7 +298,7 @@ public class LrcView extends View {
                     if (!mScroller.isFinished()) {
                         mScroller.abortAnimation();
                     }
-                    mVelocityTracker = VelocityTracker.obtain();
+                    initOrResetVelocityTracker();
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -285,13 +316,13 @@ public class LrcView extends View {
                     fling((int) yVelocity);
                 }
             case MotionEvent.ACTION_CANCEL:
-                mVelocityTracker.clear();
-                mVelocityTracker.recycle();
+                recycleVelocityTracker();
                 scrollDef();
                 break;
         }
 
         if (!addVelocityTracker) {
+            initVelocityTrackerIfNotExists();
             mVelocityTracker.addMovement(vtev);
         }
         vtev.recycle();

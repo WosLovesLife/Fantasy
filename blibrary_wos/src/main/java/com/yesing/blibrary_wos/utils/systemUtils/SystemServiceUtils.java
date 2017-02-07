@@ -1,6 +1,7 @@
 package com.yesing.blibrary_wos.utils.systemUtils;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -10,6 +11,9 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 
 import com.yesing.blibrary_wos.utils.assist.Toaster;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
+
+import java.util.List;
 
 /**
  * Created by YesingBeijing on 2016/9/20.
@@ -75,5 +79,17 @@ public class SystemServiceUtils {
     public static void toggleKeyboard(Context context) {
         InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
+    }
+
+    public static boolean isServiceRunning(Context context, String serviceName) {
+        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningServiceInfo> runningServices = activityManager.getRunningServices(1000);
+        for (ActivityManager.RunningServiceInfo runningService : runningServices) {
+            WLogger.d("isServiceRunning : runningService.service.getClassName() =  " + runningService.service.getClassName());
+            if (TextUtils.equals(runningService.service.getClassName(), serviceName)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

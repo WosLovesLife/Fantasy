@@ -1,12 +1,12 @@
 package com.wosloveslife.fantasy.ui;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
@@ -30,13 +30,14 @@ import com.wosloveslife.fantasy.adapter.MusicListAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.bean.NavigationItem;
 import com.wosloveslife.fantasy.manager.MusicManager;
+import com.wosloveslife.fantasy.services.CountdownTimerService;
 import com.wosloveslife.fantasy.services.PlayService;
 import com.wosloveslife.fantasy.ui.swapablenavigation.SwapNavigationAdapter;
 import com.wosloveslife.fantasy.ui.swapablenavigation.VerticalSwapItemTouchHelperCallBack;
 import com.wosloveslife.fantasy.utils.DividerDecoration;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
-import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
+import com.yesing.blibrary_wos.utils.systemUtils.SystemServiceUtils;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -74,11 +75,14 @@ public class MusicListFragment extends BaseFragment {
 
     //=============
     private MusicListAdapter mAdapter;
+    private SwapNavigationAdapter mNavigationAdapter;
     private LinearLayoutManager mLayoutManager;
     private PlayService.PlayBinder mPlayBinder;
 
     //=============
     BMusic mCurrentMusic;
+
+    boolean mIsCountdown;
 
     public static MusicListFragment newInstance() {
 
@@ -170,6 +174,9 @@ public class MusicListFragment extends BaseFragment {
                 mPlayBinder.play();
             }
 
+            /**
+             * 如果暂停时发现当前的状态是有关闭倒计时而服务中以及完成了倒计时,则同步导航栏的倒计时状态
+             */
             @Override
             public void pause() {
                 mPlayBinder.pause();
@@ -179,7 +186,7 @@ public class MusicListFragment extends BaseFragment {
 
     private void initToolbar() {
         mToolbar = mControlView.getToolbar();
-        AppCompatActivity activity = (AppCompatActivity) getActivity();
+        final AppCompatActivity activity = (AppCompatActivity) getActivity();
         activity.setSupportActionBar(mToolbar);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(getActivity(), mDrawerLayout, mToolbar, R.string.app_name, R.string.app_name);
         toggle.syncState();
@@ -187,11 +194,11 @@ public class MusicListFragment extends BaseFragment {
 
         ViewCompat.setElevation(mCardViewNavigation, 8);
         mRvNavigation.setLayoutManager(new LinearLayoutManager(getContext()));
-        SwapNavigationAdapter adapter = new SwapNavigationAdapter();
+        mNavigationAdapter = new SwapNavigationAdapter();
         View header = LayoutInflater.from(getActivity()).inflate(R.layout.layout_navigation_header, mRvNavigation, false);
-        adapter.addHeaderView(header);
-        adapter.setData(generateNavigationItems());
-        adapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<NavigationItem>() {
+        mNavigationAdapter.addHeaderView(header);
+        mNavigationAdapter.setData(generateNavigationItems());
+        mNavigationAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<NavigationItem>() {
             @Override
             public void onItemClick(NavigationItem navigationItem, View v, int position) {
                 switch (navigationItem.mTitle) {
@@ -204,26 +211,40 @@ public class MusicListFragment extends BaseFragment {
                     case "下载管理":
                         break;
                     case "定时停止播放":
-                        CountDownTimer c = new CountDownTimer(10000, 1000) {
-
-                            @Override
-                            public void onTick(long millisUntilFinished) {
-                                Toaster.showShort(getActivity(), "还有" + (millisUntilFinished / 1000) + "s退出");
-                            }
-
-                            @Override
-                            public void onFinish() {
-                                Toaster.showShort(getActivity(), "退出");
-                            }
-                        };
-                        c.start();
+                        CountdownPickDialog pickDialog = new CountdownPickDialog();
+                        pickDialog.setTargetFragment(MusicListFragment.this, 0);
+                        pickDialog.show(getChildFragmentManager(), "pick_time");
                         break;
                 }
             }
         });
-        mRvNavigation.setAdapter(adapter);
-        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new VerticalSwapItemTouchHelperCallBack(adapter));
+        mRvNavigation.setAdapter(mNavigationAdapter);
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new VerticalSwapItemTouchHelperCallBack(mNavigationAdapter));
         itemTouchHelper.attachToRecyclerView(mRvNavigation);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != Activity.RESULT_OK) return;
+        switch (requestCode) {
+            case 0: // 用户选择了计时关闭后, 如果开启,则将时间和是否播放完后再结束同步给计时器服务和播放服务以及导航栏中更新倒计时进度
+                long pickDate = CountdownPickDialog.getPickDate(data);
+                boolean closeAfterPlayComplete = CountdownPickDialog.isCloseAfterPlayComplete(data);
+                pickDate = 10000;
+                mIsCountdown = pickDate > 0;
+                if (mIsCountdown) {
+                    Intent intent = CountdownTimerService.createIntent(getActivity(), pickDate);
+                    getActivity().startService(intent);
+                    mPlayBinder.setCountdown(pickDate, closeAfterPlayComplete);
+                } else if (SystemServiceUtils.isServiceRunning(getActivity(), CountdownTimerService.class.getName())) {
+                    Intent intent = CountdownTimerService.stopService(getActivity());
+                    getActivity().startService(intent);
+                    mPlayBinder.setCountdown(pickDate, false);
+                }
+                updateNvCountdown(pickDate, 0);
+                break;
+        }
     }
 
     private List<NavigationItem> generateNavigationItems() {
@@ -265,11 +286,18 @@ public class MusicListFragment extends BaseFragment {
                 public void onPause() {
                     mControlView.syncPlayView(mCurrentMusic);
                     mAdapter.togglePlay(false);
+
+                    if (mIsCountdown && !mPlayBinder.isCountdown()) {
+                        mIsCountdown = false;
+                        updateNvCountdown(0, 0);
+                    }
                 }
             });
 
             mControlView.setPlayer(mPlayBinder.getExoPlayer());
             syncVisual(mPlayBinder.getCurrentMusic());
+            mIsCountdown = mPlayBinder.isCountdown();
+            updateNvCountdown(0, 0);
         }
 
         /** 和服务断开连接后回调(比如unbindService()方法执行后) */
@@ -286,6 +314,16 @@ public class MusicListFragment extends BaseFragment {
         mControlView.syncPlayView(mCurrentMusic);
         int index = MusicManager.getInstance().getIndex(music);
         mAdapter.setChosenItem(index, mPlayBinder.isPlaying());
+    }
+
+    private void updateNvCountdown(long totalMillis, long millisUntilFinished) {
+        if (totalMillis == millisUntilFinished) {
+            mNavigationAdapter.updateCountDownTimer(mNavigationAdapter.getHeadersCount() + 5, -1,
+                    mPlayBinder != null && mPlayBinder.isCloseAfterPlayComplete());
+        } else {
+            mNavigationAdapter.updateCountDownTimer(mNavigationAdapter.getHeadersCount() + 5, millisUntilFinished,
+                    mPlayBinder != null && mPlayBinder.isCloseAfterPlayComplete());
+        }
     }
 
     //=======================================UI和逻辑的同步-end=====================================
@@ -335,6 +373,12 @@ public class MusicListFragment extends BaseFragment {
         }
 
         mSnackbar.show();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onCountDownTimerTick(CountdownTimerService.CountDownEvent event) {
+        if (event == null) return;
+        updateNvCountdown(event.totalMillis, event.millisUntilFinished);
     }
 
     /**

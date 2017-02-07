@@ -1,7 +1,7 @@
 package com.wosloveslife.fantasy.ui.swapablenavigation;
 
+import android.text.TextUtils;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -10,6 +10,7 @@ import android.widget.TextView;
 
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.bean.NavigationItem;
+import com.wosloveslife.fantasy.utils.FormatUtils;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.viewHolder.BaseRecyclerViewHolder;
 
@@ -17,13 +18,14 @@ import java.util.Collections;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import butterknife.OnClick;
 
 /**
  * Created by zhangh on 2017/2/6.
  */
 
 public class SwapNavigationAdapter extends BaseRecyclerViewAdapter<NavigationItem> implements ItemTouchHelperAdapter {
+
+    TextView mTvCountDown;
 
     @Override
     public int getItemViewType(int position) {
@@ -58,6 +60,25 @@ public class SwapNavigationAdapter extends BaseRecyclerViewAdapter<NavigationIte
     public void onItemDismiss(int position) {
     }
 
+    long mMillis;
+    boolean mCloseAfterPlayEnd;
+
+    public void updateCountDownTimer(int position, long millis, boolean closeAfterPlayEnd) {
+        mMillis = millis;
+        mCloseAfterPlayEnd = closeAfterPlayEnd;
+        if (mTvCountDown != null && mTvCountDown.getTag() != null && TextUtils.equals((String) mTvCountDown.getTag(), "countdown")) {
+            if (mMillis > 0) {
+                mTvCountDown.setText(FormatUtils.stringForTime(mMillis));
+            } else if (mCloseAfterPlayEnd) {
+                mTvCountDown.setText("播完后停止");
+            } else {
+                mTvCountDown.setText("");
+            }
+        } else {
+            notifyItemChanged(position);
+        }
+    }
+
     public class Holder extends BaseRecyclerViewHolder<NavigationItem> {
         @BindView(R.id.fl_rootView)
         FrameLayout mFlRootView;
@@ -65,6 +86,8 @@ public class SwapNavigationAdapter extends BaseRecyclerViewAdapter<NavigationIte
         ImageView mIvIcon;
         @BindView(R.id.tv_title)
         TextView mTvTitle;
+        @BindView(R.id.tv_accessory)
+        TextView mTvAccessory;
 
         public int mType;
         public int mGroup;
@@ -85,6 +108,23 @@ public class SwapNavigationAdapter extends BaseRecyclerViewAdapter<NavigationIte
             mGroup = navigationItem.group;
             mIvIcon.setImageResource(navigationItem.mIcon);
             mTvTitle.setText(navigationItem.mTitle);
+
+            if (TextUtils.equals(navigationItem.mTitle, "定时停止播放")) {
+                mTvCountDown = mTvAccessory;
+                mTvAccessory.setTag("countdown");
+                mTvAccessory.setVisibility(View.VISIBLE);
+                if (mMillis > 0) {
+                    mTvAccessory.setText(FormatUtils.stringForTime(mMillis));
+                } else if (mCloseAfterPlayEnd) {
+                    mTvAccessory.setText("播完后停止");
+                } else {
+                    mTvAccessory.setText("");
+                }
+            } else {
+                mTvAccessory.setTag(null);
+                mTvAccessory.setVisibility(View.GONE);
+            }
+
             mFlRootView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {

@@ -89,7 +89,14 @@ public class PlayService extends Service {
     public int mPlayOrder;
     private boolean mSaveCache;
 
+    //============定时自动关闭服务
+    boolean mCountdownUp;
+    boolean mStopPlay;
+    long mCountdownTargetTimestamp;
+    boolean mCloseAfterPlayComplete;
+
     List<PlayStateListener> mPlayStateListeners = new ArrayList<>();
+    private AudioManager mAudioManager;
 
     public PlayService() {
     }
@@ -163,6 +170,21 @@ public class PlayService extends Service {
         public boolean removePlayStateListener(PlayStateListener listener) {
             return PlayService.this.removePlayStateListener(listener);
         }
+
+        public void setCountdown(long pickDate, boolean closeAfterPlayComplete) {
+            mCountdownUp = pickDate > 0;
+            mCountdownTargetTimestamp = System.currentTimeMillis() + pickDate;
+            mCloseAfterPlayComplete = closeAfterPlayComplete;
+        }
+
+        /** 如果没有开启计时器或者计时器未完成,则返回false. */
+        public boolean isCountdown() {
+            return mCountdownUp;
+        }
+
+        public boolean isCloseAfterPlayComplete() {
+            return mCloseAfterPlayComplete;
+        }
     }
 
     //==============================================================================================
@@ -181,8 +203,8 @@ public class PlayService extends Service {
     public void play(BMusic music) {
         mCurrentMusic = music;
         if (mCurrentMusic != null) {
-            prepare2(music.path);
-            mPlayer.setPlayWhenReady(true);
+            prepare(music.path);
+            play();
             SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
         } else {
             pause();
@@ -204,6 +226,7 @@ public class PlayService extends Service {
      * 开始播放
      */
     public void play() {
+        mStopPlay = false;
         if (mCurrentMusic != null) {
             mPlayer.setPlayWhenReady(true);
         } else {
@@ -315,18 +338,49 @@ public class PlayService extends Service {
         mPlayer.addListener(new ExoPlayerEventListenerAdapter() {
             @Override
             public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-                if (playbackState == ExoPlayer.STATE_ENDED) {
-                    next();
-                    return;
+                if (!playWhenReady) {
+                    /* 在这里重置该值, 避免影响后续的播放状态 */
+                    mSavePlay = false;
                 }
 
-                for (PlayStateListener listener : mPlayStateListeners) {
-                    if (playWhenReady) {
-                        listener.onPlay(mCurrentMusic);
-                    } else {
-                        /* 在这里重置该值, 避免影响后续的播放状态 */
-                        mSavePlay = false;
+//                if (mCountdownUp
+//                        && (playbackState == ExoPlayer.STATE_ENDED || !playWhenReady)
+//                        && System.currentTimeMillis() >= mCountdownTargetTimestamp) {
+//                    resetPlayService();
+//                    for (PlayStateListener listener : mPlayStateListeners) {
+//                        listener.onPause();
+//                    }
+//                } else if (playbackState == ExoPlayer.STATE_ENDED) {
+//                    next();
+//                } else {
+//                    for (PlayStateListener listener : mPlayStateListeners) {
+//                        if (playWhenReady) {
+//                            listener.onPlay(mCurrentMusic);
+//                        } else {
+//                            listener.onPause();
+//                        }
+//                    }
+//                }
+
+                if (mCountdownUp
+                        && (playbackState == ExoPlayer.STATE_ENDED || !playWhenReady)
+                        && System.currentTimeMillis() >= mCountdownTargetTimestamp) {
+                    mStopPlay = true;
+                    resetPlayService();
+                    for (PlayStateListener listener : mPlayStateListeners) {
                         listener.onPause();
+                    }
+                } else if (!mStopPlay && playbackState == ExoPlayer.STATE_ENDED) {
+                    next();
+                } else {
+                    if (playWhenReady) {
+                        for (PlayStateListener listener : mPlayStateListeners) {
+                            listener.onPlay(mCurrentMusic);
+                        }
+                    } else {
+                        for (PlayStateListener listener : mPlayStateListeners) {
+                            listener.onPause();
+                        }
                     }
                 }
             }
@@ -347,8 +401,8 @@ public class PlayService extends Service {
      * 监听声音播放的焦点变化,当有别的应用抢占了焦点时(例如拨打电话).终止播放,并在重新获取焦点后根据之前保存的状态而判断是否继续播放
      */
     private void registerAudioEvent() {
-        AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-        audioManager.requestAudioFocus(new AudioManager.OnAudioFocusChangeListener() {
+        mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        mAudioManager.requestAudioFocus(new AudioManager.OnAudioFocusChangeListener() {
             @Override
             public void onAudioFocusChange(int focusChange) {
                 switch (focusChange) {
@@ -387,17 +441,25 @@ public class PlayService extends Service {
     public void onTaskRemoved(Intent rootIntent) {
         super.onTaskRemoved(rootIntent);
         WLogger.w("onTaskRemoved(Intent rootIntent)");
-
-        mPlayer.release();
     }
 
     @Override
     public void onDestroy() {
-        Toaster.showShort(getApplicationContext(), "onDestroy()");
         super.onDestroy();
         WLogger.w("onDestroy()");
+        release();
+    }
+
+    private void release() {
         EventBus.getDefault().unregister(this);
         BroadcastManager.getInstance().unregisterAllBroadcasts();
+        if (mPlayer != null) {
+            resetPlayService();
+            mPlayer.release();
+        }
+        if (mAudioManager != null) {
+            mAudioManager.abandonAudioFocus(null);
+        }
     }
 
     //==================================播放逻辑-start==============================================
@@ -426,33 +488,6 @@ public class PlayService extends Service {
     }
 
     private void prepare(String path) {
-        if (TextUtils.isEmpty(path)) {
-            /* todo 没有播放地址,传递错误 */
-            Toaster.showShort(this, "找不到播放地址");
-            return;
-        }
-
-        DataSource.Factory factory = mDataSourceFactory;
-        if (mSaveCache && path.startsWith("http")) {
-            factory = new CacheDataSourceFactory(new SimpleCache(getExternalFilesDir(Environment.DIRECTORY_MUSIC), new NoOpCacheEvictor()), mDataSourceFactory, 1);
-        }
-        Uri uri = Uri.parse(path);
-        MediaSource videoSource = new ExtractorMediaSource(uri, factory, mExtractorsFactory, new Handler(getMainLooper()) {
-            @Override
-            public void handleMessage(Message msg) {
-                super.handleMessage(msg);
-
-            }
-        }, new ExtractorMediaSource.EventListener() {
-            @Override
-            public void onLoadError(IOException error) {
-
-            }
-        });
-        mPlayer.prepare(videoSource);
-    }
-
-    private void prepare2(String path) {
         if (TextUtils.isEmpty(path)) {
             /* todo 没有播放地址,传递错误 */
             Toaster.showShort(this, "找不到播放地址");
@@ -500,11 +535,31 @@ public class PlayService extends Service {
         mPlayer.prepare(videoSource);
     }
 
+    private void resetPlayService() {
+        mCountdownUp = false;
+        mCloseAfterPlayComplete = false;
+        pause();
+    }
+
     //==========================================事件处理============================================
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onBroadcastEvent(AudioBroadcast.AudioNoisyEvent event) {
         pause();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onCountDownTimerTick(CountdownTimerService.CountDownEvent event) {
+        if (event == null) return;
+
+        /** 当前启用了定时器并且定时器进度结束并且没有设定播放完当前歌曲后结束或者当前为暂停状态则立即暂停播放并通知客户 */
+        if (mCountdownUp && event.totalMillis == event.millisUntilFinished && (!mCloseAfterPlayComplete || !mPlayer.getPlayWhenReady())) {
+            //结束播放服务
+            resetPlayService();
+            for (PlayStateListener listener : mPlayStateListeners) {
+                listener.onPause();
+            }
+        }
     }
 
     //==================================记录生命周期-忽略===========================================
