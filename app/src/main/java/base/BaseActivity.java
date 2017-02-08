@@ -9,7 +9,6 @@ import android.support.design.widget.AppBarLayout;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,7 +26,7 @@ import java.util.List;
 /**
  * Created by YesingBeijing on 2016/9/14.
  */
-public abstract class BaseActivity extends AppCompatActivity {
+public abstract class BaseActivity extends BackActivity {
     private static int sDefActionbarColor;
     private static int sDefActionbarIcon;
 

@@ -13,9 +13,17 @@
         <item name="android:textViewStyle">@style/TextAppearance.AppCompat</item>
 
         <item name="android:windowAnimationStyle">@style/activityAnim</item>
+
+        <!--背景透明，不设滑动关闭时背景就是黑的。-->
+        <item name="android:windowIsTranslucent">true</item>
     </style>
 
-    <style name="TranslucentAppTheme" parent="AppTheme">
+    <style name="AppTheme.Translucent">
+    </style>
+
+    <!--为了防止在MIUI系统下出错,最底层Activity不能透明-->
+    <style name="AppTheme.Translucent.Main">
+        <item name="android:windowIsTranslucent">false</item>
     </style>
 
     <!-- 使用style方式定义activity切换动画 -->
