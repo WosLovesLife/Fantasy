@@ -26,6 +26,11 @@
         <item name="android:windowIsTranslucent">false</item>
     </style>
 
+    <style name="AppTheme.Translucent.Splash">
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowBackground">@drawable/layer_splash</item>
+    </style>
+
     <!-- 使用style方式定义activity切换动画 -->
     <style name="activityAnim" parent="android:style/Animation.Activity">
         <item name="android:activityOpenEnterAnimation">@anim/anim_in</item>

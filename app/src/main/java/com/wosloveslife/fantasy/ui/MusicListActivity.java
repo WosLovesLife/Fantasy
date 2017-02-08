@@ -13,6 +13,7 @@ public class MusicListActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setTheme(R.style.AppTheme_Translucent_Main);
         setContentView(R.layout.activity_base);
         initFragment();
     }

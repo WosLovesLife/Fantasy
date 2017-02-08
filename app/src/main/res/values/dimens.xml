@@ -4,4 +4,5 @@
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="action_bar_height">56dp</dimen>
     <dimen name="statusBar_height">0dp</dimen>
+    <dimen name="actionBarPlusStatusBarSize">56dp</dimen>
 </resources>
