@@ -11,9 +11,17 @@
         <item name="android:textColorSecondary">@color/black_blue_text</item>
 
         <item name="android:textViewStyle">@style/TextAppearance.AppCompat</item>
+
+        <item name="android:windowAnimationStyle">@style/activityAnim</item>
     </style>
 
     <style name="TranslucentAppTheme" parent="AppTheme">
+    </style>
+
+    <!-- 使用style方式定义activity切换动画 -->
+    <style name="activityAnim" parent="android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/anim_in</item>
+        <item name="android:activityCloseExitAnimation">@anim/anim_out</item>
     </style>
 
     <style name="Theme.TMessages" parent="AppTheme">
