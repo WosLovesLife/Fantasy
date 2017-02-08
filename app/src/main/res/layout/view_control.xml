@@ -44,7 +44,7 @@
                 android:layout_marginLeft="16dp"
                 android:clickable="true"
                 android:scaleType="centerCrop"
-                android:src="@color/colorAccent"
+                android:src="@drawable/ic_portrait_chicken_174"
                 app:riv_corner_radius="28dp"/>
 
             <TextView
