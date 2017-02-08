@@ -106,6 +106,7 @@ public class LrcView extends View {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+        mTouching = false;
         mHandler.removeCallbacksAndMessages(null);
         notifySeekingFinish();
         recycleVelocityTracker();
@@ -287,7 +288,6 @@ public class LrcView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (!isLrcEnable()) return false;
-        mHandler.removeMessages(1);
 
         boolean addVelocityTracker = false;
         boolean consume = true;
@@ -308,6 +308,7 @@ public class LrcView extends View {
                         mScroller.abortAnimation();
                     }
                     initOrResetVelocityTracker();
+                    mHandler.removeMessages(1);
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
