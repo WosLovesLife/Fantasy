@@ -8,6 +8,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.wosloveslife.fantasy.R;
+
 import base.adapter.FragmentsAdapter;
 
 
@@ -29,8 +31,8 @@ public class BasePagerActivity extends BaseActivity {
 
     @Override
     protected View setFragmentContainer(LayoutInflater from, ViewGroup parent) {
-        View view = from.inflate(com.yesing.blibrary_wos.R.layout.view_common_unscrollable_view_pager, parent, false);
-        mVpFragmentContainer = (ViewPager) view.findViewById(com.yesing.blibrary_wos.R.id.uvp_fragment_container);
+        View view = from.inflate(R.layout.base_activity_pager, parent, false);
+        mVpFragmentContainer = (ViewPager) view.findViewById(R.id.uvp_fragment_container);
         return view;
     }
 
@@ -51,7 +53,7 @@ public class BasePagerActivity extends BaseActivity {
 
             @Override
             public void onPageSelected(int position) {
-                mToolbarTitle.setText(mAdapter.getPageTitle(position));
+                mToolbar.setTitle(mAdapter.getPageTitle(position));
             }
 
             @Override

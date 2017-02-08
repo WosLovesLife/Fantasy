@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 
+import com.wosloveslife.fantasy.manager.CustomConfiguration;
+
 import java.util.Set;
 
 /**
@@ -27,6 +29,8 @@ public class SPHelper {
         mContext = context;
         mPreferences = context.getSharedPreferences(context.getPackageName(), Context.MODE_PRIVATE);
         mEdit = mPreferences.edit();
+
+        CustomConfiguration.init();
     }
 
     public void save(@NonNull String key, @NonNull String value) {

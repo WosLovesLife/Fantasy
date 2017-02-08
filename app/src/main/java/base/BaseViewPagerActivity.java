@@ -9,6 +9,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.wosloveslife.fantasy.R;
+
 import java.util.ArrayList;
 
 import base.adapter.FragmentsAdapter;
@@ -32,9 +34,9 @@ public abstract class BaseViewPagerActivity extends BaseActivity {
 
     @Override
     protected View setFragmentContainer(LayoutInflater from, ViewGroup parent) {
-        View view = LayoutInflater.from(this).inflate(com.yesing.blibrary_wos.R.layout.activity_base_view_pager, parent,false);
-        mVpFragmentContainer = (ViewPager) view.findViewById(com.yesing.blibrary_wos.R.id.vp_fragment_container);
-        mTabLayout = (TabLayout) view.findViewById(com.yesing.blibrary_wos.R.id.tab_layout);
+        View view = LayoutInflater.from(this).inflate(R.layout.base_activity_view_pager, parent,false);
+        mVpFragmentContainer = (ViewPager) view.findViewById(R.id.vp_fragment_container);
+        mTabLayout = (TabLayout) view.findViewById(R.id.tab_layout);
         return view;
     }
 

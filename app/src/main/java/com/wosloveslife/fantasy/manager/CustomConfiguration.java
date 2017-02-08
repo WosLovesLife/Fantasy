@@ -7,25 +7,47 @@ import com.wosloveslife.fantasy.helper.SPHelper;
  */
 
 public class CustomConfiguration {
-    public static final String KEY_CUSTOM_COUNTDOWN_DELAY = "com.wosloveslife.fantasy.ui.CountdownPickDialog.KEY_CUSTOM_COUNTDOWN_DELAY";
-    public static final String KEY_CLOSE_AFTER_PLAY_END = "com.wosloveslife.fantasy.ui.CountdownPickDialog.KEY_CLOSE_AFTER_PLAY_END";
+    private static final String KEY_CUSTOM_COUNTDOWN_DELAY = "setting.KEY_CUSTOM_COUNTDOWN_DELAY";
+    private static final String KEY_CLOSE_AFTER_PLAY_END = "setting.KEY_CLOSE_AFTER_PLAY_END";
+    private static final String KEY_PLAY_CONTROLLER_AUTO_EXPAND = "setting.KEY_PLAY_CONTROLLER_AUTO_EXPAND";
 
-    public static int getCustomCountdown() {
-        return SPHelper.getInstance().get(KEY_CUSTOM_COUNTDOWN_DELAY, -1);
+    private static int sCustomCountdown;
+    private static boolean sIsCloseAfterPlayEnd;
+    private static boolean sIsPlayControllerAutoExpand;
+
+    public static void init() {
+        sCustomCountdown = SPHelper.getInstance().get(KEY_CUSTOM_COUNTDOWN_DELAY, -1);
+        sIsCloseAfterPlayEnd = SPHelper.getInstance().get(KEY_CLOSE_AFTER_PLAY_END, false);
+        sIsPlayControllerAutoExpand = SPHelper.getInstance().get(KEY_PLAY_CONTROLLER_AUTO_EXPAND, false);
     }
 
     /**
-     *
      * @param customCountdown 单位: 分钟
      */
-    public static void saveCustomCountdown(int customCountdown){
+    public static void saveCustomCountdown(int customCountdown) {
+        sCustomCountdown = customCountdown;
         SPHelper.getInstance().save(KEY_CUSTOM_COUNTDOWN_DELAY, customCountdown);
     }
-    public static boolean isCloseAfterPlayEnd() {
-        return SPHelper.getInstance().get(KEY_CLOSE_AFTER_PLAY_END, false);
+
+    public static int getCustomCountdown() {
+        return sCustomCountdown;
     }
 
-    public static void saveCloseAfterPlayEnd(boolean closeAfterPlayEnd){
+    public static void saveCloseAfterPlayEnd(boolean closeAfterPlayEnd) {
+        sIsCloseAfterPlayEnd = closeAfterPlayEnd;
         SPHelper.getInstance().save(KEY_CLOSE_AFTER_PLAY_END, closeAfterPlayEnd);
+    }
+
+    public static boolean isCloseAfterPlayEnd() {
+        return sIsCloseAfterPlayEnd;
+    }
+
+    public static void savePlayControllerAutoExpand(boolean isAutoExpand) {
+        sIsPlayControllerAutoExpand = isAutoExpand;
+        SPHelper.getInstance().save(KEY_PLAY_CONTROLLER_AUTO_EXPAND, isAutoExpand);
+    }
+
+    public static boolean isPlayControllerAutoExpand() {
+        return sIsPlayControllerAutoExpand;
     }
 }

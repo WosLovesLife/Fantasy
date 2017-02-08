@@ -215,6 +215,9 @@ public class MusicListFragment extends BaseFragment {
                         pickDialog.setTargetFragment(MusicListFragment.this, 0);
                         pickDialog.show(getChildFragmentManager(), "pick_time");
                         break;
+                    case "设置":
+                        startActivity(SettingActivity.newStartIntent(getActivity()));
+                        break;
                 }
             }
         });
@@ -260,6 +263,8 @@ public class MusicListFragment extends BaseFragment {
         navigationItems.add(item5);
         NavigationItem item6 = new NavigationItem(0, 1, R.drawable.ic_countdown_tiemr, "定时停止播放");
         navigationItems.add(item6);
+        NavigationItem item7 = new NavigationItem(0, 1, R.drawable.ic_setting, "设置");
+        navigationItems.add(item7);
         return navigationItems;
     }
 

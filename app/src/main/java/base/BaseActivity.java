@@ -17,6 +17,7 @@ import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.wosloveslife.fantasy.R;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import java.lang.annotation.Retention;
@@ -34,8 +35,6 @@ public abstract class BaseActivity extends AppCompatActivity {
     protected RelativeLayout mRootView;
     protected AppBarLayout mAppBarLayout;
     protected Toolbar mToolbar;
-    protected TextView mToolbarTitle;
-    protected TextView mToolbarSubtitle;
 
     private TextView mTvLoadingMsg;
 
@@ -45,10 +44,10 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(com.yesing.blibrary_wos.R.layout.activity_base_toolbar);
+        setContentView(R.layout.base_activity_toolbar);
 
-        mRootView = (RelativeLayout) findViewById(com.yesing.blibrary_wos.R.id.rl_root_view);
-        mAppBarLayout = (AppBarLayout) findViewById(com.yesing.blibrary_wos.R.id.app_bar_layout);
+        mRootView = (RelativeLayout) findViewById(R.id.rl_root_view);
+        mAppBarLayout = (AppBarLayout) findViewById(R.id.app_bar_layout);
 
         bindToolbar();
         setActivityTitle();
@@ -59,7 +58,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     private void bindToolbar() {
-        mToolbar = (Toolbar) findViewById(com.yesing.blibrary_wos.R.id.id_toolbar);
+        mToolbar = (Toolbar) findViewById(R.id.id_toolbar);
         setSupportActionBar(mToolbar);
         setHomeAsUpEnabled(true);
 
@@ -73,9 +72,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     private void setActivityTitle() {
-        mToolbarTitle = (TextView) findViewById(com.yesing.blibrary_wos.R.id.tv_toolbar_title);
-        mToolbarTitle.setText(setLabel());
-        mToolbarSubtitle = (TextView) findViewById(com.yesing.blibrary_wos.R.id.tv_toolbar_subtitle);
+        mToolbar.setTitle(setLabel());
     }
 
     /**
@@ -160,7 +157,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                 if (mRootView.getChildCount() > 1) {
                     View mainView = mRootView.getChildAt(0);
                     RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) mainView.getLayoutParams();
-                    params.addRule(RelativeLayout.BELOW, com.yesing.blibrary_wos.R.id.app_bar_layout);
+                    params.addRule(RelativeLayout.BELOW, R.id.app_bar_layout);
                     mainView.setLayoutParams(params);
                 }
                 break;

@@ -63,6 +63,7 @@ import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
+import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.utils.FormatUtils;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
@@ -906,7 +907,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
      */
     @Override
     public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
-        return true;
+        return CustomConfiguration.isPlayControllerAutoExpand();
     }
 
     @Override
