@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/Fantasy.iml" filepath="$PROJECT_DIR$/Fantasy.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/blibrary_wos/blibrary_wos.iml" filepath="$PROJECT_DIR$/blibrary_wos/blibrary_wos.iml" />
+      <module fileurl="file://$PROJECT_DIR$/daogenerate/daogenerate.iml" filepath="$PROJECT_DIR$/daogenerate/daogenerate.iml" />
     </modules>
   </component>
 </project>

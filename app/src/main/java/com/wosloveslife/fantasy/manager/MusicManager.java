@@ -1,9 +1,7 @@
 package com.wosloveslife.fantasy.manager;
 
 import android.content.Context;
-import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
@@ -17,6 +15,7 @@ import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.event.RefreshEvent;
 import com.wosloveslife.fantasy.presenter.MusicPresenter;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 
 import org.greenrobot.eventbus.EventBus;
@@ -38,79 +37,6 @@ import rx.schedulers.Schedulers;
 public class MusicManager {
     private static final Pattern PATTERN_LRC_INTERVAL = Pattern.compile("\\u005b[0-9]{2}:[0-9]{2}\\u002e[0-9]{2}\\u005d");
     private static MusicManager sMusicManager;
-
-    public static final String LRC = "[00:00.79]一生为你感动\n" +
-            "[00:02.48]\n" +
-            "[00:04.53]作词：祁隆\n" +
-            "[00:06.58]作曲：祁隆\n" +
-            "[00:08.63]演唱：祁隆\n" +
-            "[00:10.66]\n" +
-            "[00:33.41]天天的等 \n" +
-            "[00:35.44]夜夜的梦\n" +
-            "[00:37.48]幻想着见到你是怎样的激动\n" +
-            "[00:40.97]\n" +
-            "[00:41.54]你就像是\n" +
-            "[00:43.59]心灵的灯\n" +
-            "[00:45.62]照亮我人生一段崭新的旅程\n" +
-            "[00:48.93]\n" +
-            "[00:49.79]我亲爱的\n" +
-            "[00:51.74]我的宝贝\n" +
-            "[00:53.77]你是我心底那块剔透的水晶\n" +
-            "[00:57.05]\n" +
-            "[00:57.82]一想起你\n" +
-            "[00:59.85]心跳怦怦\n" +
-            "[01:01.88]简直无法表达我爱你的心声\n" +
-            "[01:05.57]\n" +
-            "[01:08.80]我一生为你感动\n" +
-            "[01:10.69]一生为你心动\n" +
-            "[01:12.77]宝贝我盼了很久\n" +
-            "[01:14.81]为你发了疯\n" +
-            "[01:16.73]\n" +
-            "[01:16.75]我一生为你感动\n" +
-            "[01:18.79]一生为你心动\n" +
-            "[01:20.88]你就是我的全部\n" +
-            "[01:22.88]我终于圆了梦\n" +
-            "[01:24.85]\n" +
-            "[01:41.58]我亲爱的\n" +
-            "[01:43.55]我的宝贝\n" +
-            "[01:45.63]你是我心底那块剔透的水晶\n" +
-            "[01:48.83]\n" +
-            "[01:49.70]一想起你\n" +
-            "[01:51.73]心跳怦怦\n" +
-            "[01:53.71]简直无法表达我爱你的心声\n" +
-            "[01:58.51]\n" +
-            "[02:01.42]我一生为你感动\n" +
-            "[02:03.64]一生为你心动\n" +
-            "[02:05.62]宝贝我盼了很久\n" +
-            "[02:07.68]为你发了疯\n" +
-            "[02:09.07]\n" +
-            "[02:09.57]我一生为你感动\n" +
-            "[02:11.67]一生为你心动\n" +
-            "[02:13.70]你就是我的全部\n" +
-            "[02:15.72]我终于圆了梦\n" +
-            "[02:17.49]\n" +
-            "[02:34.00]我一生为你感动\n" +
-            "[02:36.09]一生为你心动\n" +
-            "[02:38.15]宝贝我盼了很久\n" +
-            "[02:40.21]为你发了疯\n" +
-            "[02:41.77]\n" +
-            "[02:42.06]我一生为你感动\n" +
-            "[02:44.17]一生为你心动\n" +
-            "[02:46.30]你就是我的全部\n" +
-            "[02:48.29]我终于圆了梦\n" +
-            "[02:50.16]\n" +
-            "[02:50.24]我一生为你感动\n" +
-            "[02:52.34]一生为你心动\n" +
-            "[02:54.45]宝贝我盼了很久\n" +
-            "[02:56.51]为你发了疯\n" +
-            "[02:58.03]\n" +
-            "[02:58.32]我一生为你感动\n" +
-            "[03:00.50]一生为你心动\n" +
-            "[03:02.51]你就是我的全部\n" +
-            "[03:04.56]我终于圆了梦\n" +
-            "[03:06.64]\n" +
-            "[03:18.87]你就是我的全部\n" +
-            "[03:20.88]我终于圆了梦";
 
     Context mContext;
     MusicPresenter mPresenter;
@@ -149,73 +75,64 @@ public class MusicManager {
         if (mLoading) return;
         mLoading = true;
 
-        Observable.create(new Observable.OnSubscribe<Object>() {
+        EventBus.getDefault().post(new RefreshEventM(true));
+        ScanResourceEngine.getMusicFromDao(mContext).subscribe(new SubscriberAdapter<List<BMusic>>() {
             @Override
-            public void call(Subscriber<? super Object> subscriber) {
-                EventBus.getDefault().post(new RefreshEventM(true));
-
-                mPinyinIndex.clear();
-                mMusicList.clear();
-
-                List<BMusic> musicFromSystemDb = getMusicFromSystemDb();
-                if (musicFromSystemDb != null && musicFromSystemDb.size() > 0) {
-                    mMusicList.addAll(musicFromSystemDb);
-                }
-
-                EventBus.getDefault().post(new OnGotMusicEvent(mPinyinIndex, mMusicList));
-                EventBus.getDefault().post(new RefreshEventM(false));
-
-                subscriber.onNext(null);
-                subscriber.onCompleted();
+            public void onError(Throwable e) {
+                super.onError(e);
+                scan();
             }
-        })
-                .subscribeOn(Schedulers.io())
-                .subscribe(new SubscriberAdapter<Object>() {
-                    @Override
-                    public void onNext(Object o) {
-                        super.onNext(o);
-                        mLoading = false;
-                    }
-                });
+
+            @Override
+            public void onNext(List<BMusic> bMusics) {
+                super.onNext(bMusics);
+                if (bMusics == null || bMusics.size() == 0) {
+                    scan();
+                } else {
+                    onGotData(bMusics);
+                }
+            }
+        });
     }
 
-    @WorkerThread
-    private List<BMusic> getMusicFromSystemDb() {
-        List<BMusic> musicList = new ArrayList<>();
-        Cursor cursor = mContext.getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
-        if (cursor == null) return musicList;
-        try {
-            if (cursor.moveToFirst()) {
-                while (!cursor.isAfterLast()) {
-                    BMusic bMusic = new BMusic();
-
-                    //歌曲编号
-                    bMusic.id = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
-                    //歌曲标题
-                    bMusic.title = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE));
-                    //歌曲的专辑名：MediaStore.Audio.Media.ALBUM
-                    bMusic.album = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM));
-                    //歌曲的歌手名： MediaStore.Audio.Media.ARTIST
-                    bMusic.artist = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
-                    //歌曲文件的路径 ：MediaStore.Audio.Media.DATA
-                    bMusic.path = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
-                    //歌曲的总播放时长 ：MediaStore.Audio.Media.DURATION
-                    bMusic.duration = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
-                    //歌曲文件的大小 ：MediaStore.Audio.Media.SIZE
-                    bMusic.size = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE));
-
-                    musicList.add(bMusic);
-
-                    cursor.moveToNext();
-                }
+    private void scan() {
+        EventBus.getDefault().post(new RefreshEventM(true));
+        ScanResourceEngine.getMusicFromSystemDao(mContext).subscribe(new SubscriberAdapter<List<BMusic>>() {
+            @Override
+            public void onError(Throwable e) {
+                super.onError(e);
+                onGotData(null);
             }
-        } catch (Throwable e) {
-            Logger.e(e, "从系统数据库读取音乐失败");
-        } finally {
-            cursor.close();
+
+            @Override
+            public void onNext(List<BMusic> bMusics) {
+                super.onNext(bMusics);
+                onGotData(bMusics);
+
+                if (bMusics == null || bMusics.size() == 0) return;
+
+                ScanResourceEngine.saveMusic2Dao(mContext, mMusicList).subscribe(new SubscriberAdapter<Boolean>() {
+                    @Override
+                    public void onNext(Boolean aBoolean) {
+                        super.onNext(aBoolean);
+                        WLogger.d("onNext : 存储成功 ");
+                    }
+                });
+            }
+        });
+    }
+
+    private void onGotData(List<BMusic> bMusics) {
+        mPinyinIndex.clear();
+        mMusicList.clear();
+
+        if (bMusics != null && bMusics.size() > 0) {
+            mMusicList.addAll(bMusics);
         }
 
-        return musicList;
+        EventBus.getDefault().post(new OnGotMusicEvent(mPinyinIndex, mMusicList));
+        EventBus.getDefault().post(new RefreshEventM(false));
+        mLoading = false;
     }
 
     //==============================================================================================
@@ -274,7 +191,7 @@ public class MusicManager {
             if (index < mMusicList.size()) {
                 return getMusic(index);
             }
-            return getNext(music.pinyinIndex);
+            return getNext(music.titlePinyin);
         }
         return null;
     }
@@ -295,7 +212,7 @@ public class MusicManager {
             if (index >= 0) {
                 return getMusic(index);
             }
-            return getPrevious(music.pinyinIndex);
+            return getPrevious(music.titlePinyin);
         }
         return null;
     }
@@ -307,6 +224,12 @@ public class MusicManager {
             return getMusic(index - 1);
         }
         return null;
+    }
+
+    public void scanMusic() {
+        if (mLoading) return;
+        mLoading = true;
+        scan();
     }
 
     //=======================================工具方法=============================================
