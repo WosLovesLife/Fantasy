@@ -2,20 +2,18 @@ package com.wosloveslife.fantasy.manager;
 
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.provider.MediaStore;
 
 import com.orhanobut.logger.Logger;
+import com.wosloveslife.fantasy.bean.BFolder;
 import com.wosloveslife.fantasy.bean.BMusic;
-import com.wosloveslife.fantasy.dao.DaoMaster;
-import com.wosloveslife.fantasy.dao.DaoSession;
-import com.wosloveslife.fantasy.dao.MusicEntityDao;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import rx.Observable;
-import rx.Subscriber;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
@@ -39,7 +37,22 @@ public class ScanResourceEngine {
                 try {
                     if (cursor.moveToFirst()) {
                         long minDuration = CustomConfiguration.getMinDuration() * 1000;
-                        while (cursor.moveToNext()) {
+                        Set<String> fileFilter = CustomConfiguration.getFilteredFolders();
+                        Set<BFolder> folders = new HashSet<>();
+
+                        do {
+                            String path = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
+                            String folder = path.substring(0, path.lastIndexOf("/"));
+                            /* 将所有包含音乐的文件夹都记录下来 */
+                            BFolder bFolder = new BFolder(null, folder, false);
+                            folders.add(bFolder);
+
+                            // 按照过滤配置过滤文件夹 这个判断要放在时间前面
+                            if (fileFilter != null && fileFilter.contains(folder)) {
+                                bFolder.setIsFiltered(true);
+                                continue;
+                            }
+
                             // 按照过滤配置过滤最小时间
                             long duration = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
                             if (duration < minDuration) {
@@ -57,7 +70,7 @@ public class ScanResourceEngine {
                             //歌曲的总播放时长 ：MediaStore.Audio.Media.DURATION
                             bMusic.duration = duration;
                             //歌曲文件的路径 ：MediaStore.Audio.Media.DATA
-                            bMusic.path = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
+                            bMusic.path = path;
                             //歌曲文件的大小 ：MediaStore.Audio.Media.SIZE
                             bMusic.size = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE));
 
@@ -80,7 +93,11 @@ public class ScanResourceEngine {
                             bMusic.isPodcast = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_PODCAST)) != 0;
 
                             musicList.add(bMusic);
-                        }
+                        }while (cursor.moveToNext());
+
+                        List<BFolder> folderList = new ArrayList<>();
+                        folderList.addAll(folders);
+                        CustomConfiguration.saveFolders(folderList);
                     }
                 } catch (Throwable e) {
                     Logger.e(e, "从系统数据库读取音乐失败");
@@ -89,41 +106,6 @@ public class ScanResourceEngine {
                 }
 
                 return musicList;
-            }
-        }).subscribeOn(Schedulers.io());
-    }
-
-    public static Observable<List<BMusic>> getMusicFromDao(Context context) {
-        return Observable.just(context.getApplicationContext()).map(new Func1<Context, List<BMusic>>() {
-            @Override
-            public List<BMusic> call(Context context1) {
-                SQLiteDatabase db = new DaoMaster.DevOpenHelper(context1, "blog.db", null).getWritableDatabase();
-                DaoMaster daoMaster = new DaoMaster(db);
-                DaoSession daoSession = daoMaster.newSession();
-                MusicEntityDao dao = daoSession.getMusicEntityDao();
-                return dao.queryBuilder().where(MusicEntityDao.Properties.Duration.gt(CustomConfiguration.getMinDuration() * 1000)).build().list();
-            }
-        }).subscribeOn(Schedulers.io());
-    }
-
-    /**
-     * 该操作会清空原来的数据, 请谨慎操作
-     *
-     * @param context
-     * @param list
-     * @return
-     */
-    public static Observable<Boolean> saveMusic2Dao(final Context context, final List<BMusic> list) {
-        return Observable.create(new Observable.OnSubscribe<Boolean>() {
-            @Override
-            public void call(Subscriber<? super Boolean> subscriber) {
-                SQLiteDatabase db = new DaoMaster.DevOpenHelper(context, "blog.db", null).getWritableDatabase();
-                DaoMaster daoMaster = new DaoMaster(db);
-                DaoSession daoSession = daoMaster.newSession();
-                MusicEntityDao dao = daoSession.getMusicEntityDao();
-                dao.insertOrReplaceInTx(list);
-                subscriber.onNext(true);
-                subscriber.onCompleted();
             }
         }).subscribeOn(Schedulers.io());
     }

@@ -59,4 +59,10 @@
         <item name="android:windowActionBar">false</item>
     </style>
 
+    <!--=======================================styles============================================-->
+    <style name="ButtonAlertDialog" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
+    <!--=======================================styles============================================-->
 </resources>

@@ -36,6 +36,7 @@ import com.wosloveslife.fantasy.ui.swapablenavigation.SwapNavigationAdapter;
 import com.wosloveslife.fantasy.ui.swapablenavigation.VerticalSwapItemTouchHelperCallBack;
 import com.wosloveslife.fantasy.utils.DividerDecoration;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 import com.yesing.blibrary_wos.utils.systemUtils.SystemServiceUtils;
 
@@ -103,6 +104,7 @@ public class MusicListFragment extends BaseFragment {
     @Override
     public void onStart() {
         super.onStart();
+        WLogger.d("onStart() : 页面显示, 时间 = " + System.currentTimeMillis());
         EventBus.getDefault().register(this);
     }
 
@@ -365,7 +367,7 @@ public class MusicListFragment extends BaseFragment {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onGotMusic(MusicManager.OnGotMusicEvent event) {
-        if (event == null || event.mBMusicList == null) return;
+        if (event == null) return;
 
         setData(event.mBMusicList);
 
@@ -394,7 +396,6 @@ public class MusicListFragment extends BaseFragment {
         if (musicList == null || musicList.size() == 0) {
             /* todo 没有音乐,显示空白页面 */
 
-            return;
         }
         mAdapter.setData(musicList);
     }

@@ -5,9 +5,12 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.orhanobut.logger.Logger;
+import com.wosloveslife.fantasy.dao.DbHelper;
 import com.wosloveslife.fantasy.helper.SPHelper;
+import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.services.PlayService;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -22,10 +25,13 @@ public class App extends Application {
 
     @Override
     public void onCreate() {
+        WLogger.d("onCreate : 程序启动 时间 = " + System.currentTimeMillis());
         super.onCreate();
         sContext = this;
 
         initKits();
+
+        DbHelper.init(this);
 
         initManager();
 
@@ -39,22 +45,23 @@ public class App extends Application {
 
     private void initManager() {
         SPHelper.getInstance().init(this);
+        CustomConfiguration.init(this);
         MusicManager.getInstance().init(this);
     }
 
-    public static void executeOnComputationThread(Subscriber subscriber) {
+    public static void executeOnComputationThread(Subscriber<? super Object> subscriber) {
         Observable.empty()
                 .observeOn(Schedulers.computation())
                 .subscribe(subscriber);
     }
 
-    public static void executeOnIoThread(Subscriber subscriber) {
+    public static void executeOnIoThread(Subscriber<? super Object> subscriber) {
         Observable.empty()
                 .observeOn(Schedulers.io())
                 .subscribe(subscriber);
     }
 
-    public static void executeOnMainThread(Subscriber subscriber) {
+    public static void executeOnMainThread(Subscriber<? super Object> subscriber) {
         Observable.empty()
                 .subscribeOn(Schedulers.immediate())
                 .observeOn(AndroidSchedulers.mainThread())

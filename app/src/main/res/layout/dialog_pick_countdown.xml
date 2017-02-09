@@ -180,22 +180,23 @@
             </FrameLayout>
         </LinearLayout>
 
-        <Button
+        <android.support.v7.widget.AppCompatButton
             android:id="@+id/btn_cancel"
-            style="@style/Base.Widget.AppCompat.Button.Borderless"
+            style="@style/ButtonAlertDialog"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end|bottom"
-            android:layout_marginRight="100dp"
+            android:layout_marginRight="96dp"
             android:text="取消"
             android:textColor="@color/scolor_black_matt"/>
 
-        <Button
+        <android.support.v7.widget.AppCompatButton
             android:id="@+id/btn_submit"
-            style="@style/Base.Widget.AppCompat.Button.Borderless"
+            style="@style/ButtonAlertDialog"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end|bottom"
+            android:layout_marginRight="16dp"
             android:text="确定"
             android:textColor="@color/scolor_black_matt"/>
     </FrameLayout>

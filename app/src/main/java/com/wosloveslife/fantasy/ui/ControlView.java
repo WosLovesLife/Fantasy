@@ -514,7 +514,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
 
         Logger.d("准备设置封面 时间 = " + System.currentTimeMillis());
-        App.executeOnMainThread(new SubscriberAdapter() {
+        App.executeOnMainThread(new SubscriberAdapter<Object>() {
             @Override
             public void onCompleted() {
                 Logger.d("准备设置封面2 时间 = " + System.currentTimeMillis());

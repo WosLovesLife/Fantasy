@@ -7,6 +7,16 @@
     android:orientation="vertical"
     tools:layout_marginTop="30dp">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical"
+        android:text="UI设定"/>
+
     <FrameLayout
         android:id="@+id/fl_setAutoExpand"
         android:layout_width="match_parent"
@@ -28,4 +38,53 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical|end"/>
     </FrameLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical"
+        android:text="扫描过滤"/>
+
+    <TextView
+        android:id="@+id/tv_filterDuration"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_gravity="center_vertical"
+        android:background="@drawable/ripple_btn"
+        android:gravity="center_vertical"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:text="过滤小于 30s 的文件"
+        android:textColor="@color/black_blue_text"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/tv_fileFilter"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_gravity="center_vertical"
+        android:background="@drawable/ripple_btn"
+        android:gravity="center_vertical"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:text="根据文件夹过滤"
+        android:textColor="@color/black_blue_text"
+        android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/tv_rescan"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_gravity="center_vertical"
+        android:background="@drawable/ripple_btn"
+        android:gravity="center_vertical"
+        android:paddingLeft="32dp"
+        android:paddingRight="16dp"
+        android:text="重新扫描本地歌曲"
+        android:textColor="@color/black_blue_text"
+        android:textSize="16sp"/>
 </LinearLayout>

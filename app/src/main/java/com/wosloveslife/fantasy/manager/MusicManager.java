@@ -13,9 +13,9 @@ import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
 import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
+import com.wosloveslife.fantasy.dao.DbHelper;
 import com.wosloveslife.fantasy.event.RefreshEvent;
 import com.wosloveslife.fantasy.presenter.MusicPresenter;
-import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 
 import org.greenrobot.eventbus.EventBus;
@@ -76,23 +76,12 @@ public class MusicManager {
         mLoading = true;
 
         EventBus.getDefault().post(new RefreshEventM(true));
-        ScanResourceEngine.getMusicFromDao(mContext).subscribe(new SubscriberAdapter<List<BMusic>>() {
-            @Override
-            public void onError(Throwable e) {
-                super.onError(e);
-                scan();
-            }
-
-            @Override
-            public void onNext(List<BMusic> bMusics) {
-                super.onNext(bMusics);
-                if (bMusics == null || bMusics.size() == 0) {
-                    scan();
-                } else {
-                    onGotData(bMusics);
-                }
-            }
-        });
+        List<BMusic> bMusics = DbHelper.getMusicHelper().loadEntities();
+        if (bMusics == null || bMusics.size() == 0) {
+            scan();
+        } else {
+            onGotData(bMusics);
+        }
     }
 
     private void scan() {
@@ -109,15 +98,10 @@ public class MusicManager {
                 super.onNext(bMusics);
                 onGotData(bMusics);
 
-                if (bMusics == null || bMusics.size() == 0) return;
-
-                ScanResourceEngine.saveMusic2Dao(mContext, mMusicList).subscribe(new SubscriberAdapter<Boolean>() {
-                    @Override
-                    public void onNext(Boolean aBoolean) {
-                        super.onNext(aBoolean);
-                        WLogger.d("onNext : 存储成功 ");
-                    }
-                });
+                if (bMusics != null && bMusics.size() > 0) {
+                    DbHelper.getMusicHelper().clear();
+                    DbHelper.getMusicHelper().insertOrReplace(mMusicList);
+                }
             }
         });
     }

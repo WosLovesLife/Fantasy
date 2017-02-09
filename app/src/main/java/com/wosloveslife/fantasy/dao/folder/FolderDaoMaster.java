@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy.dao;
+package com.wosloveslife.fantasy.dao.folder;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -13,17 +13,17 @@ import de.greenrobot.dao.identityscope.IdentityScopeType;
 /** 
  * Master of DAO (schema version 1): knows all DAOs.
 */
-public class DaoMaster extends AbstractDaoMaster {
+public class FolderDaoMaster extends AbstractDaoMaster {
     public static final int SCHEMA_VERSION = 1;
 
     /** Creates underlying database table using DAOs. */
     public static void createAllTables(SQLiteDatabase db, boolean ifNotExists) {
-        MusicEntityDao.createTable(db, ifNotExists);
+        FolderDao.createTable(db, ifNotExists);
     }
     
     /** Drops underlying database table using DAOs. */
     public static void dropAllTables(SQLiteDatabase db, boolean ifExists) {
-        MusicEntityDao.dropTable(db, ifExists);
+        FolderDao.dropTable(db, ifExists);
     }
     
     public static abstract class OpenHelper extends SQLiteOpenHelper {
@@ -53,17 +53,17 @@ public class DaoMaster extends AbstractDaoMaster {
         }
     }
 
-    public DaoMaster(SQLiteDatabase db) {
+    public FolderDaoMaster(SQLiteDatabase db) {
         super(db, SCHEMA_VERSION);
-        registerDaoClass(MusicEntityDao.class);
+        registerDaoClass(FolderDao.class);
     }
     
-    public DaoSession newSession() {
-        return new DaoSession(db, IdentityScopeType.Session, daoConfigMap);
+    public FolderDaoSession newSession() {
+        return new FolderDaoSession(db, IdentityScopeType.Session, daoConfigMap);
     }
     
-    public DaoSession newSession(IdentityScopeType type) {
-        return new DaoSession(db, type, daoConfigMap);
+    public FolderDaoSession newSession(IdentityScopeType type) {
+        return new FolderDaoSession(db, type, daoConfigMap);
     }
     
 }

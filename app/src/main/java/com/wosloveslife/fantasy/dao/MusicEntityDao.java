@@ -51,7 +51,7 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
         super(config);
     }
 
-    public MusicEntityDao(DaoConfig config, DaoSession daoSession) {
+    public MusicEntityDao(DaoConfig config, MusicDaoSession daoSession) {
         super(config, daoSession);
     }
 

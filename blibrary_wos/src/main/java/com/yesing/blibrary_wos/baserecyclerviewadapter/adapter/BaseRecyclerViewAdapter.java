@@ -377,7 +377,7 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
         return mData.indexOf(t);
     }
 
-    protected List<T> getNormalDataList() {
+    public List<T> getNormalDataList() {
         return mData;
     }
 

@@ -1,6 +1,13 @@
 package com.wosloveslife.fantasy.manager;
 
+import android.content.Context;
+
+import com.wosloveslife.fantasy.bean.BFolder;
+import com.wosloveslife.fantasy.dao.DbHelper;
 import com.wosloveslife.fantasy.helper.SPHelper;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * Created by zhangh on 2017/2/7.
@@ -17,7 +24,11 @@ public class CustomConfiguration {
     private static boolean sIsPlayControllerAutoExpand; // 是否跟随滑动自动展开
     private static int sMinDuration; // 歌曲过滤最小时间 单位 秒
 
-    public static void init() {
+    private static Context sContext;
+
+    public static void init(Context context) {
+        sContext = context.getApplicationContext();
+
         sCustomCountdown = SPHelper.getInstance().get(KEY_CUSTOM_COUNTDOWN_DELAY, -1);
         sIsCloseAfterPlayEnd = SPHelper.getInstance().get(KEY_CLOSE_AFTER_PLAY_END, false);
         sIsPlayControllerAutoExpand = SPHelper.getInstance().get(KEY_PLAY_CONTROLLER_AUTO_EXPAND, false);
@@ -69,5 +80,27 @@ public class CustomConfiguration {
      */
     public static int getMinDuration() {
         return sMinDuration;
+    }
+
+    /**
+     * 保存包含音乐文件的全部文件夹.
+     */
+    public static void saveFolders(List<BFolder> folders) {
+        DbHelper.getFolderHelper().clear();
+        DbHelper.getFolderHelper().insertOrReplace(folders);
+    }
+
+    /**
+     * 获取包含音乐文件的全部文件夹. 文件夹有两个属性,路径及是否被过滤
+     */
+    public static List<BFolder> getFolders() {
+        return DbHelper.getFolderHelper().loadEntities();
+    }
+
+    /**
+     * 只获取被过滤的文件夹集合
+     */
+    public static Set<String> getFilteredFolders() {
+        return DbHelper.getFolderHelper().getFilteredFolder();
     }
 }

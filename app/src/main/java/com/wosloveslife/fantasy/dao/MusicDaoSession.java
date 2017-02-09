@@ -18,13 +18,13 @@ import de.greenrobot.dao.internal.DaoConfig;
  * 
  * @see de.greenrobot.dao.AbstractDaoSession
  */
-public class DaoSession extends AbstractDaoSession {
+public class MusicDaoSession extends AbstractDaoSession {
 
     private final DaoConfig musicEntityDaoConfig;
 
     private final MusicEntityDao musicEntityDao;
 
-    public DaoSession(SQLiteDatabase db, IdentityScopeType type, Map<Class<? extends AbstractDao<?, ?>>, DaoConfig>
+    public MusicDaoSession(SQLiteDatabase db, IdentityScopeType type, Map<Class<? extends AbstractDao<?, ?>>, DaoConfig>
             daoConfigMap) {
         super(db);
 

@@ -3,8 +3,7 @@ package com.wosloveslife.fantasy.helper;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
-
-import com.wosloveslife.fantasy.manager.CustomConfiguration;
+import android.support.annotation.Nullable;
 
 import java.util.Set;
 
@@ -29,8 +28,6 @@ public class SPHelper {
         mContext = context;
         mPreferences = context.getSharedPreferences(context.getPackageName(), Context.MODE_PRIVATE);
         mEdit = mPreferences.edit();
-
-        CustomConfiguration.init();
     }
 
     public void save(@NonNull String key, @NonNull String value) {
@@ -62,7 +59,7 @@ public class SPHelper {
         return mPreferences.getString(key, def);
     }
 
-    public Set<String> get(@NonNull String key, @NonNull Set<String> def) {
+    public Set<String> getStringSet(@NonNull String key, @Nullable Set<String> def) {
         return mPreferences.getStringSet(key, def);
     }
 

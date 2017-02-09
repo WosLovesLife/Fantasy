@@ -1,5 +1,7 @@
 package com.wosloveslife.fantasy.utils;
 
+import android.os.Environment;
+import android.text.TextUtils;
 import android.text.format.DateFormat;
 
 import java.util.Formatter;
@@ -13,6 +15,8 @@ import java.util.concurrent.TimeUnit;
 public class FormatUtils {
     private static final String HAS_HOUR = "hh:mm:ss";
     private static final String MINUTE = "mm:ss";
+
+    private static String sEnvironmentRootPath;
 
     public static String stringForTime(long timeMs) {
         /* 用于将当前进度转成(时)分秒的, 这种方式比用TimeUnit+if判断的效率节省大约4~5倍 */
@@ -33,5 +37,13 @@ public class FormatUtils {
         timeMs = timeMs + 500;
         long hours = timeUnit.toHours(timeMs);
         return DateFormat.format(hours > 0 ? HAS_HOUR : MINUTE, timeMs);
+    }
+
+    public static String trimEnvironmentPath(String path) {
+        if (sEnvironmentRootPath == null) {
+            sEnvironmentRootPath = Environment.getExternalStorageDirectory().getAbsolutePath();
+        }
+        if (TextUtils.isEmpty(path)) return path;
+        return path.replaceAll(sEnvironmentRootPath, "");
     }
 }
