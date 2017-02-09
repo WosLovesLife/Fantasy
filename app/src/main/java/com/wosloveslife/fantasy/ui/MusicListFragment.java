@@ -202,25 +202,36 @@ public class MusicListFragment extends BaseFragment {
         mNavigationAdapter.setData(generateNavigationItems());
         mNavigationAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<NavigationItem>() {
             @Override
-            public void onItemClick(NavigationItem navigationItem, View v, int position) {
-                switch (navigationItem.mTitle) {
-                    case "本地音乐":
-                        break;
-                    case "我的收藏":
-                        break;
-                    case "最近播放":
-                        break;
-                    case "下载管理":
-                        break;
-                    case "定时停止播放":
-                        CountdownPickDialog pickDialog = new CountdownPickDialog();
-                        pickDialog.setTargetFragment(MusicListFragment.this, 0);
-                        pickDialog.show(getChildFragmentManager(), "pick_time");
-                        break;
-                    case "设置":
-                        startActivity(SettingActivity.newStartIntent(getActivity()));
-                        break;
-                }
+            public void onItemClick(final NavigationItem navigationItem, View v, int position) {
+                mDrawerLayout.closeDrawer(Gravity.LEFT);
+                // 在抽屉关闭后再进行操作,避免动画卡顿. 官方解释:
+                // Avoid performing expensive operations such as layout during animation as it can cause stuttering;
+                //try to perform expensive operations during the STATE_IDLE state.
+                mDrawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
+                    @Override
+                    public void onDrawerClosed(View drawerView) {
+                        super.onDrawerClosed(drawerView);
+                        mDrawerLayout.removeDrawerListener(this);
+                        switch (navigationItem.mTitle) {
+                            case "本地音乐":
+                                break;
+                            case "我的收藏":
+                                break;
+                            case "最近播放":
+                                break;
+                            case "下载管理":
+                                break;
+                            case "定时停止播放":
+                                CountdownPickDialog pickDialog = new CountdownPickDialog();
+                                pickDialog.setTargetFragment(MusicListFragment.this, 0);
+                                pickDialog.show(getChildFragmentManager(), "pick_time");
+                                break;
+                            case "设置":
+                                startActivity(SettingActivity.newStartIntent(getActivity()));
+                                break;
+                        }
+                    }
+                });
             }
         });
         mRvNavigation.setAdapter(mNavigationAdapter);
