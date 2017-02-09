@@ -1,23 +1,23 @@
 package com.wosloveslife.fantasy.dao;
 
 import android.content.Context;
-
-import com.orhanobut.logger.Logger;
-
-import java.util.List;
-
-import de.greenrobot.dao.AbstractDao;
+import android.database.sqlite.SQLiteDatabase;
 
 /**
  * Created by zhangh on 2017/2/10.
  */
 
-public class DbHelper<Dao extends AbstractDao, Data extends Object> {
-    Dao mDao;
+final public class DbHelper {
+    private DbHelper() {
+    }
 
     public static void init(Context context) {
-        MusicDbHelper.getInstance().initDb(context.getApplicationContext());
-        FolderDbHelper.getInstance().initDb(context.getApplicationContext());
+        SQLiteDatabase db = new DaoMaster.DevOpenHelper(context, "music.db", null).getWritableDatabase();
+        DaoMaster daoMaster = new DaoMaster(db);
+        DaoSession daoSession = daoMaster.newSession();
+
+        MusicDbHelper.getInstance().initDb(daoSession.getMusicEntityDao());
+        FolderDbHelper.getInstance().initDb(daoSession.getBFolderDao());
     }
 
     public static MusicDbHelper getMusicHelper() {
@@ -29,32 +29,4 @@ public class DbHelper<Dao extends AbstractDao, Data extends Object> {
     }
 
     //==============================================================================================
-
-    public void insertOrReplace(Data entity) {
-        try {
-            mDao.insertOrReplace(entity);
-        } catch (Throwable e) {
-            Logger.e(e, "插入数据失败");
-        }
-    }
-
-    public void insertOrReplace(List<Data> entities) {
-        if (entities == null || entities.size() == 0) return;
-        try {
-            mDao.insertOrReplaceInTx(entities);
-        } catch (Throwable e) {
-            Logger.e(e, "一次性插入数据失败,尝试单独插入, 跳过错误的数据");
-            for (Data entity : entities) {
-                insertOrReplace(entity);
-            }
-        }
-    }
-
-    public List<Data> loadEntities() {
-        return mDao.loadAll();
-    }
-
-    public void clear() {
-        mDao.deleteAll();
-    }
 }

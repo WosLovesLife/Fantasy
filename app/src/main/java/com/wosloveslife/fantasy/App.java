@@ -31,8 +31,6 @@ public class App extends Application {
 
         initKits();
 
-        DbHelper.init(this);
-
         initManager();
 
         Intent intent = new Intent(this, PlayService.class);
@@ -44,6 +42,7 @@ public class App extends Application {
     }
 
     private void initManager() {
+        DbHelper.init(this);
         SPHelper.getInstance().init(this);
         CustomConfiguration.init(this);
         MusicManager.getInstance().init(this);

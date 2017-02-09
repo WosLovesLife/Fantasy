@@ -1,40 +1,61 @@
 package com.wosloveslife.fantasy.dao;
 
-import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 
+import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.bean.BFolder;
-import com.wosloveslife.fantasy.dao.folder.FolderDao;
-import com.wosloveslife.fantasy.dao.folder.FolderDaoMaster;
-import com.wosloveslife.fantasy.dao.folder.FolderDaoSession;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
  * Created by zhangh on 2017/2/10.
  */
 
-public class FolderDbHelper extends DbHelper<FolderDao, BFolder> {
+public class FolderDbHelper{
     private static final FolderDbHelper sFolderDbHelper = new FolderDbHelper();
 
-    private FolderDaoMaster mDaoMaster;
-    private FolderDaoSession mDaoSession;
+    FolderDao mDao;
 
     private FolderDbHelper() {
     }
 
-    public void initDb(Context context) {
-        SQLiteDatabase db = new FolderDaoMaster.DevOpenHelper(context, "folder.db", null).getWritableDatabase();
-        mDaoMaster = new FolderDaoMaster(db);
-        mDaoSession = mDaoMaster.newSession();
-        mDao = mDaoSession.getBFolderDao();
-    }
-
     public static FolderDbHelper getInstance() {
         return sFolderDbHelper;
+    }
+
+    void initDb(FolderDao dao) {
+        mDao = dao;
+    }
+
+    private void insertOrReplace(BFolder entity) {
+        try {
+            mDao.insertOrReplace(entity);
+        } catch (Throwable e) {
+            Logger.e(e, "插入数据失败");
+        }
+    }
+
+    public void insertOrReplace(List<BFolder> entities) {
+        if (entities == null || entities.size() == 0) return;
+        try {
+            mDao.insertOrReplaceInTx(entities);
+        } catch (Throwable e) {
+            Logger.e(e, "一次性插入数据失败,尝试单独插入, 跳过错误的数据");
+            for (BFolder entity : entities) {
+                insertOrReplace(entity);
+            }
+        }
+    }
+
+    public List<BFolder> loadEntities() {
+        return mDao.loadAll();
+    }
+
+    public void clear() {
+        mDao.deleteAll();
     }
 
     public Set<String> getFilteredFolder() {

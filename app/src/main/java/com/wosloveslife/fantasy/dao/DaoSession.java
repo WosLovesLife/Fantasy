@@ -1,8 +1,9 @@
-package com.wosloveslife.fantasy.dao.folder;
+package com.wosloveslife.fantasy.dao;
 
 import android.database.sqlite.SQLiteDatabase;
 
 import com.wosloveslife.fantasy.bean.BFolder;
+import com.wosloveslife.fantasy.bean.BMusic;
 
 import java.util.Map;
 
@@ -18,30 +19,41 @@ import de.greenrobot.dao.internal.DaoConfig;
  * 
  * @see AbstractDaoSession
  */
-public class FolderDaoSession extends AbstractDaoSession {
+public class DaoSession extends AbstractDaoSession {
 
+    private final DaoConfig musicEntityDaoConfig;
     private final DaoConfig bFolderDaoConfig;
 
+    private final MusicEntityDao musicEntityDao;
     private final FolderDao bFolderDao;
 
-    public FolderDaoSession(SQLiteDatabase db, IdentityScopeType type, Map<Class<? extends AbstractDao<?, ?>>, DaoConfig>
+    public DaoSession(SQLiteDatabase db, IdentityScopeType type, Map<Class<? extends AbstractDao<?, ?>>, DaoConfig>
             daoConfigMap) {
         super(db);
+
+        musicEntityDaoConfig = daoConfigMap.get(MusicEntityDao.class).clone();
+        musicEntityDaoConfig.initIdentityScope(type);
 
         bFolderDaoConfig = daoConfigMap.get(FolderDao.class).clone();
         bFolderDaoConfig.initIdentityScope(type);
 
+        musicEntityDao = new MusicEntityDao(musicEntityDaoConfig, this);
         bFolderDao = new FolderDao(bFolderDaoConfig, this);
 
+        registerDao(BMusic.class, musicEntityDao);
         registerDao(BFolder.class, bFolderDao);
     }
     
     public void clear() {
+        musicEntityDaoConfig.getIdentityScope().clear();
         bFolderDaoConfig.getIdentityScope().clear();
+    }
+
+    public MusicEntityDao getMusicEntityDao() {
+        return musicEntityDao;
     }
 
     public FolderDao getBFolderDao() {
         return bFolderDao;
     }
-
 }

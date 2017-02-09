@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy.dao.folder;
+package com.wosloveslife.fantasy.dao;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -33,7 +33,7 @@ public class FolderDao extends AbstractDao<BFolder, Long> {
         super(config);
     }
     
-    public FolderDao(DaoConfig config, FolderDaoSession daoSession) {
+    public FolderDao(DaoConfig config, DaoSession daoSession) {
         super(config, daoSession);
     }
 
