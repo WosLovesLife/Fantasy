@@ -1,5 +1,13 @@
 package com.wosloveslife.fantasy.bean;
 
+import android.support.annotation.NonNull;
+import android.text.TextUtils;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 /**
  * Created by zhangh on 2017/1/2.
  */
@@ -196,6 +204,14 @@ public class BMusic {
         this.belongTo = belongTo;
     }
 
+    public void setBelongToSet(Set<String> belongTo) {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (String s : belongTo) {
+            stringBuilder.append(s).append("-");
+        }
+        this.belongTo = stringBuilder.toString();
+    }
+
     public Long get_id() {
         return _id;
     }
@@ -278,6 +294,17 @@ public class BMusic {
 
     public String getBelongTo() {
         return belongTo;
+    }
+
+    @NonNull
+    public Set<String> getBelongToSet() {
+        Set<String> strings = new HashSet<>();
+        if (!TextUtils.isEmpty(belongTo)) {
+            String[] split = belongTo.split("-");
+            List<String> list = Arrays.asList(split);
+            strings.addAll(list);
+        }
+        return strings;
     }
 
     //===========

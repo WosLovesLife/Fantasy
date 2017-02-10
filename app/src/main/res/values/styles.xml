@@ -61,7 +61,7 @@
 
     <!--=======================================styles============================================-->
     <style name="ButtonAlertDialog" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
-        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:textColor">@color/scolor_material_dialog_btn</item>
     </style>
 
     <!--=======================================styles============================================-->

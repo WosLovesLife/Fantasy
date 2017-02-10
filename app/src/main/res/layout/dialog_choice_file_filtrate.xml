@@ -2,9 +2,7 @@
 <android.support.v7.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginBottom="70dp"
-    android:layout_marginTop="70dp">
+    android:layout_height="wrap_content">
 
     <android.support.v7.widget.AppCompatTextView
         android:id="@+id/tv_title"
@@ -40,8 +38,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
         android:layout_marginRight="96dp"
-        android:text="取消"
-        android:textColor="@color/scolor_black_matt"/>
+        android:text="取消"/>
 
     <android.support.v7.widget.AppCompatButton
         android:id="@+id/btn_submit"
@@ -50,6 +47,5 @@
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
         android:layout_marginRight="16dp"
-        android:text="确定"
-        android:textColor="@color/scolor_black_matt"/>
+        android:text="确定"/>
 </android.support.v7.widget.CardView>

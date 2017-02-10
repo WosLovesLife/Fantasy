@@ -22,6 +22,7 @@ import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -214,6 +215,71 @@ public class MusicManager {
         if (mLoading) return;
         mLoading = true;
         scan();
+    }
+
+    public void addFavor(BMusic bMusic) {
+        if (bMusic == null) return;
+        BMusic music = mMusicList.get(mMusicList.indexOf(bMusic));
+        music.setFavorite(true);
+        addMusicBelongTo(music, "1");
+    }
+
+    public void removeFavor(BMusic bMusic) {
+        if (bMusic == null) return;
+        BMusic music = mMusicList.get(mMusicList.indexOf(bMusic));
+        music.setFavorite(false);
+        removeMusicBelongFrom(music, "1");
+    }
+
+    public void addRecent(BMusic bMusic) {
+        addMusicBelongTo(bMusic, "2");
+    }
+
+    public void removeRecent(BMusic bMusic) {
+        removeMusicBelongFrom(bMusic, "2");
+    }
+
+    private void addMusicBelongTo(BMusic bMusic, String ordinal) {
+        if (bMusic == null) return;
+        BMusic music = mMusicList.get(mMusicList.indexOf(bMusic));
+        Set<String> belongToSet = music.getBelongToSet();
+        belongToSet.add(ordinal);
+        music.setBelongToSet(belongToSet);
+        DbHelper.getMusicHelper().insertOrReplace(music);
+    }
+
+    private void removeMusicBelongFrom(BMusic bMusic, String ordinal) {
+        if (bMusic == null || TextUtils.isEmpty(ordinal)) return;
+        BMusic music = mMusicList.get(mMusicList.indexOf(bMusic));
+        Set<String> belongToSet = music.getBelongToSet();
+        belongToSet.remove(ordinal);
+        music.setBelongToSet(belongToSet);
+        DbHelper.getMusicHelper().insertOrReplace(music);
+    }
+
+    public List<BMusic> getFavored() {
+        List<BMusic> favoredMusics = new ArrayList<>();
+        for (BMusic bMusic : mMusicList) {
+            if (bMusic.isFavorite()) {
+                favoredMusics.add(bMusic);
+            }
+        }
+        return favoredMusics;
+    }
+
+    public List<BMusic> getRecentMusic() {
+        return getMusicSheet("2");
+    }
+
+    public List<BMusic> getMusicSheet(String ordinal) {
+        List<BMusic> musicSheet = new ArrayList<>();
+        for (BMusic bMusic : mMusicList) {
+            Set<String> toSet = bMusic.getBelongToSet();
+            if (toSet.contains(ordinal)) {
+                musicSheet.add(bMusic);
+            }
+        }
+        return musicSheet;
     }
 
     //=======================================工具方法=============================================

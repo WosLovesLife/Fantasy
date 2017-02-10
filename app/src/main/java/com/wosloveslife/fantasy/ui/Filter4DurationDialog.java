@@ -49,7 +49,7 @@ public class Filter4DurationDialog extends DialogFragment {
         return dialog;
     }
 
-    private void init(){
+    private void init() {
         mNumberPickerMinute.setMaxValue(59);
         mNumberPickerMinute.setMinValue(0);
         mNumberPickerSecond.setMaxValue(59);
@@ -61,9 +61,8 @@ public class Filter4DurationDialog extends DialogFragment {
             int second = minDuration % 60;
             if (minute > 0) {
                 mNumberPickerMinute.setValue(minute);
-            } else {
-                mNumberPickerSecond.setValue(second);
             }
+            mNumberPickerSecond.setValue(second);
         }
     }
 

@@ -33,6 +33,7 @@ import android.support.v4.view.ViewPropertyAnimatorListenerAdapter;
 import android.support.v4.view.animation.FastOutLinearInInterpolator;
 import android.support.v4.view.animation.LinearOutSlowInInterpolator;
 import android.support.v7.graphics.Palette;
+import android.support.v7.widget.AppCompatImageButton;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
@@ -118,6 +119,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     /** 下一曲按钮 */
     @BindView(R.id.iv_next_btn)
     ImageView mIvNextBtn;
+    /** 下一曲按钮 */
+    @BindView(R.id.ivb_favorite)
+    AppCompatImageButton mIvbFavorite;
 
     /** 进度条(不可拖动) */
     @BindView(R.id.pb_progress)
@@ -387,6 +391,21 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             }
         });
 
+        mIvbFavorite.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mCurrentMusic == null) return;
+
+                if (mCurrentMusic.isFavorite()) {
+                    mIvbFavorite.setImageResource(R.drawable.ic_favor_white);
+                    MusicManager.getInstance().removeFavor(mCurrentMusic);
+                } else {
+                    mIvbFavorite.setImageResource(R.drawable.ic_favored_white);
+                    MusicManager.getInstance().addFavor(mCurrentMusic);
+                }
+            }
+        });
+
         addView(view);
     }
 
@@ -438,6 +457,12 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         toggleFacBtn(mPlayer.getPlayWhenReady());
 
         toggleLrcLoop();
+
+        if (mCurrentMusic != null && mCurrentMusic.isFavorite()) {
+            mIvbFavorite.setImageResource(R.drawable.ic_favored_white);
+        } else {
+            mIvbFavorite.setImageResource(R.drawable.ic_favor_white);
+        }
 
         if (music.equals(mCurrentMusic)) return;
 

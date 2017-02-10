@@ -26,6 +26,8 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
     /** 普通数据的数据集合 */
     protected List<T> mData;
 
+    private boolean mUseOriginData;
+
     protected OnItemClickListener<T> mOnItemClickListener;
 
     /**
@@ -41,6 +43,15 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
     public BaseRecyclerViewAdapter() {
         mData = new ArrayList<>();
     }
+
+    public boolean isUseOriginData() {
+        return mUseOriginData;
+    }
+
+    public void setUseOriginData(boolean useOriginData) {
+        mUseOriginData = useOriginData;
+    }
+
     //============================构造-end===========================
 
     /**
@@ -78,7 +89,7 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
                 }
             };
         }
-        return onCreateItemViewHolder(parent,viewType);
+        return onCreateItemViewHolder(parent, viewType);
     }
 
     /**
@@ -87,7 +98,7 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
      * @param parent 父控件
      * @return ViewHolder
      */
-    protected abstract BaseRecyclerViewHolder<T> onCreateItemViewHolder(ViewGroup parent,int viewType);
+    protected abstract BaseRecyclerViewHolder<T> onCreateItemViewHolder(ViewGroup parent, int viewType);
 
     /**
      * 根据判断position所在的集合 从而返回对应的ViewType
@@ -225,9 +236,16 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
      * @param t 数据集合
      */
     public void setData(List<T> t) {
-        mData.clear();
-        if (t != null) {
-            mData.addAll(t);
+        if (mUseOriginData) {
+            mData = t;
+        } else {
+            if (mData == null) {
+                mData = new ArrayList<>();
+            }
+            mData.clear();
+            if (t != null) {
+                mData.addAll(t);
+            }
         }
         notifyDataSetChanged();
     }
@@ -239,6 +257,9 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
      */
     public void addData(List<T> t) {
         if (t != null) {
+            if (mData == null) {
+                mData = new ArrayList<>();
+            }
             int start = getHeadersCount() + getRealItemCount();
             mData.addAll(t);
             notifyItemRangeInserted(start, t.size());
@@ -246,7 +267,7 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
     }
 
     public void removeData(List<T> t) {
-        if (t != null && t.size() > 0) {
+        if (mData != null && t != null && t.size() > 0) {
             int start = mData.indexOf(t.get(0));
             mData.removeAll(t);
             notifyItemRangeRemoved(getHeadersCount() + start, t.size());
@@ -259,7 +280,7 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
      * @return 普通条目的数量
      */
     public int getRealItemCount() {
-        return mData.size();
+        return mData != null ? mData.size() : 0;
     }
 
     public void addItem(T t) {
@@ -279,6 +300,9 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
             position = 0;
         }
 
+        if (mData == null) {
+            mData = new ArrayList<>();
+        }
         mData.add(position, t);
         notifyItemInserted(getHeadersCount() + position);
     }
@@ -290,6 +314,7 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
      * @return 是否移除成功
      */
     public boolean removeItem(T t) {
+        if (mData == null) return false;
         int position = mData.indexOf(t);
         return removeItem(position);
     }
@@ -301,7 +326,7 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
      * @return 是否移除成功
      */
     public boolean removeItem(int position) {
-        if (position > -1 && position < getRealItemCount()) {
+        if (mData != null && position > -1 && position < getRealItemCount()) {
             mData.remove(position);
             notifyItemRemoved(position + getHeadersCount());//Attention!
             return true;
@@ -368,7 +393,7 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
      * @return 如果下标越界, 则返回 null
      */
     public T getNormalData(int position) {
-        if (position >= mData.size()) return null;
+        if (mData == null || position >= mData.size()) return null;
 
         return mData.get(position);
     }
@@ -390,7 +415,7 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
     }
 
     public void updateNormalData(int position, T t) {
-        if (position >= 0 && position < mData.size()) {
+        if (mData != null && position >= 0 && position < mData.size()) {
             mData.remove(position);
             mData.add(position, t);
             notifyItemChanged(getHeadersCount() + position);

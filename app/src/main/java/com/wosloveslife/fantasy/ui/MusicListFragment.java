@@ -142,6 +142,7 @@ public class MusicListFragment extends BaseFragment {
                 Dp2Px.toPX(getContext(), 48)));
 
         mAdapter = new MusicListAdapter();
+        mAdapter.setUseOriginData(true);
         mAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<BMusic>() {
             @Override
             public void onItemClick(final BMusic music, View v, int position) {
@@ -200,38 +201,58 @@ public class MusicListFragment extends BaseFragment {
         View header = LayoutInflater.from(getActivity()).inflate(R.layout.layout_navigation_header, mRvNavigation, false);
         mNavigationAdapter.addHeaderView(header);
         mNavigationAdapter.setData(generateNavigationItems());
+        mNavigationAdapter.setChosenPosition(1);
         mNavigationAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<NavigationItem>() {
             @Override
-            public void onItemClick(final NavigationItem navigationItem, View v, int position) {
+            public void onItemClick(final NavigationItem navigationItem, View v, final int position) {
                 mDrawerLayout.closeDrawer(Gravity.LEFT);
-                // 在抽屉关闭后再进行操作,避免动画卡顿. 官方解释:
+                /* // 在抽屉关闭后再进行操作,避免动画卡顿. 官方解释:
                 // Avoid performing expensive operations such as layout during animation as it can cause stuttering;
-                //try to perform expensive operations during the STATE_IDLE state.
-                mDrawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
-                    @Override
-                    public void onDrawerClosed(View drawerView) {
-                        super.onDrawerClosed(drawerView);
-                        mDrawerLayout.removeDrawerListener(this);
-                        switch (navigationItem.mTitle) {
-                            case "本地音乐":
-                                break;
-                            case "我的收藏":
-                                break;
-                            case "最近播放":
-                                break;
-                            case "下载管理":
-                                break;
-                            case "定时停止播放":
+                //try to perform expensive operations during the STATE_IDLE state. */
+                switch (navigationItem.mTitle) {
+                    case "本地音乐":
+                        mNavigationAdapter.setChosenPosition(position);
+                        mToolbar.setTitle("本地音乐");
+                        List<BMusic> musicList = MusicManager.getInstance().getMusicList();
+                        setData(musicList);
+                        break;
+                    case "我的收藏":
+                        mNavigationAdapter.setChosenPosition(position);
+                        mToolbar.setTitle("我的收藏");
+                        List<BMusic> myFavored = MusicManager.getInstance().getFavored();
+                        setData(myFavored);
+                        break;
+                    case "最近播放":
+                        mNavigationAdapter.setChosenPosition(position);
+                        break;
+                    case "下载管理":
+                        mNavigationAdapter.setChosenPosition(position);
+                        break;
+                    case "定时停止播放":
+                        mDrawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
+                            @Override
+                            public void onDrawerClosed(View drawerView) {
+                                super.onDrawerClosed(drawerView);
+                                mDrawerLayout.removeDrawerListener(this);
+
                                 CountdownPickDialog pickDialog = new CountdownPickDialog();
                                 pickDialog.setTargetFragment(MusicListFragment.this, 0);
                                 pickDialog.show(getChildFragmentManager(), "pick_time");
-                                break;
-                            case "设置":
+                            }
+                        });
+                        break;
+                    case "设置":
+                        mDrawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
+                            @Override
+                            public void onDrawerClosed(View drawerView) {
+                                super.onDrawerClosed(drawerView);
+                                mDrawerLayout.removeDrawerListener(this);
+
                                 startActivity(SettingActivity.newStartIntent(getActivity()));
-                                break;
-                        }
-                    }
-                });
+                            }
+                        });
+                        break;
+                }
             }
         });
         mRvNavigation.setAdapter(mNavigationAdapter);

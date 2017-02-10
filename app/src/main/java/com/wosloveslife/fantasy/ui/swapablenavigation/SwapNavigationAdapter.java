@@ -26,6 +26,7 @@ import butterknife.ButterKnife;
 public class SwapNavigationAdapter extends BaseRecyclerViewAdapter<NavigationItem> implements ItemTouchHelperAdapter {
 
     TextView mTvCountDown;
+    private int mChosenPosition = 1;
 
     @Override
     public int getItemViewType(int position) {
@@ -52,6 +53,11 @@ public class SwapNavigationAdapter extends BaseRecyclerViewAdapter<NavigationIte
 
     @Override
     public void onItemMove(int fromPosition, int toPosition) {
+        if (fromPosition == mChosenPosition) {
+            mChosenPosition = toPosition;
+        } else if (toPosition == mChosenPosition) {
+            mChosenPosition = fromPosition;
+        }
         Collections.swap(mData, fromPosition - getHeadersCount(), toPosition - getHeadersCount());
         notifyItemMoved(fromPosition, toPosition);
     }
@@ -109,6 +115,12 @@ public class SwapNavigationAdapter extends BaseRecyclerViewAdapter<NavigationIte
             mIvIcon.setImageResource(navigationItem.mIcon);
             mTvTitle.setText(navigationItem.mTitle);
 
+            if (position == mChosenPosition) {
+                mFlRootView.setBackgroundResource(R.color.gray_press);
+            } else {
+                mFlRootView.setBackgroundResource(R.drawable.ripple_btn);
+            }
+
             if (TextUtils.equals(navigationItem.mTitle, "定时停止播放")) {
                 mTvCountDown = mTvAccessory;
                 mTvAccessory.setTag("countdown");
@@ -134,6 +146,18 @@ public class SwapNavigationAdapter extends BaseRecyclerViewAdapter<NavigationIte
                 }
             });
         }
+    }
+
+    public int getChosenPosition() {
+        return mChosenPosition;
+    }
+
+    public void setChosenPosition(int chosenPosition) {
+        if (chosenPosition == mChosenPosition) return;
+        int position = mChosenPosition;
+        mChosenPosition = chosenPosition;
+        notifyItemChanged(position);
+        notifyItemChanged(mChosenPosition);
     }
 
     public class DividerHolder extends BaseRecyclerViewHolder<NavigationItem> {

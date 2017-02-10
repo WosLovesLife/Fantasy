@@ -25,7 +25,7 @@ public class MusicDbHelper {
         return sMusicDbHelper;
     }
 
-    private void insertOrReplace(BMusic entity) {
+    public void insertOrReplace(BMusic entity) {
         try {
             mDao.insertOrReplace(entity);
         } catch (Throwable e) {
