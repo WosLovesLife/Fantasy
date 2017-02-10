@@ -9,6 +9,7 @@ import com.wosloveslife.fantasy.bean.BFolder;
 import com.wosloveslife.fantasy.bean.BMusic;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -92,8 +93,13 @@ public class ScanResourceEngine {
                             //是否是博客电台
                             bMusic.isPodcast = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_PODCAST)) != 0;
 
+                            //加入的歌单, 这里都加入本地歌单
+                            bMusic.setBelongTo("0");
+                            //加入歌单的时间
+                            bMusic.setJoinTimestamp(new Date());
+
                             musicList.add(bMusic);
-                        }while (cursor.moveToNext());
+                        } while (cursor.moveToNext());
 
                         List<BFolder> folderList = new ArrayList<>();
                         folderList.addAll(folders);

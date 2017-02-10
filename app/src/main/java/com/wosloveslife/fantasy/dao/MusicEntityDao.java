@@ -45,6 +45,7 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
         public final static Property IsNotification = new Property(18, Boolean.class, "isNotification", false, "IS_NOTIFICATION");
         public final static Property IsFavorite = new Property(19, Boolean.class, "isFavorite", false, "IS_FAVORITE");
         public final static Property BelongTo = new Property(20, String.class, "belongTo", false, "BELONG_TO");
+        public final static Property JoinTimestamp = new Property(21, java.util.Date.class, "joinTimestamp", false, "JOIN_TIMESTAMP");
     }
 
     public MusicEntityDao(DaoConfig config) {
@@ -65,7 +66,7 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
                 "\"TITLE_PINYIN\" TEXT," + // 3: titlePinyin
                 "\"ARTIST_PINYIN\" TEXT," + // 4: artistPinyin
                 "\"ALBUM\" TEXT," + // 5: album
-                "\"PATH\" TEXT UNIQUE ," + // 6: path
+                "\"PATH\" TEXT," + // 6: path
                 "\"DURATION\" INTEGER," + // 7: duration
                 "\"SIZE\" INTEGER," + // 8: size
                 "\"IS_ONLINE\" INTEGER," + // 9: isOnline
@@ -79,7 +80,8 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
                 "\"IS_PODCAST\" INTEGER," + // 17: isPodcast
                 "\"IS_NOTIFICATION\" INTEGER," + // 18: isNotification
                 "\"IS_FAVORITE\" INTEGER," + // 19: isFavorite
-                "\"BELONG_TO\" TEXT);"); // 20: belongTo
+                "\"BELONG_TO\" TEXT," + // 20: belongTo
+                "\"JOIN_TIMESTAMP\" INTEGER);"); // 21: joinTimestamp
     }
 
     /** Drops the underlying database table. */
@@ -173,6 +175,11 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
         if (belongTo != null) {
             stmt.bindString(21, belongTo);
         }
+
+        java.util.Date joinTimestamp = entity.getJoinTimestamp();
+        if (joinTimestamp != null) {
+            stmt.bindLong(22, joinTimestamp.getTime());
+        }
     }
 
     /** @inheritdoc */
@@ -205,7 +212,8 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
                 cursor.isNull(offset + 17) ? null : cursor.getShort(offset + 17) != 0, // isPodcast
                 cursor.isNull(offset + 18) ? null : cursor.getShort(offset + 18) != 0, // isNotification
                 cursor.isNull(offset + 19) ? null : cursor.getShort(offset + 19) != 0, // isFavorite
-                cursor.isNull(offset + 20) ? null : cursor.getString(offset + 20) // belongTo
+                cursor.isNull(offset + 20) ? null : cursor.getString(offset + 20), // belongTo
+                cursor.isNull(offset + 21) ? null : new java.util.Date(cursor.getLong(offset + 21)) // joinTimestamp
         );
     }
 
@@ -233,6 +241,7 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
         entity.setNotification(cursor.isNull(offset + 18) ? null : cursor.getShort(offset + 18) != 0);
         entity.setFavorite(cursor.isNull(offset + 19) ? null : cursor.getShort(offset + 19) != 0);
         entity.setBelongTo(cursor.isNull(offset + 20) ? null : cursor.getString(offset + 20));
+        entity.setJoinTimestamp(cursor.isNull(offset + 21) ? null : new java.util.Date(cursor.getLong(offset + 21)));
     }
 
     /** @inheritdoc */

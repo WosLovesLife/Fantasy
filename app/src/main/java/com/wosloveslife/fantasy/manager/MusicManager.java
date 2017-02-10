@@ -14,7 +14,7 @@ import com.wosloveslife.fantasy.baidu.BaiduLrc;
 import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.dao.DbHelper;
-import com.wosloveslife.fantasy.event.RefreshEvent;
+import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.presenter.MusicPresenter;
 import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 
@@ -36,6 +36,7 @@ import rx.schedulers.Schedulers;
  * Created by zhangh on 2017/1/2.
  */
 public class MusicManager {
+    private static final String KEY_LAST_SHEET = "fantasy.manager.MusicManager.KEY_LAST_SHEET";
     private static final Pattern PATTERN_LRC_INTERVAL = Pattern.compile("\\u005b[0-9]{2}:[0-9]{2}\\u002e[0-9]{2}\\u005d");
     private static MusicManager sMusicManager;
 
@@ -43,12 +44,15 @@ public class MusicManager {
     MusicPresenter mPresenter;
 
     //=============Var
-    boolean mLoading;
+    boolean mScanning;
 
     //=============Data
+    @Deprecated
     List<String> mPinyinIndex;
     List<BMusic> mMusicList;
+    private Set<String> mFavoredSheet;
     BMusic mCurrentMusic;
+    private String mCurrentSheetOrdinal;
 
     private MusicManager() {
         mPinyinIndex = new ArrayList<>();
@@ -73,66 +77,89 @@ public class MusicManager {
     }
 
     private void dispose() {
-        if (mLoading) return;
-        mLoading = true;
+        mCurrentSheetOrdinal = SPHelper.getInstance().get(KEY_LAST_SHEET, "0");
+        loadLastSheet();
 
-        EventBus.getDefault().post(new RefreshEventM(true));
-        List<BMusic> bMusics = DbHelper.getMusicHelper().loadEntities();
+        mFavoredSheet = DbHelper.getMusicHelper().loadFavored("1");
+    }
+
+    /**
+     * 获取上一次关闭前停留的歌单
+     */
+    private void loadLastSheet() {
+        List<BMusic> bMusics = DbHelper.getMusicHelper().loadSheet(mCurrentSheetOrdinal);
         if (bMusics == null || bMusics.size() == 0) {
-            scan();
+            if (TextUtils.equals(mCurrentSheetOrdinal, "0")) {
+                scan();
+            }
         } else {
             onGotData(bMusics);
         }
     }
 
+    public void saveCurrentSheetOrdinal(String ordinal) {
+        mCurrentSheetOrdinal = ordinal;
+        SPHelper.getInstance().save(KEY_LAST_SHEET, ordinal);
+    }
+
+    public String getCurrentSheetOrdinal() {
+        return mCurrentSheetOrdinal;
+    }
+
     private void scan() {
-        EventBus.getDefault().post(new RefreshEventM(true));
+        if (mScanning) return;
+        mScanning = true;
         ScanResourceEngine.getMusicFromSystemDao(mContext).subscribe(new SubscriberAdapter<List<BMusic>>() {
             @Override
             public void onError(Throwable e) {
                 super.onError(e);
-                onGotData(null);
+                if (TextUtils.equals(mCurrentSheetOrdinal, "0")) {
+                    onGotData(null);
+                }
+                mScanning = false;
             }
 
             @Override
             public void onNext(List<BMusic> bMusics) {
                 super.onNext(bMusics);
-                onGotData(bMusics);
+                if (TextUtils.equals(mCurrentSheetOrdinal, "0")) {
+                    onGotData(bMusics);
+                }
+                mScanning = false;
 
+                DbHelper.getMusicHelper().remove("0");
                 if (bMusics != null && bMusics.size() > 0) {
-                    DbHelper.getMusicHelper().clear();
-                    DbHelper.getMusicHelper().insertOrReplace(mMusicList);
+                    DbHelper.getMusicHelper().insertOrReplace(bMusics);
                 }
             }
         });
     }
 
     private void onGotData(List<BMusic> bMusics) {
-        mPinyinIndex.clear();
-        mMusicList.clear();
+        if (bMusics != mMusicList) {
+            mPinyinIndex.clear();
+            mMusicList.clear();
 
-        if (bMusics != null && bMusics.size() > 0) {
-            mMusicList.addAll(bMusics);
+            if (bMusics != null && bMusics.size() > 0) {
+                mMusicList.addAll(bMusics);
+            }
         }
 
-        EventBus.getDefault().post(new OnGotMusicEvent(mPinyinIndex, mMusicList));
-        EventBus.getDefault().post(new RefreshEventM(false));
-        mLoading = false;
+        if (mScanning) {
+            EventBus.getDefault().post(new OnScannedMusicEvent(mPinyinIndex, mMusicList));
+        } else {
+            EventBus.getDefault().post(new OnGotMusicEvent(mPinyinIndex, mMusicList));
+        }
     }
 
     //==============================================================================================
+    @Deprecated
     public List<String> getPinyinIndex() {
-        if (mLoading) return null;
         return mPinyinIndex;
     }
 
     public List<BMusic> getMusicList() {
-        if (mLoading) return null;
         return mMusicList;
-    }
-
-    public boolean isLoading() {
-        return mLoading;
     }
 
     //==============================================================================================
@@ -212,74 +239,85 @@ public class MusicManager {
     }
 
     public void scanMusic() {
-        if (mLoading) return;
-        mLoading = true;
         scan();
     }
 
+    //=========================================歌单操作=============================================
+
+    public void changeSheet(String ordinal) {
+        if (TextUtils.equals(ordinal, mCurrentSheetOrdinal)) {
+            onGotData(mMusicList);
+        } else {
+            saveCurrentSheetOrdinal(ordinal);
+            onGotData(getMusicSheet(ordinal));
+        }
+    }
+
+    //==============我的收藏
     public void addFavor(BMusic bMusic) {
         if (bMusic == null) return;
-        BMusic music = mMusicList.get(mMusicList.indexOf(bMusic));
-        music.setFavorite(true);
-        addMusicBelongTo(music, "1");
+        if (!mFavoredSheet.contains(bMusic.title)) {
+            mFavoredSheet.add(bMusic.title);
+            addMusicBelongTo(bMusic, "1");
+        }
     }
 
     public void removeFavor(BMusic bMusic) {
         if (bMusic == null) return;
-        BMusic music = mMusicList.get(mMusicList.indexOf(bMusic));
-        music.setFavorite(false);
-        removeMusicBelongFrom(music, "1");
+        if (mFavoredSheet.contains(bMusic.title)) {
+            mFavoredSheet.remove(bMusic.title);
+            removeMusicBelongFrom(bMusic.path, "1");
+        }
     }
 
+    public List<BMusic> getFavored() {
+        return getMusicSheet("1");
+    }
+
+    //==============播放记录
     public void addRecent(BMusic bMusic) {
+        if (bMusic == null) return;
         addMusicBelongTo(bMusic, "2");
     }
 
     public void removeRecent(BMusic bMusic) {
-        removeMusicBelongFrom(bMusic, "2");
-    }
-
-    private void addMusicBelongTo(BMusic bMusic, String ordinal) {
         if (bMusic == null) return;
-        BMusic music = mMusicList.get(mMusicList.indexOf(bMusic));
-        Set<String> belongToSet = music.getBelongToSet();
-        belongToSet.add(ordinal);
-        music.setBelongToSet(belongToSet);
-        DbHelper.getMusicHelper().insertOrReplace(music);
-    }
-
-    private void removeMusicBelongFrom(BMusic bMusic, String ordinal) {
-        if (bMusic == null || TextUtils.isEmpty(ordinal)) return;
-        BMusic music = mMusicList.get(mMusicList.indexOf(bMusic));
-        Set<String> belongToSet = music.getBelongToSet();
-        belongToSet.remove(ordinal);
-        music.setBelongToSet(belongToSet);
-        DbHelper.getMusicHelper().insertOrReplace(music);
-    }
-
-    public List<BMusic> getFavored() {
-        List<BMusic> favoredMusics = new ArrayList<>();
-        for (BMusic bMusic : mMusicList) {
-            if (bMusic.isFavorite()) {
-                favoredMusics.add(bMusic);
-            }
-        }
-        return favoredMusics;
+        removeMusicBelongFrom(bMusic.path, "2");
     }
 
     public List<BMusic> getRecentMusic() {
         return getMusicSheet("2");
     }
 
-    public List<BMusic> getMusicSheet(String ordinal) {
-        List<BMusic> musicSheet = new ArrayList<>();
-        for (BMusic bMusic : mMusicList) {
-            Set<String> toSet = bMusic.getBelongToSet();
-            if (toSet.contains(ordinal)) {
-                musicSheet.add(bMusic);
-            }
+    //==============通用
+    public boolean isFavored(BMusic music) {
+        return music != null && mFavoredSheet.contains(music.title);
+    }
+
+    public void removeMusicFromCurrentSheet(BMusic bMusic, boolean withImmediate) {
+        if (bMusic == null) return;
+        DbHelper.getMusicHelper().remove(bMusic);
+        if (withImmediate) {
+            mMusicList.remove(bMusic);
+            /* TODO 通知页面刷新 */
         }
-        return musicSheet;
+    }
+
+    //==============封装
+    private void addMusicBelongTo(BMusic bMusic, String belong) {
+        if (bMusic == null) return;
+        BMusic newMusic = new BMusic(bMusic);
+        newMusic.setBelongTo(belong);
+        DbHelper.getMusicHelper().insertOrReplace(newMusic);
+    }
+
+    private void removeMusicBelongFrom(String path, String belong) {
+        if (TextUtils.isEmpty(path) || TextUtils.isEmpty(belong)) return;
+        DbHelper.getMusicHelper().remove(path, belong);
+    }
+
+    public List<BMusic> getMusicSheet(String belong) {
+        return DbHelper.getMusicHelper().loadSheet(belong);
     }
 
     //=======================================工具方法=============================================
@@ -439,11 +477,6 @@ public class MusicManager {
 
 
     //========================================事件==================================================
-    public static class RefreshEventM extends RefreshEvent {
-        public RefreshEventM(boolean refreshing) {
-            super(refreshing);
-        }
-    }
 
     public static class OnGotMusicEvent {
         public List<String> mPinyinIndex;
@@ -452,6 +485,12 @@ public class MusicManager {
         public OnGotMusicEvent(List<String> pinyinIndex, List<BMusic> bMusics) {
             mPinyinIndex = pinyinIndex;
             mBMusicList = bMusics;
+        }
+    }
+
+    public static class OnScannedMusicEvent extends OnGotMusicEvent {
+        public OnScannedMusicEvent(List<String> pinyinIndex, List<BMusic> bMusics) {
+            super(pinyinIndex, bMusics);
         }
     }
 

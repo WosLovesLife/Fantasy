@@ -19,6 +19,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -158,8 +159,6 @@ public class MusicListFragment extends BaseFragment {
         });
         mRecyclerView.setAdapter(mAdapter);
 
-        onRefreshChanged(new MusicManager.RefreshEventM(MusicManager.getInstance().isLoading()));
-
         /** 监听控制面板中的事件 */
         mControlView.setControlListener(new ControlView.ControlListener() {
             @Override
@@ -202,6 +201,7 @@ public class MusicListFragment extends BaseFragment {
         mNavigationAdapter.addHeaderView(header);
         mNavigationAdapter.setData(generateNavigationItems());
         mNavigationAdapter.setChosenPosition(1);
+        onChangeSheet(MusicManager.getInstance().getCurrentSheetOrdinal());
         mNavigationAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<NavigationItem>() {
             @Override
             public void onItemClick(final NavigationItem navigationItem, View v, final int position) {
@@ -213,14 +213,16 @@ public class MusicListFragment extends BaseFragment {
                     case "本地音乐":
                         mNavigationAdapter.setChosenPosition(position);
                         mToolbar.setTitle("本地音乐");
-                        List<BMusic> musicList = MusicManager.getInstance().getMusicList();
-                        setData(musicList);
+                        if (!TextUtils.equals(MusicManager.getInstance().getCurrentSheetOrdinal(), "0")) {
+                            MusicManager.getInstance().changeSheet("0");
+                        }
                         break;
                     case "我的收藏":
                         mNavigationAdapter.setChosenPosition(position);
                         mToolbar.setTitle("我的收藏");
-                        List<BMusic> myFavored = MusicManager.getInstance().getFavored();
-                        setData(myFavored);
+                        if (!TextUtils.equals(MusicManager.getInstance().getCurrentSheetOrdinal(), "1")) {
+                            MusicManager.getInstance().changeSheet("1");
+                        }
                         break;
                     case "最近播放":
                         mNavigationAdapter.setChosenPosition(position);
@@ -258,6 +260,25 @@ public class MusicListFragment extends BaseFragment {
         mRvNavigation.setAdapter(mNavigationAdapter);
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new VerticalSwapItemTouchHelperCallBack(mNavigationAdapter));
         itemTouchHelper.attachToRecyclerView(mRvNavigation);
+    }
+
+    private void onChangeSheet(String currentSheetOrdinal) {
+        switch (currentSheetOrdinal) {
+            case "0":
+                mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount());
+                mToolbar.setTitle("本地音乐");
+                break;
+            case "1":
+                mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 1);
+                mToolbar.setTitle("我的收藏");
+                break;
+            case "2":
+                mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 2);
+                break;
+            case "3":
+                mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 3);
+                break;
+        }
     }
 
     @Override
@@ -383,34 +404,27 @@ public class MusicListFragment extends BaseFragment {
     }
 
     //==========================================事件================================================
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onRefreshChanged(MusicManager.RefreshEventM event) {
-        if (event.mRefreshing) {
-            if (mSnackbar == null) {
-                mSnackbar = Snackbar.make(mRecyclerView, "正在更新歌曲...", Snackbar.LENGTH_INDEFINITE);
-            } else {
-                mSnackbar.setText("正在更新歌曲...");
-                mSnackbar.setDuration(Snackbar.LENGTH_INDEFINITE);
-            }
-
-            mSnackbar.show();
-        }
-    }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onGotMusic(MusicManager.OnGotMusicEvent event) {
+    public void onScannedMusic(MusicManager.OnScannedMusicEvent event) {
         if (event == null) return;
 
         setData(event.mBMusicList);
 
         if (mSnackbar == null) {
-            mSnackbar = Snackbar.make(mRecyclerView, "找到了" + event.mBMusicList.size() + "首音乐", Snackbar.LENGTH_INDEFINITE);
+            mSnackbar = Snackbar.make(mRecyclerView, "找到了" + event.mBMusicList.size() + "首音乐", Snackbar.LENGTH_LONG);
         } else {
             mSnackbar.setText("找到了" + event.mBMusicList.size() + "首音乐");
-            mSnackbar.setDuration(Snackbar.LENGTH_SHORT);
+            mSnackbar.setDuration(Snackbar.LENGTH_LONG);
         }
 
         mSnackbar.show();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onGotMusic(MusicManager.OnGotMusicEvent event) {
+        if (event == null) return;
+        setData(event.mBMusicList);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

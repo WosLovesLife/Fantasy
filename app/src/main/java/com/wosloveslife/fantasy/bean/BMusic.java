@@ -1,12 +1,6 @@
 package com.wosloveslife.fantasy.bean;
 
-import android.support.annotation.NonNull;
-import android.text.TextUtils;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.Date;
 
 /**
  * Created by zhangh on 2017/1/2.
@@ -53,6 +47,7 @@ public class BMusic {
     /** 是否是在线资源 */
     public boolean mIsOnline;
     /** 是否是我的喜爱(belongTo中也会包含该字段) */
+    @Deprecated
     public boolean isFavorite;
     /**
      * 这首歌所在的音乐列表, 这个字段很关键, 它需要和歌单列表数据表所对应上.<br/>
@@ -66,6 +61,7 @@ public class BMusic {
      * 预占用0-9的范围, 其中0是本地列表,1是收藏列表, 2是最近播放, 3是下载管理
      */
     public String belongTo;
+    public Date joinTimestamp;
 
     public BMusic() {
     }
@@ -96,7 +92,7 @@ public class BMusic {
                   String path, long duration, long size, boolean isOnline,
                   String genre, int year, int track, int discId, boolean isMusic,
                   boolean isRingtone, boolean isAlarm, boolean isNotification, boolean isPodcast,
-                  boolean isFavorite, String belongTo) {
+                  boolean isFavorite, String belongTo, Date joinTimestamp) {
         this._id = _id;
         this.title = title;
         this.artist = artist;
@@ -118,6 +114,31 @@ public class BMusic {
         mIsOnline = isOnline;
         this.isFavorite = isFavorite;
         this.belongTo = belongTo;
+        this.joinTimestamp = joinTimestamp;
+    }
+
+    public BMusic(BMusic bMusic) {
+        this.title = bMusic.title;
+        this.artist = bMusic.artist;
+        this.album = bMusic.album;
+        this.path = bMusic.path;
+        this.duration = bMusic.duration;
+        this.size = bMusic.size;
+        this.genre = bMusic.genre;
+        this.year = bMusic.year;
+        this.track = bMusic.track;
+        this.discId = bMusic.discId;
+        this.isMusic = bMusic.isMusic;
+        this.isRingtone = bMusic.isRingtone;
+        this.isAlarm = bMusic.isAlarm;
+        this.isNotification = bMusic.isNotification;
+        this.isPodcast = bMusic.isPodcast;
+        this.titlePinyin = bMusic.titlePinyin;
+        this.artistPinyin = bMusic.artistPinyin;
+        mIsOnline = bMusic.mIsOnline;
+        this.isFavorite = bMusic.isFavorite;
+        this.belongTo = bMusic.belongTo;
+        this.joinTimestamp = bMusic.joinTimestamp;
     }
 
     public void set_id(Long _id) {
@@ -196,20 +217,13 @@ public class BMusic {
         mIsOnline = online;
     }
 
+    @Deprecated
     public void setFavorite(boolean favorite) {
         isFavorite = favorite;
     }
 
     public void setBelongTo(String belongTo) {
         this.belongTo = belongTo;
-    }
-
-    public void setBelongToSet(Set<String> belongTo) {
-        StringBuilder stringBuilder = new StringBuilder();
-        for (String s : belongTo) {
-            stringBuilder.append(s).append("-");
-        }
-        this.belongTo = stringBuilder.toString();
     }
 
     public Long get_id() {
@@ -288,6 +302,7 @@ public class BMusic {
         return mIsOnline;
     }
 
+    @Deprecated
     public boolean isFavorite() {
         return isFavorite;
     }
@@ -296,15 +311,12 @@ public class BMusic {
         return belongTo;
     }
 
-    @NonNull
-    public Set<String> getBelongToSet() {
-        Set<String> strings = new HashSet<>();
-        if (!TextUtils.isEmpty(belongTo)) {
-            String[] split = belongTo.split("-");
-            List<String> list = Arrays.asList(split);
-            strings.addAll(list);
-        }
-        return strings;
+    public Date getJoinTimestamp() {
+        return joinTimestamp;
+    }
+
+    public void setJoinTimestamp(Date joinTimestamp) {
+        this.joinTimestamp = joinTimestamp;
     }
 
     //===========

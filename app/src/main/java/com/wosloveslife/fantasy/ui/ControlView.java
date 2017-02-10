@@ -396,7 +396,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             public void onClick(View v) {
                 if (mCurrentMusic == null) return;
 
-                if (mCurrentMusic.isFavorite()) {
+                if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
                     mIvbFavorite.setImageResource(R.drawable.ic_favor_white);
                     MusicManager.getInstance().removeFavor(mCurrentMusic);
                 } else {
@@ -458,7 +458,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         toggleLrcLoop();
 
-        if (mCurrentMusic != null && mCurrentMusic.isFavorite()) {
+        if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
             mIvbFavorite.setImageResource(R.drawable.ic_favored_white);
         } else {
             mIvbFavorite.setImageResource(R.drawable.ic_favor_white);

@@ -1,9 +1,15 @@
 package com.wosloveslife.fantasy.dao;
 
+import android.database.Cursor;
+import android.support.annotation.NonNull;
+
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.bean.BMusic;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by zhangh on 2017/2/10.
@@ -23,6 +29,14 @@ public class MusicDbHelper {
 
     public static MusicDbHelper getInstance() {
         return sMusicDbHelper;
+    }
+
+    public List<BMusic> loadAll() {
+        return mDao.loadAll();
+    }
+
+    public void clear() {
+        mDao.deleteAll();
     }
 
     public void insertOrReplace(BMusic entity) {
@@ -45,11 +59,45 @@ public class MusicDbHelper {
         }
     }
 
-    public List<BMusic> loadEntities() {
-        return mDao.loadAll();
+    public List<BMusic> loadSheet(String belong) {
+        return mDao.queryBuilder().where(MusicEntityDao.Properties.BelongTo.eq(belong)).build().list();
     }
 
-    public void clear() {
-        mDao.deleteAll();
+    public void remove(BMusic bMusic) {
+        mDao.delete(bMusic);
+    }
+
+    public void remove(String belong) {
+        mDao.queryBuilder()
+                .where(MusicEntityDao.Properties.BelongTo.eq(belong))
+                .buildDelete()
+                .executeDeleteWithoutDetachingEntities();
+    }
+
+    public void remove(String path, String belong) {
+        mDao.queryBuilder()
+                .where(MusicEntityDao.Properties.Path.eq(path), MusicEntityDao.Properties.BelongTo.eq(belong))
+                .buildDelete()
+                .executeDeleteWithoutDetachingEntities();
+    }
+
+    @NonNull
+    public Set<String> loadFavored(String belong) {
+        Set<String> favored = new HashSet<>();
+        Cursor query = mDao.queryBuilder().where(MusicEntityDao.Properties.BelongTo.eq(belong)).buildCursor().query();
+        if (query == null) return favored;
+        try {
+            if (query.moveToFirst()) {
+                int ordinal = MusicEntityDao.Properties.Title.ordinal;
+                do {
+                    favored.add(query.getString(ordinal));
+                } while (query.moveToNext());
+            }
+        } catch (Throwable e) {
+            WLogger.w("loadFavored : 获取收藏列表失败 e = " + e);
+        } finally {
+            query.close();
+        }
+        return favored;
     }
 }

@@ -20,11 +20,11 @@ import butterknife.OnClick;
  */
 public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
 
-    int mPlayingIndex = -1;
+    BMusic mPlayingItem;
     boolean mPlaying;
 
     @Override
-    protected BaseRecyclerViewHolder<BMusic> onCreateItemViewHolder(ViewGroup parent,int viewType) {
+    protected BaseRecyclerViewHolder<BMusic> onCreateItemViewHolder(ViewGroup parent, int viewType) {
         return new Holder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_music, parent, false));
     }
 
@@ -35,22 +35,7 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
      * @return 当前歌曲的索引
      */
     public int getPlayingIndex() {
-        return mPlayingIndex;
-    }
-
-    public void setChosenItem(int position, boolean playing) {
-        if (position < 0 || position >= getRealItemCount()) return;
-
-        if (mPlayingIndex != position) {
-            mPlaying = playing;
-            int notice = mPlayingIndex;
-            mPlayingIndex = position;
-            notifyItemChanged(notice);
-            notifyItemChanged(position);
-        } else if (!mPlaying) {
-            mPlaying = true;
-            notifyItemChanged(mPlayingIndex);
-        }
+        return getNormalPosition(mPlayingItem);
     }
 
     /**
@@ -58,8 +43,24 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
      * 如果position不等于当前记录的歌曲,则切换显示<br/>
      * 如果等于但是当前歌曲为暂停状态,则切换成播放状态
      *
-     * @param position 新的position
+     * @param position 处于数据集合中的位置, 而不是Holder的position
+     * @param playing
      */
+    public void setChosenItem(int position, boolean playing) {
+        if (position < 0 || position >= getRealItemCount()) return;
+
+        int playingIndex = getPlayingIndex();
+        if (playingIndex != position) {
+            mPlaying = playing;
+            mPlayingItem = getNormalData(position);
+            notifyItemChanged(getHeadersCount() + playingIndex);
+            notifyItemChanged(getHeadersCount() + position);
+        } else if (!mPlaying) {
+            mPlaying = true;
+            notifyItemChanged(getHeadersCount() + playingIndex);
+        }
+    }
+
     public void setPlayItem(int position) {
         if (position < 0 || position >= getRealItemCount()) return;
         setChosenItem(position, true);
@@ -71,11 +72,11 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
      * @param play true 显示播放图标,false 显示暂停图标
      */
     public void togglePlay(boolean play) {
-        if (mPlayingIndex < 0 || mPlayingIndex >= getRealItemCount()) return;
+        if (mPlayingItem == null) return;
 
         if (play != mPlaying) {
             mPlaying = play;
-            notifyItemChanged(mPlayingIndex);
+            notifyItemChanged(getPlayingIndex());
         }
     }
 
@@ -115,14 +116,13 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
             mTvTitle.setText(music.title);
             mTvArtist.setText(music.artist);
 
-            if (position == mPlayingIndex) {
+            if (mPlayingItem != null && mPlayingItem.equals(music)) {
                 mIvState.setVisibility(View.VISIBLE);
                 if (mPlaying) {
                     mIvState.setImageResource(R.drawable.ic_volume_up);
                 } else {
                     mIvState.setImageResource(R.drawable.ic_volume_mute);
                 }
-                mPlayingIndex = position;
             } else {
                 mIvState.setVisibility(View.GONE);
             }

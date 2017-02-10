@@ -38,7 +38,7 @@ public class DbGenerate {
         entity.addStringProperty("titlePinyin");
         entity.addStringProperty("artistPinyin");
         entity.addStringProperty("album");
-        entity.addStringProperty("path").unique();
+        entity.addStringProperty("path");
         entity.addLongProperty("duration");
         entity.addLongProperty("size");
         entity.addBooleanProperty("isOnline");
@@ -62,6 +62,7 @@ public class DbGenerate {
         // 每一个歌单都应该对应一个唯一的ID(以数字的16进制表示可以节省空间)(可以按照用户创建的顺序)
         // 预占用0-9的范围, 其中0是本地列表,1是收藏列表, 2是最近播放, 3是下载管理
         entity.addStringProperty("belongTo");
+        entity.addLongProperty("joinTimestamp");
 
 
         // 创建 歌曲总表
