@@ -1,8 +1,8 @@
 # FantasyMusicPlayer
 
-**正在开发中...请期待**
+##**正在开发中...请期待**
 
-**特性**
+##**特性**
 - 无广告, 极速启动, 极致音乐
 - 精美的UI设计, 流畅的操作体验
 - Toolbar和歌曲控制融为一体, 并能够下拉展开获得更多操作
@@ -13,9 +13,8 @@
 - 支持按照时间和文件路径来过滤歌曲.
 - 快捷的歌单列表切换, 便利的歌单管理
 
-**当前版本介绍**
+**当前版本介绍**<br/>
 <img src="https://github.com/WosLovesLife/Fantasy/tree/master/screenshot/fantasyIntro.gif"/>
-
 
 
 ---
