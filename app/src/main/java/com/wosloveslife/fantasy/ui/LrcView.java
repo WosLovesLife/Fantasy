@@ -11,6 +11,7 @@ import android.support.annotation.RequiresApi;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.VelocityTrackerCompat;
 import android.support.v4.widget.ScrollerCompat;
+import android.text.TextPaint;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -32,9 +33,9 @@ import java.util.List;
  */
 
 public class LrcView extends View {
-    private Paint mPaint;
-    private Paint mPlayingPaint;
-    private Paint mChosenPaint;
+    private TextPaint mPaint;
+    private TextPaint mPlayingPaint;
+    private TextPaint mChosenPaint;
 
     private int mTextSize;
     private int mTextSpace;
@@ -86,11 +87,11 @@ public class LrcView extends View {
     }
 
     private void init() {
-        mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         mPaint.setColor(getResources().getColor(R.color.gray_text));
-        mPlayingPaint = new Paint(mPaint);
+        mPlayingPaint = new TextPaint(mPaint);
         mPlayingPaint.setColor(getResources().getColor(R.color.white));
-        mChosenPaint = new Paint(mPaint);
+        mChosenPaint = new TextPaint(mPaint);
         mChosenPaint.setColor(getResources().getColor(R.color.gray_light));
         setTextSize(16, 8);
 
@@ -145,35 +146,37 @@ public class LrcView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        int v = mTextSpace / 2 + mHeight / 2;
+        int y = mTextSpace / 2 + mHeight / 2;
         int lineCount = 0;
 
         canvas.save();
         if (mBLyric == null || mBLyric.mLrc == null) {
-            float measureText = mPaint.measureText("暂无歌词,请期待后续优化");
-            canvas.drawText("暂无歌词,请期待后续优化", (mWidth - measureText) / 2, v, mPlayingPaint);
+            float x = (mWidth - mPaint.measureText("暂无歌词,请期待后续优化")) / 2;
+            canvas.drawText("暂无歌词,请期待后续优化", x, y, mPaint);
             canvas.restore();
             return;
         }
 
         if (!isSupportAutoScroll()) {
-            float measureText = mPaint.measureText("当前歌词不支持自动滚动");
-            canvas.drawText("当前歌词不支持自动滚动", (mWidth - measureText) / 2, v, mPaint);
-            v += mTextSpace;
+            float x = (mWidth - mPaint.measureText("当前歌词不支持自动滚动")) / 2;
+            canvas.drawText("当前歌词不支持自动滚动", x, y, mPaint);
+            y += mTextSpace;
             ++lineCount;
         }
 
         for (BLyric.LyricLine lyricLine : mBLyric.mLrc) {
-            float measureText = mPaint.measureText(lyricLine.content);
-            String content = TextUtils.isEmpty(lyricLine.content) ? "." : lyricLine.content;
-            if (lineCount == mCurrentLine) {
-                canvas.drawText(content, (mWidth - measureText) / 2, v, mPlayingPaint);
-            } else if (isSeeking() && lineCount == mChosenLine) {
-                canvas.drawText(content, (mWidth - measureText) / 2, v, mChosenPaint);
-            } else {
-                canvas.drawText(content, (mWidth - measureText) / 2, v, mPaint);
+            if (y > getScrollY() && y < getScrollY() + getHeight() + mTextSpace) {
+                float x = (mWidth - mPaint.measureText(lyricLine.content)) / 2;
+                String content = TextUtils.isEmpty(lyricLine.content) ? "." : lyricLine.content;
+                if (lineCount == mCurrentLine) {
+                    canvas.drawText(content, x, y, mPlayingPaint);
+                } else if (isSeeking() && lineCount == mChosenLine) {
+                    canvas.drawText(content, x, y, mChosenPaint);
+                } else {
+                    canvas.drawText(content, x, y, mPaint);
+                }
             }
-            v += mTextSpace;
+            y += mTextSpace;
             ++lineCount;
         }
         canvas.restore();

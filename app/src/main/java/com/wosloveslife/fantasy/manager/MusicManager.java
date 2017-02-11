@@ -7,7 +7,10 @@ import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
 
 import com.mpatric.mp3agic.ID3v2;
+import com.mpatric.mp3agic.ID3v23Tag;
+import com.mpatric.mp3agic.InvalidDataException;
 import com.mpatric.mp3agic.Mp3File;
+import com.mpatric.mp3agic.UnsupportedTagException;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
@@ -20,6 +23,7 @@ import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 
 import org.greenrobot.eventbus.EventBus;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -400,14 +404,22 @@ public class MusicManager {
 
         if (bLyric == null) {
             /* TODO 没有内嵌歌词 ,尝试从网络获取,如果开启了网络 */
-            String query = bMusic.title + (TextUtils.equals(bMusic.artist, "<unknown>") ? "" : bMusic.artist);
+            String query = bMusic.title + (TextUtils.equals(bMusic.artist, "<unknown>") ? " " : " " + bMusic.artist);
             mPresenter.searchLrc(query, AndroidSchedulers.mainThread(), new SubscriberAdapter<BaiduLrc>() {
+                @Override
+                public void onError(Throwable e) {
+                    super.onError(e);
+                    subscriber.onError(e);
+                    subscriber.onCompleted();
+                }
+
                 @Override
                 public void onNext(BaiduLrc baiduLrc) {
                     super.onNext(baiduLrc);
                     BLyric bLyric1 = null;
                     if (baiduLrc != null) {
                         bLyric1 = generateLrcData(baiduLrc.getLrcContent());
+                        saveLrc(bMusic, baiduLrc.getLrcContent());
                     }
                     subscriber.onNext(bLyric1);
                     subscriber.onCompleted();
@@ -419,12 +431,31 @@ public class MusicManager {
         }
     }
 
+    @WorkerThread
+    private void saveLrc(BMusic bMusic, String lrcContent) {
+        if (bMusic == null || TextUtils.isEmpty(lrcContent)) return;
+        try {
+            Mp3File mp3file = new Mp3File(bMusic.path);
+            if (mp3file.hasId3v2Tag()) {
+                ID3v2 id3v2Tag = mp3file.getId3v2Tag();
+                id3v2Tag.setLyrics(lrcContent);
+            } else {
+                ID3v23Tag id3v23Tag = new ID3v23Tag();
+                id3v23Tag.setTitle(bMusic.title);
+                id3v23Tag.setArtist(bMusic.artist);
+                id3v23Tag.setLyrics(lrcContent);
+                mp3file.setId3v2Tag(id3v23Tag);
+            }
+        } catch (IOException | UnsupportedTagException | InvalidDataException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static BLyric generateLrcData(String lrcContent) {
         if (TextUtils.isEmpty(lrcContent)) return null;
 
         List<BLyric.LyricLine> lrcLines;
         if (PATTERN_LRC_INTERVAL.matcher(lrcContent).find()) {
-            lrcContent = lrcContent.replaceAll("\\n", "");
             lrcLines = match(lrcContent);
         } else {
             String[] split = lrcContent.split("\r\n");
