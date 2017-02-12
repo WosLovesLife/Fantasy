@@ -1,18 +1,25 @@
 package com.wosloveslife.fantasy.services;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
+import android.widget.RemoteViews;
 
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.ExoPlayer;
@@ -38,7 +45,9 @@ import com.google.android.exoplayer2.upstream.cache.SimpleCache;
 import com.google.android.exoplayer2.util.Util;
 import com.google.gson.Gson;
 import com.orhanobut.logger.Logger;
+import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
+import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.broadcast.AudioBroadcast;
 import com.wosloveslife.fantasy.broadcast.BroadcastManager;
@@ -46,8 +55,10 @@ import com.wosloveslife.fantasy.helper.FileDataSourceFactory;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.interfaces.IPlay;
 import com.wosloveslife.fantasy.manager.MusicManager;
+import com.wosloveslife.fantasy.ui.MusicListActivity;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
+import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -58,6 +69,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+
+import rx.android.schedulers.AndroidSchedulers;
 
 /**
  * Created by zhangh on 2017/1/17.
@@ -97,6 +110,8 @@ public class PlayService extends Service {
 
     List<PlayStateListener> mPlayStateListeners = new ArrayList<>();
     private AudioManager mAudioManager;
+    private Notification mNotification;
+    private RemoteViews mRemoteViews;
 
     public PlayService() {
     }
@@ -205,6 +220,7 @@ public class PlayService extends Service {
         if (mCurrentMusic != null) {
             prepare(music.path);
             play();
+            notifyNotification(true);
             SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
         } else {
             pause();
@@ -367,12 +383,14 @@ public class PlayService extends Service {
                                 mForcePlay = false;
                             }
                         }.start();
+                        notifyNotification(false);
                         for (PlayStateListener listener : mPlayStateListeners) {
                             listener.onPlay(mCurrentMusic);
                         }
                     } else {
                         mForcePlay = false;
                         abandonAudioFocus();
+                        notifyNotification(false);
                         for (PlayStateListener listener : mPlayStateListeners) {
                             listener.onPause();
                         }
@@ -389,6 +407,64 @@ public class PlayService extends Service {
 
         EventBus.getDefault().register(this);
         BroadcastManager.getInstance().init(this);
+    }
+
+    private void notifyNotification(boolean newRes) {
+        if (mNotification == null) {
+            createNotification();
+        }
+
+        if (newRes) {
+            if (mCurrentMusic != null) {
+                MusicManager.getAlbum(mCurrentMusic.path, Dp2Px.toPX(this, 80))
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new SubscriberAdapter<Bitmap>() {
+                            @Override
+                            public void onNext(Bitmap bitmap) {
+                                super.onNext(bitmap);
+                                mRemoteViews.setImageViewBitmap(R.id.iv_album, bitmap);
+                                NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                                manager.notify(3, mNotification);
+                            }
+                        });
+            }
+            mRemoteViews.setImageViewResource(R.id.iv_album, R.drawable.ic_portrait_chicken_174);
+        }
+        mRemoteViews.setTextViewText(R.id.tv_title, mCurrentMusic != null ? mCurrentMusic.title : "暂无播放歌曲");
+        mRemoteViews.setTextViewText(R.id.tv_artist, mCurrentMusic != null ? mCurrentMusic.artist : "");
+        mRemoteViews.setImageViewResource(R.id.iv_play_btn, isPlaying() ? R.drawable.ic_pause_black : R.drawable.ic_play_arrow_black);
+        mRemoteViews.setImageViewResource(R.id.iv_favor, MusicManager.getInstance().isFavored(mCurrentMusic) ? R.drawable.ic_favored : R.drawable.ic_favorite_border);
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        manager.notify(3, mNotification);
+    }
+
+    /** 生成通知栏通知对象和RemoteView对象,应该只在成员变量为null时调用,避免重复创建对象 */
+    private void createNotification() {
+        /////// RemoteView-start //////
+        /* 自定义通知栏的样式, 参1是应用包名,因为需要系统来托管此服务, 参2是自定义布局样式 */
+        mRemoteViews = new RemoteViews(getPackageName(), R.layout.remote_view);
+        mRemoteViews.setImageViewResource(R.id.iv_previous_btn, R.drawable.ic_skip_previous_black);
+        mRemoteViews.setImageViewResource(R.id.iv_next_btn, R.drawable.ic_skip_next_black);
+        Intent intent = new Intent(this, MusicListActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mRemoteViews.setOnClickPendingIntent(R.id.remote_view_open, pendingIntent);
+
+        mNotification = new NotificationCompat.Builder(this)
+                .setTicker("Fantasy已启动")
+                .setOngoing(true)
+                .setSmallIcon(R.drawable.ic_portrait_chicken_174)
+                .setWhen(System.currentTimeMillis())
+                .setAutoCancel(false)
+                .setShowWhen(true)
+                .build();
+
+        mNotification.contentView = mRemoteViews;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            mNotification.bigContentView = mRemoteViews;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            mNotification.headsUpContentView = mRemoteViews;
+        }
     }
 
     /**

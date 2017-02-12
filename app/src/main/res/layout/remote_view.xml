@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/remote_view_open"
+    android:layout_width="match_parent"
+    android:layout_height="100dp">
+
+    <ImageView
+        android:id="@+id/iv_album"
+        android:layout_width="100dp"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        app:srcCompat="@drawable/ic_portrait_chicken_174"/>
+
+    <TextView
+        android:id="@+id/tv_title"
+        style="@style/TextAppearance.StatusBar.EventContent.Info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_toRightOf="@id/iv_album"
+        android:gravity="center_vertical"
+        android:lines="1"
+        android:textColor="@color/black_blue_text"
+        android:textSize="16sp"
+        tools:text="歌名"/>
+
+    <TextView
+        android:id="@+id/tv_artist"
+        style="@style/TextAppearance.StatusBar.EventContent.Info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_title"
+        android:layout_marginBottom="4dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginTop="4dp"
+        android:layout_toRightOf="@id/iv_album"
+        android:gravity="center_vertical"
+        android:lines="1"
+        android:textColor="@color/black_text_matt"
+        android:textSize="12sp"
+        tools:text="歌手"/>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_below="@id/tv_artist"
+        android:layout_marginBottom="3dp"
+        android:layout_marginTop="3dp"
+        android:layout_toRightOf="@id/iv_album">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/iv_favor"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginLeft="1dp"
+                android:layout_marginRight="1dp"
+                android:background="@drawable/ripple_btn"
+                android:clickable="true"
+                android:contentDescription="@null"
+                android:padding="10dp"
+                app:srcCompat="@drawable/ic_favorite_border"/>
+
+            <ImageView
+                android:id="@+id/iv_previous_btn"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginLeft="1dp"
+                android:layout_marginRight="1dp"
+                android:background="@drawable/ripple_btn"
+                android:clickable="true"
+                android:contentDescription="@null"
+                android:padding="8dp"
+                app:srcCompat="@drawable/ic_skip_previous_black"/>
+
+
+            <ImageView
+                android:id="@+id/iv_play_btn"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginLeft="1dp"
+                android:layout_marginRight="1dp"
+                android:background="@drawable/ripple_btn"
+                android:clickable="true"
+                android:contentDescription="@null"
+                android:padding="4dp"
+                app:srcCompat="@drawable/ic_play_arrow_black"/>
+
+            <ImageView
+                android:id="@+id/iv_next_btn"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginLeft="1dp"
+                android:layout_marginRight="1dp"
+                android:background="@drawable/ripple_btn"
+                android:clickable="true"
+                android:contentDescription="@null"
+                android:padding="8dp"
+                app:srcCompat="@drawable/ic_skip_next_black"/>
+
+            <TextView
+                android:id="@+id/tv_lrc"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginLeft="1dp"
+                android:layout_marginRight="2dp"
+                android:background="@drawable/ripple_btn"
+                android:clickable="true"
+                android:gravity="center"
+                android:paddingBottom="2dp"
+                android:text="词"
+                android:textColor="@color/black_text_matt"
+                android:textSize="18sp"/>
+        </LinearLayout>
+    </FrameLayout>
+</RelativeLayout>

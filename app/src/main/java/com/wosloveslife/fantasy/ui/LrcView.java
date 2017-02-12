@@ -41,6 +41,8 @@ public class LrcView extends View {
     private int mWidth;
     private int mHeight;
     private int mMaxScrollRange;
+    private boolean mSupportAutoScroll;
+    private boolean mIsLrcEnable;
 
     private ScrollerCompat mScroller;
     private VelocityTracker mVelocityTracker;
@@ -163,7 +165,7 @@ public class LrcView extends View {
             return;
         }
 
-        if (!isSupportAutoScroll()) {
+        if (!mSupportAutoScroll) {
             float x = (mWidth - mPaint.measureText("当前歌词不支持自动滚动")) / 2;
             canvas.drawText("当前歌词不支持自动滚动", x, y, mPaint);
             y += mTextSpace;
@@ -173,7 +175,7 @@ public class LrcView extends View {
         canvas.translate(0, y);
         for (BLyric.LyricLine lyricLine : mBLyric.mLrc) {
             if (y > getScrollY() - mTextSpace && y < getScrollY() + getHeight() + mTextSpace) {
-                if (lineCount == mCurrentLine) {
+                if (mSupportAutoScroll && lineCount == mCurrentLine) {
                     lyricLine.staticLayout.getPaint().setColor(mColorWhite);
                 } else if (isSeeking() && lineCount == mChosenLine) {
                     lyricLine.staticLayout.getPaint().setColor(mColorGrayLight);
@@ -189,7 +191,7 @@ public class LrcView extends View {
     }
 
     private void syncLrc(long progress) {
-        if (!isLrcEnable()) return;
+        if (!mIsLrcEnable) return;
 
         /* 记录当前歌词行的时间距离progress的差值,如果下一行的差值小于当前记录的值,则选择下一行为目标行
          * 如果下一行的时间节点大于progress,则终止循环.因为后面的时间值距离progress肯定越来越大 */
@@ -218,7 +220,7 @@ public class LrcView extends View {
     }
 
     public void setAutoSyncLrc(boolean enable, long offsetProgress) {
-        if (!isSupportAutoScroll()) return;
+        if (!mSupportAutoScroll) return;
 
         mHandler.removeMessages(0);
         if (offsetProgress > 0) {
@@ -296,7 +298,7 @@ public class LrcView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (!isLrcEnable()) return false;
+        if (!mIsLrcEnable) return false;
 
         boolean addVelocityTracker = false;
         boolean consume = true;
@@ -361,7 +363,7 @@ public class LrcView extends View {
     }
 
     private void scrollDef() {
-        if (!isSupportAutoScroll()) return;
+        if (!mSupportAutoScroll) return;
         mHandler.removeMessages(1);
         mHandler.sendEmptyMessageDelayed(1, 2000);
         WLogger.d("scrollDef :  ");
@@ -391,7 +393,7 @@ public class LrcView extends View {
         }
         super.scrollTo(0, targetY);
 
-        if (!isSupportAutoScroll()) return;
+        if (!mSupportAutoScroll) return;
 
         int newChosen = Math.round(targetY * 1f / mTextSpace);
         if (!isSeeking()) {
@@ -409,16 +411,8 @@ public class LrcView extends View {
         return mTouching || mSeeking;
     }
 
-    private boolean isLrcEnable() {
-        return mLyricLines != null && mLyricLines.size() > 0;
-    }
-
-    private boolean isSupportAutoScroll() {
-        return isLrcEnable() && mLyricLines.get(0).time > 0;
-    }
-
     private BLyric.LyricLine getLrcLine(int index) {
-        if (!isLrcEnable() || index < 0 || index >= mLyricLines.size()) return null;
+        if (!mIsLrcEnable || index < 0 || index >= mLyricLines.size()) return null;
         return mLyricLines.get(index);
     }
 
@@ -439,7 +433,7 @@ public class LrcView extends View {
 
     private void notifySeekingFinish() {
         mSeeking = false;
-        if (mOnSeekLrcProgressListener != null && isLrcEnable()) {
+        if (mOnSeekLrcProgressListener != null && mIsLrcEnable) {
             long lrcTimeLien = getLrcTimeLien(mChosenLine);
             if (lrcTimeLien > 0) {
                 mOnSeekLrcProgressListener.onSeekFinish(lrcTimeLien);
@@ -465,6 +459,9 @@ public class LrcView extends View {
         }
         mChosenLine = 0;
         mCurrentLine = 0;
+
+        mIsLrcEnable = mLyricLines != null && mLyricLines.size() > 0;
+        mSupportAutoScroll = mIsLrcEnable && mLyricLines.get(0).time > 0;
 
         if (!mScroller.isFinished()) {
             mScroller.abortAnimation();
