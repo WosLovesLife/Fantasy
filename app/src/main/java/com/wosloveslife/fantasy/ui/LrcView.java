@@ -11,8 +11,9 @@ import android.support.annotation.RequiresApi;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.VelocityTrackerCompat;
 import android.support.v4.widget.ScrollerCompat;
+import android.text.Layout;
+import android.text.StaticLayout;
 import android.text.TextPaint;
-import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
@@ -34,8 +35,6 @@ import java.util.List;
 
 public class LrcView extends View {
     private TextPaint mPaint;
-    private TextPaint mPlayingPaint;
-    private TextPaint mChosenPaint;
 
     private int mTextSize;
     private int mTextSpace;
@@ -57,6 +56,10 @@ public class LrcView extends View {
 
     BLyric mBLyric;
     private List<BLyric.LyricLine> mLyricLines;
+
+    private int mColorWhite;
+    private int mColorGrayLight;
+    private int mColorGrayText;
 
     public LrcView(Context context) {
         this(context, null);
@@ -87,12 +90,12 @@ public class LrcView extends View {
     }
 
     private void init() {
+        mColorWhite = getResources().getColor(R.color.white);
+        mColorGrayLight = getResources().getColor(R.color.gray_light);
+        mColorGrayText = getResources().getColor(R.color.gray_text);
+
         mPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        mPaint.setColor(getResources().getColor(R.color.gray_text));
-        mPlayingPaint = new TextPaint(mPaint);
-        mPlayingPaint.setColor(getResources().getColor(R.color.white));
-        mChosenPaint = new TextPaint(mPaint);
-        mChosenPaint.setColor(getResources().getColor(R.color.gray_light));
+        mPaint.setColor(mColorGrayText);
         setTextSize(16, 8);
 
         mIgnoreEdge = Dp2Px.toPX(getContext(), 16);
@@ -138,6 +141,11 @@ public class LrcView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+        if (mWidth != w && mLyricLines != null) {
+            for (BLyric.LyricLine line : mLyricLines) {
+                line.staticLayout = new StaticLayout(line.content, mPaint, w, Layout.Alignment.ALIGN_CENTER, 1f, 0f, false);
+            }
+        }
         mWidth = w;
         mHeight = h;
     }
@@ -146,14 +154,12 @@ public class LrcView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        int y = mTextSpace / 2 + mHeight / 2;
+        int y = mHeight / 2;
         int lineCount = 0;
 
-        canvas.save();
         if (mBLyric == null || mBLyric.mLrc == null) {
             float x = (mWidth - mPaint.measureText("暂无歌词,请期待后续优化")) / 2;
             canvas.drawText("暂无歌词,请期待后续优化", x, y, mPaint);
-            canvas.restore();
             return;
         }
 
@@ -164,22 +170,22 @@ public class LrcView extends View {
             ++lineCount;
         }
 
+        canvas.translate(0, y);
         for (BLyric.LyricLine lyricLine : mBLyric.mLrc) {
-            if (y > getScrollY() && y < getScrollY() + getHeight() + mTextSpace) {
-                float x = (mWidth - mPaint.measureText(lyricLine.content)) / 2;
-                String content = TextUtils.isEmpty(lyricLine.content) ? "." : lyricLine.content;
+            if (y > getScrollY() - mTextSpace && y < getScrollY() + getHeight() + mTextSpace) {
                 if (lineCount == mCurrentLine) {
-                    canvas.drawText(content, x, y, mPlayingPaint);
+                    lyricLine.staticLayout.getPaint().setColor(mColorWhite);
                 } else if (isSeeking() && lineCount == mChosenLine) {
-                    canvas.drawText(content, x, y, mChosenPaint);
+                    lyricLine.staticLayout.getPaint().setColor(mColorGrayLight);
                 } else {
-                    canvas.drawText(content, x, y, mPaint);
+                    lyricLine.staticLayout.getPaint().setColor(mColorGrayText);
                 }
+                lyricLine.staticLayout.draw(canvas);
             }
+            canvas.translate(0, mTextSpace);
             y += mTextSpace;
             ++lineCount;
         }
-        canvas.restore();
     }
 
     private void syncLrc(long progress) {
@@ -447,6 +453,12 @@ public class LrcView extends View {
         if (mBLyric != null && mBLyric.mLrc != null) {
             mLyricLines = mBLyric.mLrc;
             mMaxScrollRange = (mLyricLines.size() - 1) * mTextSpace;
+
+            if (mWidth > 0) {
+                for (BLyric.LyricLine line : mLyricLines) {
+                    line.staticLayout = new StaticLayout(line.content, mPaint, mWidth, Layout.Alignment.ALIGN_CENTER, 1f, 0f, false);
+                }
+            }
         } else {
             mLyricLines = null;
             mMaxScrollRange = 0;
@@ -467,8 +479,6 @@ public class LrcView extends View {
         mTextSpace = (int) (mTextSize + Dp2Px.toPX(getContext(), span));
 
         mPaint.setTextSize(mTextSize);
-        mPlayingPaint.setTextSize(mTextSize);
-        mChosenPaint.setTextSize(mTextSize);
     }
 
     OnSeekLrcProgressListener mOnSeekLrcProgressListener;

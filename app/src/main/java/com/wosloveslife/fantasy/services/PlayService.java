@@ -228,6 +228,8 @@ public class PlayService extends Service {
     public void play() {
         mStopPlay = false;
         if (mCurrentMusic != null) {
+            mForcePlay = true;
+            registerAudioFocus();
             mPlayer.setPlayWhenReady(true);
         } else {
             next();
@@ -239,6 +241,8 @@ public class PlayService extends Service {
      */
     public void pause() {
         if (mCurrentMusic != null) {
+            /* 在这里重置该值, 避免影响后续的播放状态 */
+            mSavePlay = false;
             mPlayer.setPlayWhenReady(false);
         }
     }
@@ -338,30 +342,6 @@ public class PlayService extends Service {
         mPlayer.addListener(new ExoPlayerEventListenerAdapter() {
             @Override
             public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-                if (!playWhenReady) {
-                    /* 在这里重置该值, 避免影响后续的播放状态 */
-                    mSavePlay = false;
-                }
-
-//                if (mCountdownUp
-//                        && (playbackState == ExoPlayer.STATE_ENDED || !playWhenReady)
-//                        && System.currentTimeMillis() >= mCountdownTargetTimestamp) {
-//                    resetPlayService();
-//                    for (PlayStateListener listener : mPlayStateListeners) {
-//                        listener.onPause();
-//                    }
-//                } else if (playbackState == ExoPlayer.STATE_ENDED) {
-//                    next();
-//                } else {
-//                    for (PlayStateListener listener : mPlayStateListeners) {
-//                        if (playWhenReady) {
-//                            listener.onPlay(mCurrentMusic);
-//                        } else {
-//                            listener.onPause();
-//                        }
-//                    }
-//                }
-
                 if (mCountdownUp
                         && (playbackState == ExoPlayer.STATE_ENDED || !playWhenReady)
                         && System.currentTimeMillis() >= mCountdownTargetTimestamp) {
@@ -374,10 +354,25 @@ public class PlayService extends Service {
                     next();
                 } else {
                     if (playWhenReady) {
+                        /* 这里是为了播放回调先调用而焦点变化回调后调用导致刚点下播放键就立即又被暂停 */
+                        new Thread() {
+                            @Override
+                            public void run() {
+                                super.run();
+                                try {
+                                    sleep(100);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                                mForcePlay = false;
+                            }
+                        }.start();
                         for (PlayStateListener listener : mPlayStateListeners) {
                             listener.onPlay(mCurrentMusic);
                         }
                     } else {
+                        mForcePlay = false;
+                        abandonAudioFocus();
                         for (PlayStateListener listener : mPlayStateListeners) {
                             listener.onPause();
                         }
@@ -394,24 +389,39 @@ public class PlayService extends Service {
 
         EventBus.getDefault().register(this);
         BroadcastManager.getInstance().init(this);
-        registerAudioEvent();
     }
+
+    /**
+     * 由于暂时不知道的原因,第二次起播放时或者其他程序播放时都会失去焦点<br/>
+     * 但是为了防止用户按下播放键后立即暂停,设置了一个boolean<br/>
+     * 变量的值会在歌曲播放100毫秒后被置为false.<br/>
+     * 现在的效果是, 歌曲播放100毫秒后如果回调了失去焦点,表示有其他应用抢夺焦点,则暂停<br/>
+     * 如果100毫秒内回调,认为是再次播放造成的,则忽略.
+     */
+    boolean mForcePlay;
 
     /**
      * 监听声音播放的焦点变化,当有别的应用抢占了焦点时(例如拨打电话).终止播放,并在重新获取焦点后根据之前保存的状态而判断是否继续播放
      */
-    private void registerAudioEvent() {
-        mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+    private void registerAudioFocus() {
+        if (mAudioManager == null) {
+            mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        }
         mAudioManager.requestAudioFocus(new AudioManager.OnAudioFocusChangeListener() {
             @Override
             public void onAudioFocusChange(int focusChange) {
                 switch (focusChange) {
-                    case AudioManager.ADJUST_LOWER:
-                    case -2:
-                        pause();
-                        mSavePlay = isPlaying();
+                    case AudioManager.AUDIOFOCUS_LOSS: // 失去焦点,
+                        if (!mForcePlay) {
+                            pause();
+                        }
                         break;
-                    case AudioManager.AUDIOFOCUS_GAIN:
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT: // 短暂失去焦点
+                        boolean playing = isPlaying();
+                        pause();
+                        mSavePlay = playing;
+                        break;
+                    case AudioManager.AUDIOFOCUS_REQUEST_GRANTED: // 获得焦点
                         if (mSavePlay) {
                             /* 在这里重置该值, 避免影响后续的播放状态 */
                             mSavePlay = false;
@@ -422,6 +432,12 @@ public class PlayService extends Service {
                 WLogger.d("requestAudioFocus onAudioFocusChange : [focusChange] = " + focusChange);
             }
         }, 1, AudioManager.AUDIOFOCUS_GAIN);
+    }
+
+    private void abandonAudioFocus() {
+        if (mAudioManager != null) {
+            mAudioManager.abandonAudioFocus(null);
+        }
     }
 
     boolean mSavePlay;
@@ -457,9 +473,7 @@ public class PlayService extends Service {
             resetPlayService();
             mPlayer.release();
         }
-        if (mAudioManager != null) {
-            mAudioManager.abandonAudioFocus(null);
-        }
+        abandonAudioFocus();
     }
 
     //==================================播放逻辑-start==============================================

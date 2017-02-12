@@ -1,5 +1,7 @@
 package com.wosloveslife.fantasy.bean;
 
+import android.text.StaticLayout;
+
 import java.util.List;
 
 /**
@@ -19,6 +21,7 @@ public class BLyric {
     public static class LyricLine {
         public long time;
         public String content;
+        public StaticLayout staticLayout;
 
         public LyricLine(long time, String content) {
             this.time = time;
