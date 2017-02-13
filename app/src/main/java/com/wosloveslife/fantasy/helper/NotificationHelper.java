@@ -116,7 +116,11 @@ public class NotificationHelper {
                                     @Override
                                     public void onNext(Bitmap bitmap) {
                                         super.onNext(bitmap);
-                                        mRemoteViews.setImageViewBitmap(R.id.iv_album, bitmap);
+                                        if (bitmap != null) {
+                                            mRemoteViews.setImageViewBitmap(R.id.iv_album, bitmap);
+                                        } else {
+                                            mRemoteViews.setImageViewResource(R.id.iv_album, R.drawable.ic_portrait_chicken_174);
+                                        }
                                         show();
                                     }
                                 });

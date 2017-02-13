@@ -249,6 +249,12 @@ public class MusicManager {
 
     //=========================================歌单操作=============================================
 
+    /**
+     * 变更当前的播放列表, 通常是用户在一个列表上播放了一首歌才会造成播放列表的切换<br/>
+     * 如果只是变更歌曲列表的内容, 应该使用{@link MusicManager#getMusicSheet(String)}方法
+     *
+     * @param ordinal 歌单序列号
+     */
     public void changeSheet(String ordinal) {
         if (TextUtils.equals(ordinal, mCurrentSheetOrdinal)) {
             onGotData(mMusicList);
@@ -323,6 +329,12 @@ public class MusicManager {
         DbHelper.getMusicHelper().remove(path, belong);
     }
 
+    /**
+     * 根据歌单序号获取歌曲列表
+     *
+     * @param belong 歌单序号
+     * @return 歌曲列表
+     */
     public List<BMusic> getMusicSheet(String belong) {
         return DbHelper.getMusicHelper().loadSheet(belong);
     }

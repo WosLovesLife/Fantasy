@@ -31,6 +31,8 @@ public class SettingFragment extends BaseFragment {
 
     @BindView(R.id.switch_autoExpand)
     SwitchCompat mSwitchAutoExpand;
+    @BindView(R.id.switch_changeSheetWithPlayList)
+    SwitchCompat mSwitchChangeSheetWithPlayList;
     @BindView(R.id.tv_filterDuration)
     TextView mTvFilterDuration;
 
@@ -60,10 +62,20 @@ public class SettingFragment extends BaseFragment {
             }
         });
 
+        mSwitchChangeSheetWithPlayList.setChecked(CustomConfiguration.isChangeSheetWithPlayList());
+        mSwitchChangeSheetWithPlayList.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                CustomConfiguration.saveChangeSheetWithPlayList(isChecked);
+            }
+        });
+
         setMinDurationContent(CustomConfiguration.getMinDuration());
     }
 
-    @OnClick({R.id.tv_filterDuration, R.id.tv_fileFilter, R.id.tv_rescan})
+    @OnClick({R.id.tv_filterDuration, R.id.tv_fileFilter, R.id.tv_rescan,
+            R.id.fl_setAutoExpand, R.id.fl_changeSheetWithPlayList,
+            R.id.iv_setAutoExpand_help, R.id.iv_changeSheetWithPlayList_help})
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.tv_filterDuration:
@@ -78,7 +90,7 @@ public class SettingFragment extends BaseFragment {
             case R.id.tv_rescan:
                 new AlertDialog.Builder(getActivity())
                         .setTitle("确定要重新扫描吗？")
-                        .setMessage("目前如果重新扫描, 将丢失掉之前所有关于歌曲的配置信息. 例如\"我的收藏\"中的数据")
+                        .setMessage("重新扫描将丢失之前对于“本地音乐”中的设定，例如歌曲顺序等，但不会影响其它歌单的数据。")
                         .setPositiveButton("我知道了", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
@@ -87,6 +99,43 @@ public class SettingFragment extends BaseFragment {
                             }
                         })
                         .setNegativeButton("算了", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        })
+                        .create()
+                        .show();
+                break;
+            case R.id.fl_setAutoExpand:
+                mSwitchAutoExpand.setChecked(!mSwitchAutoExpand.isChecked());
+                break;
+            case R.id.iv_setAutoExpand_help:
+                new AlertDialog.Builder(getActivity())
+                        .setTitle("这是什么？")
+                        .setMessage("   首页头部的“Fantasy Panel”是可以下拉展开的哦~" +
+                                "\n\n   展开后会显示歌词等额外信息和功能。" +
+                                "\n\n   开启后：滑动歌曲列表时会自动展开/收起Fantasy Panel")
+                        .setPositiveButton("我知道了", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        })
+                        .create()
+                        .show();
+                break;
+            case R.id.fl_changeSheetWithPlayList:
+                mSwitchChangeSheetWithPlayList.setChecked(!mSwitchChangeSheetWithPlayList.isChecked());
+                break;
+            case R.id.iv_changeSheetWithPlayList_help:
+                new AlertDialog.Builder(getActivity())
+                        .setTitle("这是什么？")
+                        .setMessage("   大多播放器歌单和播放列表是分离的，你可以切换浏览不同的歌单而不会改变当前的播放列表，只有点击了歌单中的一首歌，播放列表才会被切换。" +
+                                "\n\n    由于Fantasy中列表和播放页面是整合在一起的，你可能会忘记自己当前停留在哪个歌单，这时如果播放的歌曲来自于其它歌单，可能会造成一些困扰。" +
+                                "\n\n    因此这里额外提供了一个辅助功能，开启后：切换歌单既切换播放列表（不会打断当前的播放）。" +
+                                "\n\n    可以试试哦~ ")
+                        .setPositiveButton("我知道了", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 dialog.dismiss();

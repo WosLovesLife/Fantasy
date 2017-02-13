@@ -30,6 +30,7 @@ import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.MusicListAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.bean.NavigationItem;
+import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.services.CountdownTimerService;
 import com.wosloveslife.fantasy.services.PlayService;
@@ -87,6 +88,7 @@ public class MusicListFragment extends BaseFragment {
     BMusic mCurrentMusic;
 
     boolean mIsCountdown;
+    private String mCurrentSheetOrdinal;
 
     public static MusicListFragment newInstance() {
 
@@ -149,6 +151,9 @@ public class MusicListFragment extends BaseFragment {
         mAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<BMusic>() {
             @Override
             public void onItemClick(final BMusic music, View v, int position) {
+                if (!TextUtils.equals(MusicManager.getInstance().getCurrentSheetOrdinal(), mCurrentSheetOrdinal)) {
+                    MusicManager.getInstance().getMusicSheet(mCurrentSheetOrdinal);
+                }
                 if (mCurrentMusic != music) {
                     mCurrentMusic = music;
                     mPlayBinder.play(music);
@@ -203,7 +208,8 @@ public class MusicListFragment extends BaseFragment {
         mNavigationAdapter.addHeaderView(header);
         mNavigationAdapter.setData(generateNavigationItems());
         mNavigationAdapter.setChosenPosition(1);
-        onChangeSheet(MusicManager.getInstance().getCurrentSheetOrdinal());
+        mCurrentSheetOrdinal = MusicManager.getInstance().getCurrentSheetOrdinal();
+        onChangeSheet(mCurrentSheetOrdinal);
         mNavigationAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<NavigationItem>() {
             @Override
             public void onItemClick(final NavigationItem navigationItem, View v, final int position) {
@@ -215,16 +221,26 @@ public class MusicListFragment extends BaseFragment {
                         mDrawerLayout.closeDrawer(Gravity.LEFT);
                         mNavigationAdapter.setChosenPosition(position);
                         mToolbar.setTitle("本地音乐");
-                        if (!TextUtils.equals(MusicManager.getInstance().getCurrentSheetOrdinal(), "0")) {
-                            MusicManager.getInstance().changeSheet("0");
+                        if (!TextUtils.equals(mCurrentSheetOrdinal, "0")) {
+                            mCurrentSheetOrdinal = "0";
+                            if (CustomConfiguration.isChangeSheetWithPlayList()) {
+                                MusicManager.getInstance().changeSheet("0");
+                            } else {
+                                setData(MusicManager.getInstance().getMusicSheet("0"));
+                            }
                         }
                         break;
                     case "我的收藏":
                         mDrawerLayout.closeDrawer(Gravity.LEFT);
                         mNavigationAdapter.setChosenPosition(position);
                         mToolbar.setTitle("我的收藏");
-                        if (!TextUtils.equals(MusicManager.getInstance().getCurrentSheetOrdinal(), "1")) {
-                            MusicManager.getInstance().changeSheet("1");
+                        if (!TextUtils.equals(mCurrentSheetOrdinal, "1")) {
+                            mCurrentSheetOrdinal = "1";
+                            if (CustomConfiguration.isChangeSheetWithPlayList()) {
+                                MusicManager.getInstance().changeSheet("1");
+                            } else {
+                                setData(MusicManager.getInstance().getMusicSheet("1"));
+                            }
                         }
                         break;
                     case "最近播放":
@@ -375,8 +391,8 @@ public class MusicListFragment extends BaseFragment {
     private void syncVisual(BMusic music) {
         mCurrentMusic = music;
         mControlView.syncPlayView(mCurrentMusic);
-        int index = MusicManager.getInstance().getIndex(music);
-        mAdapter.setChosenItem(index, mPlayBinder.isPlaying());
+        int position = mAdapter.getNormalPosition(music);
+        mAdapter.setChosenItem(position, mPlayBinder.isPlaying());
     }
 
     private void updateNvCountdown(long totalMillis, long millisUntilFinished) {
@@ -434,7 +450,7 @@ public class MusicListFragment extends BaseFragment {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onFavorite(MusicManager.OnFavorite event) {
         if (event == null) return;
-        if (event.mMusic == mCurrentMusic){
+        if (event.mMusic == mCurrentMusic) {
             mControlView.syncPlayView(event.mMusic);
         }
     }

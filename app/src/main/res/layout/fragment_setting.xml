@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -21,6 +22,7 @@
         android:id="@+id/fl_setAutoExpand"
         android:layout_width="match_parent"
         android:layout_height="48dp"
+        android:background="@drawable/ripple_btn"
         android:paddingLeft="16dp"
         android:paddingRight="16dp">
 
@@ -31,6 +33,16 @@
             android:text="滑动列表时自动展开歌词栏"
             android:textColor="@color/black_blue_text"
             android:textSize="16sp"/>
+
+        <ImageView
+            android:id="@+id/iv_setAutoExpand_help"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="205dp"
+            android:background="@drawable/ripple_btn_oval"
+            android:padding="8dp"
+            app:srcCompat="@drawable/ic_help_outline"/>
 
         <android.support.v7.widget.SwitchCompat
             android:id="@+id/switch_autoExpand"
@@ -87,4 +99,47 @@
         android:text="重新扫描本地歌曲"
         android:textColor="@color/black_blue_text"
         android:textSize="16sp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical"
+        android:text="高级"/>
+
+    <FrameLayout
+        android:id="@+id/fl_changeSheetWithPlayList"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/ripple_btn"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:text="切换歌单时自动切换播放列表"
+            android:textColor="@color/black_blue_text"
+            android:textSize="16sp"/>
+
+        <ImageView
+            android:id="@+id/iv_changeSheetWithPlayList_help"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="220dp"
+            android:background="@drawable/ripple_btn_oval"
+            android:padding="8dp"
+            app:srcCompat="@drawable/ic_help_outline"/>
+
+        <android.support.v7.widget.SwitchCompat
+            android:id="@+id/switch_changeSheetWithPlayList"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical|end"/>
+    </FrameLayout>
 </LinearLayout>

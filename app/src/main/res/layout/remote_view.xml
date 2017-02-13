@@ -12,6 +12,7 @@
         android:layout_width="100dp"
         android:layout_height="match_parent"
         android:contentDescription="@null"
+        android:scaleType="centerCrop"
         app:srcCompat="@drawable/ic_portrait_chicken_174"/>
 
     <TextView
