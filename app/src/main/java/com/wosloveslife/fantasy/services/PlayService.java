@@ -396,6 +396,33 @@ public class PlayService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         WLogger.w("onStartCommand(Intent intent, int flags, int startId); startId = " + startId);
+
+        switch (intent.getIntExtra("action", -1)) {
+            case 0: // 上一曲
+                previous();
+                break;
+            case 1: // 播放/暂停
+                if (isPlaying()) {
+                    pause();
+                } else {
+                    play();
+                }
+                break;
+            case 2: // 下一曲
+                next();
+                break;
+            case 3: // 收藏
+                if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
+                    MusicManager.getInstance().removeFavor(mCurrentMusic);
+                } else {
+                    MusicManager.getInstance().addFavor(mCurrentMusic);
+                }
+                break;
+            case 4: // 桌面歌词
+                Toaster.showShort(this, "歌词");
+                break;
+        }
+
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -524,6 +551,12 @@ public class PlayService extends Service {
                 listener.onPause();
             }
         }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onFavorite(MusicManager.OnFavorite event) {
+        if (event == null) return;
+        mNotificationHelper.update(isPlaying(), mCurrentMusic);
     }
 
     //==================================记录生命周期-忽略===========================================

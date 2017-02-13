@@ -396,11 +396,10 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             public void onClick(View v) {
                 if (mCurrentMusic == null) return;
 
+                /* 通过等待歌曲同步来改变收藏状态 */
                 if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
-                    mIvbFavorite.setImageResource(R.drawable.ic_favor_white);
                     MusicManager.getInstance().removeFavor(mCurrentMusic);
                 } else {
-                    mIvbFavorite.setImageResource(R.drawable.ic_favored_white);
                     MusicManager.getInstance().addFavor(mCurrentMusic);
                 }
             }

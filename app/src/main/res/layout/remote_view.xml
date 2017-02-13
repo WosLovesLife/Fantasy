@@ -122,7 +122,8 @@
                 android:paddingBottom="2dp"
                 android:text="词"
                 android:textColor="@color/black_text_matt"
-                android:textSize="18sp"/>
+                android:textSize="18sp"
+                android:visibility="gone"/>
         </LinearLayout>
     </FrameLayout>
 </RelativeLayout>

@@ -432,6 +432,14 @@ public class MusicListFragment extends BaseFragment {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onFavorite(MusicManager.OnFavorite event) {
+        if (event == null) return;
+        if (event.mMusic == mCurrentMusic){
+            mControlView.syncPlayView(event.mMusic);
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
     public void onCountDownTimerTick(CountdownTimerService.CountDownEvent event) {
         if (event == null) return;
         updateNvCountdown(event.totalMillis, event.millisUntilFinished);

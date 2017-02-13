@@ -263,6 +263,7 @@ public class MusicManager {
         if (bMusic == null) return;
         if (!mFavoredSheet.contains(bMusic.title)) {
             mFavoredSheet.add(bMusic.title);
+            EventBus.getDefault().post(new OnFavorite(bMusic, true));
             addMusicBelongTo(bMusic, "1");
         }
     }
@@ -271,6 +272,7 @@ public class MusicManager {
         if (bMusic == null) return;
         if (mFavoredSheet.contains(bMusic.title)) {
             mFavoredSheet.remove(bMusic.title);
+            EventBus.getDefault().post(new OnFavorite(bMusic, false));
             removeMusicBelongFrom(bMusic.path, "1");
         }
     }
@@ -526,6 +528,16 @@ public class MusicManager {
     public static class OnScannedMusicEvent extends OnGotMusicEvent {
         public OnScannedMusicEvent(List<String> pinyinIndex, List<BMusic> bMusics) {
             super(pinyinIndex, bMusics);
+        }
+    }
+
+    public static class OnFavorite {
+        public BMusic mMusic;
+        public boolean mFavorite;
+
+        public OnFavorite(BMusic music, boolean favorite) {
+            mMusic = music;
+            mFavorite = favorite;
         }
     }
 

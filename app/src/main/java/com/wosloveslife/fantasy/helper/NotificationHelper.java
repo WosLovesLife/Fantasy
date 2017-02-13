@@ -14,6 +14,7 @@ import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
+import com.wosloveslife.fantasy.services.PlayService;
 import com.wosloveslife.fantasy.ui.MusicListActivity;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
@@ -52,6 +53,31 @@ public class NotificationHelper {
         Intent intent = new Intent(mService, MusicListActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(mService, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         mRemoteViews.setOnClickPendingIntent(R.id.remote_view_open, pendingIntent);
+
+        Intent preIntent = new Intent(mService, PlayService.class);
+        preIntent.putExtra("action", 0);
+        PendingIntent prePendingIntent = PendingIntent.getService(mService, 0, preIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mRemoteViews.setOnClickPendingIntent(R.id.iv_previous_btn, prePendingIntent);
+
+        Intent playIntent = new Intent(mService, PlayService.class);
+        playIntent.putExtra("action", 1);
+        PendingIntent playPendingIntent = PendingIntent.getService(mService, 1, playIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mRemoteViews.setOnClickPendingIntent(R.id.iv_play_btn, playPendingIntent);
+
+        Intent nextIntent = new Intent(mService, PlayService.class);
+        nextIntent.putExtra("action", 2);
+        PendingIntent nextPendingIntent = PendingIntent.getService(mService, 2, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mRemoteViews.setOnClickPendingIntent(R.id.iv_next_btn, nextPendingIntent);
+
+        Intent favorIntent = new Intent(mService, PlayService.class);
+        favorIntent.putExtra("action", 3);
+        PendingIntent favorPendingIntent = PendingIntent.getService(mService, 3, favorIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mRemoteViews.setOnClickPendingIntent(R.id.iv_favor, favorPendingIntent);
+
+        Intent lrcIntent = new Intent(mService, PlayService.class);
+        lrcIntent.putExtra("action", 4);
+        PendingIntent lrcPendingIntent = PendingIntent.getService(mService, 4, lrcIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mRemoteViews.setOnClickPendingIntent(R.id.tv_lrc, lrcPendingIntent);
 
         mNotification = new NotificationCompat.Builder(mService)
                 .setTicker("Fantasy已启动")
