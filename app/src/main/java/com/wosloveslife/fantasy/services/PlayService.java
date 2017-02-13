@@ -1,23 +1,18 @@
 package com.wosloveslife.fantasy.services;
 
 import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Binder;
-import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.support.annotation.Nullable;
-import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.widget.RemoteViews;
 
@@ -45,20 +40,18 @@ import com.google.android.exoplayer2.upstream.cache.SimpleCache;
 import com.google.android.exoplayer2.util.Util;
 import com.google.gson.Gson;
 import com.orhanobut.logger.Logger;
-import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
-import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.broadcast.AudioBroadcast;
 import com.wosloveslife.fantasy.broadcast.BroadcastManager;
+import com.wosloveslife.fantasy.helper.AudioHelper;
 import com.wosloveslife.fantasy.helper.FileDataSourceFactory;
+import com.wosloveslife.fantasy.helper.NotificationHelper;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.interfaces.IPlay;
 import com.wosloveslife.fantasy.manager.MusicManager;
-import com.wosloveslife.fantasy.ui.MusicListActivity;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
-import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -69,8 +62,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-
-import rx.android.schedulers.AndroidSchedulers;
 
 /**
  * Created by zhangh on 2017/1/17.
@@ -112,6 +103,8 @@ public class PlayService extends Service {
     private AudioManager mAudioManager;
     private Notification mNotification;
     private RemoteViews mRemoteViews;
+    private NotificationHelper mNotificationHelper;
+    private AudioHelper mAudioHelper;
 
     public PlayService() {
     }
@@ -220,7 +213,6 @@ public class PlayService extends Service {
         if (mCurrentMusic != null) {
             prepare(music.path);
             play();
-            notifyNotification(true);
             SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
         } else {
             pause();
@@ -244,9 +236,9 @@ public class PlayService extends Service {
     public void play() {
         mStopPlay = false;
         if (mCurrentMusic != null) {
-            mForcePlay = true;
-            registerAudioFocus();
+            mAudioHelper.registerAudioFocus();
             mPlayer.setPlayWhenReady(true);
+            notifyNotification();
         } else {
             next();
         }
@@ -257,9 +249,9 @@ public class PlayService extends Service {
      */
     public void pause() {
         if (mCurrentMusic != null) {
-            /* 在这里重置该值, 避免影响后续的播放状态 */
-            mSavePlay = false;
+            mAudioHelper.abandonAudioFocus();
             mPlayer.setPlayWhenReady(false);
+            notifyNotification();
         }
     }
 
@@ -370,27 +362,10 @@ public class PlayService extends Service {
                     next();
                 } else {
                     if (playWhenReady) {
-                        /* 这里是为了播放回调先调用而焦点变化回调后调用导致刚点下播放键就立即又被暂停 */
-                        new Thread() {
-                            @Override
-                            public void run() {
-                                super.run();
-                                try {
-                                    sleep(100);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                                mForcePlay = false;
-                            }
-                        }.start();
-                        notifyNotification(false);
                         for (PlayStateListener listener : mPlayStateListeners) {
                             listener.onPlay(mCurrentMusic);
                         }
                     } else {
-                        mForcePlay = false;
-                        abandonAudioFocus();
-                        notifyNotification(false);
                         for (PlayStateListener listener : mPlayStateListeners) {
                             listener.onPause();
                         }
@@ -405,118 +380,17 @@ public class PlayService extends Service {
             prepare(mCurrentMusic.path);
         }
 
+        mAudioHelper = new AudioHelper(this);
+
+        mNotificationHelper = new NotificationHelper(this);
+
         EventBus.getDefault().register(this);
         BroadcastManager.getInstance().init(this);
     }
 
-    private void notifyNotification(boolean newRes) {
-        if (mNotification == null) {
-            createNotification();
-        }
-
-        if (newRes) {
-            if (mCurrentMusic != null) {
-                MusicManager.getAlbum(mCurrentMusic.path, Dp2Px.toPX(this, 80))
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(new SubscriberAdapter<Bitmap>() {
-                            @Override
-                            public void onNext(Bitmap bitmap) {
-                                super.onNext(bitmap);
-                                mRemoteViews.setImageViewBitmap(R.id.iv_album, bitmap);
-                                NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                                manager.notify(3, mNotification);
-                            }
-                        });
-            }
-            mRemoteViews.setImageViewResource(R.id.iv_album, R.drawable.ic_portrait_chicken_174);
-        }
-        mRemoteViews.setTextViewText(R.id.tv_title, mCurrentMusic != null ? mCurrentMusic.title : "暂无播放歌曲");
-        mRemoteViews.setTextViewText(R.id.tv_artist, mCurrentMusic != null ? mCurrentMusic.artist : "");
-        mRemoteViews.setImageViewResource(R.id.iv_play_btn, isPlaying() ? R.drawable.ic_pause_black : R.drawable.ic_play_arrow_black);
-        mRemoteViews.setImageViewResource(R.id.iv_favor, MusicManager.getInstance().isFavored(mCurrentMusic) ? R.drawable.ic_favored : R.drawable.ic_favorite_border);
-        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        manager.notify(3, mNotification);
+    private void notifyNotification() {
+        mNotificationHelper.update(isPlaying(), mCurrentMusic);
     }
-
-    /** 生成通知栏通知对象和RemoteView对象,应该只在成员变量为null时调用,避免重复创建对象 */
-    private void createNotification() {
-        /////// RemoteView-start //////
-        /* 自定义通知栏的样式, 参1是应用包名,因为需要系统来托管此服务, 参2是自定义布局样式 */
-        mRemoteViews = new RemoteViews(getPackageName(), R.layout.remote_view);
-        mRemoteViews.setImageViewResource(R.id.iv_previous_btn, R.drawable.ic_skip_previous_black);
-        mRemoteViews.setImageViewResource(R.id.iv_next_btn, R.drawable.ic_skip_next_black);
-        Intent intent = new Intent(this, MusicListActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mRemoteViews.setOnClickPendingIntent(R.id.remote_view_open, pendingIntent);
-
-        mNotification = new NotificationCompat.Builder(this)
-                .setTicker("Fantasy已启动")
-                .setOngoing(true)
-                .setSmallIcon(R.drawable.ic_portrait_chicken_174)
-                .setWhen(System.currentTimeMillis())
-                .setAutoCancel(false)
-                .setShowWhen(true)
-                .build();
-
-        mNotification.contentView = mRemoteViews;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            mNotification.bigContentView = mRemoteViews;
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mNotification.headsUpContentView = mRemoteViews;
-        }
-    }
-
-    /**
-     * 由于暂时不知道的原因,第二次起播放时或者其他程序播放时都会失去焦点<br/>
-     * 但是为了防止用户按下播放键后立即暂停,设置了一个boolean<br/>
-     * 变量的值会在歌曲播放100毫秒后被置为false.<br/>
-     * 现在的效果是, 歌曲播放100毫秒后如果回调了失去焦点,表示有其他应用抢夺焦点,则暂停<br/>
-     * 如果100毫秒内回调,认为是再次播放造成的,则忽略.
-     */
-    boolean mForcePlay;
-
-    /**
-     * 监听声音播放的焦点变化,当有别的应用抢占了焦点时(例如拨打电话).终止播放,并在重新获取焦点后根据之前保存的状态而判断是否继续播放
-     */
-    private void registerAudioFocus() {
-        if (mAudioManager == null) {
-            mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-        }
-        mAudioManager.requestAudioFocus(new AudioManager.OnAudioFocusChangeListener() {
-            @Override
-            public void onAudioFocusChange(int focusChange) {
-                switch (focusChange) {
-                    case AudioManager.AUDIOFOCUS_LOSS: // 失去焦点,
-                        if (!mForcePlay) {
-                            pause();
-                        }
-                        break;
-                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT: // 短暂失去焦点
-                        boolean playing = isPlaying();
-                        pause();
-                        mSavePlay = playing;
-                        break;
-                    case AudioManager.AUDIOFOCUS_REQUEST_GRANTED: // 获得焦点
-                        if (mSavePlay) {
-                            /* 在这里重置该值, 避免影响后续的播放状态 */
-                            mSavePlay = false;
-                            play();
-                        }
-                        break;
-                }
-                WLogger.d("requestAudioFocus onAudioFocusChange : [focusChange] = " + focusChange);
-            }
-        }, 1, AudioManager.AUDIOFOCUS_GAIN);
-    }
-
-    private void abandonAudioFocus() {
-        if (mAudioManager != null) {
-            mAudioManager.abandonAudioFocus(null);
-        }
-    }
-
-    boolean mSavePlay;
 
     /** 每次调用startService()启用该服务时都被调用 */
     @Override
@@ -549,7 +423,7 @@ public class PlayService extends Service {
             resetPlayService();
             mPlayer.release();
         }
-        abandonAudioFocus();
+        mAudioHelper.abandonAudioFocus();
     }
 
     //==================================播放逻辑-start==============================================

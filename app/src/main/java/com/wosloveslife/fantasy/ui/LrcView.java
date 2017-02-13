@@ -173,8 +173,10 @@ public class LrcView extends View {
         }
 
         canvas.translate(0, y);
+        int offCount;
         for (BLyric.LyricLine lyricLine : mBLyric.mLrc) {
             if (y > getScrollY() - mTextSpace && y < getScrollY() + getHeight() + mTextSpace) {
+                offCount = lyricLine.staticLayout.getLineCount();
                 if (mSupportAutoScroll && lineCount == mCurrentLine) {
                     lyricLine.staticLayout.getPaint().setColor(mColorWhite);
                 } else if (isSeeking() && lineCount == mChosenLine) {
@@ -183,10 +185,13 @@ public class LrcView extends View {
                     lyricLine.staticLayout.getPaint().setColor(mColorGrayText);
                 }
                 lyricLine.staticLayout.draw(canvas);
+            } else {
+                offCount = 1;
             }
-            canvas.translate(0, mTextSpace);
-            y += mTextSpace;
-            ++lineCount;
+            int offY = offCount * mTextSpace;
+            canvas.translate(0, offY);
+            y += offY;
+            lineCount += offCount;
         }
     }
 

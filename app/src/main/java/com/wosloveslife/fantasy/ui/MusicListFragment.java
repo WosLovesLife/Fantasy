@@ -56,6 +56,8 @@ import butterknife.ButterKnife;
  * Created by zhangh on 2017/1/2.
  */
 public class MusicListFragment extends BaseFragment {
+    private static final int REQ_CODE_TIMER = 0;
+
     @BindView(R.id.drawer_layout)
     DrawerLayout mDrawerLayout;
     @BindView(R.id.control_view)
@@ -205,12 +207,12 @@ public class MusicListFragment extends BaseFragment {
         mNavigationAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<NavigationItem>() {
             @Override
             public void onItemClick(final NavigationItem navigationItem, View v, final int position) {
-                mDrawerLayout.closeDrawer(Gravity.LEFT);
                 /* // 在抽屉关闭后再进行操作,避免动画卡顿. 官方解释:
                 // Avoid performing expensive operations such as layout during animation as it can cause stuttering;
                 //try to perform expensive operations during the STATE_IDLE state. */
                 switch (navigationItem.mTitle) {
                     case "本地音乐":
+                        mDrawerLayout.closeDrawer(Gravity.LEFT);
                         mNavigationAdapter.setChosenPosition(position);
                         mToolbar.setTitle("本地音乐");
                         if (!TextUtils.equals(MusicManager.getInstance().getCurrentSheetOrdinal(), "0")) {
@@ -218,6 +220,7 @@ public class MusicListFragment extends BaseFragment {
                         }
                         break;
                     case "我的收藏":
+                        mDrawerLayout.closeDrawer(Gravity.LEFT);
                         mNavigationAdapter.setChosenPosition(position);
                         mToolbar.setTitle("我的收藏");
                         if (!TextUtils.equals(MusicManager.getInstance().getCurrentSheetOrdinal(), "1")) {
@@ -225,12 +228,15 @@ public class MusicListFragment extends BaseFragment {
                         }
                         break;
                     case "最近播放":
+                        mDrawerLayout.closeDrawer(Gravity.LEFT);
                         mNavigationAdapter.setChosenPosition(position);
                         break;
                     case "下载管理":
+                        mDrawerLayout.closeDrawer(Gravity.LEFT);
                         mNavigationAdapter.setChosenPosition(position);
                         break;
                     case "定时停止播放":
+                        mDrawerLayout.closeDrawer(Gravity.LEFT);
                         mDrawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
                             @Override
                             public void onDrawerClosed(View drawerView) {
@@ -244,15 +250,13 @@ public class MusicListFragment extends BaseFragment {
                         });
                         break;
                     case "设置":
-                        mDrawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
+                        startActivity(SettingActivity.newStartIntent(getActivity()));
+                        mDrawerLayout.postDelayed(new Runnable() {
                             @Override
-                            public void onDrawerClosed(View drawerView) {
-                                super.onDrawerClosed(drawerView);
-                                mDrawerLayout.removeDrawerListener(this);
-
-                                startActivity(SettingActivity.newStartIntent(getActivity()));
+                            public void run() {
+                                mDrawerLayout.closeDrawer(Gravity.LEFT);
                             }
-                        });
+                        }, 200);
                         break;
                 }
             }
@@ -286,7 +290,7 @@ public class MusicListFragment extends BaseFragment {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode != Activity.RESULT_OK) return;
         switch (requestCode) {
-            case 0: // 用户选择了计时关闭后, 如果开启,则将时间和是否播放完后再结束同步给计时器服务和播放服务以及导航栏中更新倒计时进度
+            case REQ_CODE_TIMER: // 用户选择了计时关闭后, 如果开启,则将时间和是否播放完后再结束同步给计时器服务和播放服务以及导航栏中更新倒计时进度
                 long pickDate = CountdownPickDialog.getPickDate(data);
                 boolean closeAfterPlayComplete = CountdownPickDialog.isCloseAfterPlayComplete(data);
                 mIsCountdown = pickDate > 0;

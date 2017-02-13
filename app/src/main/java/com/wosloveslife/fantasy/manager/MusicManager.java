@@ -19,6 +19,7 @@ import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.dao.DbHelper;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.presenter.MusicPresenter;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 
 import org.greenrobot.eventbus.EventBus;
@@ -479,7 +480,10 @@ public class MusicManager {
             end = matcher.start();
             if (end > 0) {
                 String lrcLine = content.substring(start, end);
-                System.out.println("lrcLine = " + lrcLine);
+                if (lrcLine.endsWith("\n")) {
+                    lrcLine = lrcLine.substring(0, lrcLine.length() - 1);
+                }
+                WLogger.d("match : LrcLine = " + lrcLine);
                 lyricLines.add(new BLyric.LyricLine(lrcTime2Timestamp(time), lrcLine));
             }
             /* 本次的时间结尾处作为下一次查询的本次内容的起始处 */
