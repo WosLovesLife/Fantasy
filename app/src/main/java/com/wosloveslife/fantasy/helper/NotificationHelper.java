@@ -80,9 +80,9 @@ public class NotificationHelper {
         mRemoteViews.setOnClickPendingIntent(R.id.tv_lrc, lrcPendingIntent);
 
         mNotification = new NotificationCompat.Builder(mService)
-                .setTicker("Fantasy已启动")
+                .setTicker(mCurrentMusic != null ? "正在播放: " + mCurrentMusic.title : "Fantasy已启动")
                 .setOngoing(true)
-                .setSmallIcon(R.drawable.ic_portrait_chicken_174)
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setWhen(System.currentTimeMillis())
                 .setAutoCancel(false)
                 .setShowWhen(true)

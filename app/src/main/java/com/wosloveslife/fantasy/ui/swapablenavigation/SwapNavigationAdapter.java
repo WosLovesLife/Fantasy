@@ -118,7 +118,7 @@ public class SwapNavigationAdapter extends BaseRecyclerViewAdapter<NavigationIte
             if (position == mChosenPosition) {
                 mFlRootView.setBackgroundResource(R.color.gray_press);
             } else {
-                mFlRootView.setBackgroundResource(R.drawable.ripple_btn);
+                mFlRootView.setBackgroundResource(R.drawable.ripple_gray_white_bg);
             }
 
             if (TextUtils.equals(navigationItem.mTitle, "定时停止播放")) {
