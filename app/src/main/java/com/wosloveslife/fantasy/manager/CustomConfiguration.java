@@ -19,12 +19,18 @@ public class CustomConfiguration {
     private static final String KEY_PLAY_CONTROLLER_AUTO_EXPAND = "setting.KEY_PLAY_CONTROLLER_AUTO_EXPAND";
     private static final String KEY_MIN_DURATION = "setting.KEY_MIN_DURATION";
     private static final String KEY_CHANGE_SHEET_WITH_PLAY_LIST = "setting.KEY_CHANGE_SHEET_WITH_PLAY_LIST";
+    private static final String KEY_PLAY_ORDER = "setting.KEY_PLAY_ORDER";
+
+    public static final int PLAY_ORDER_SUCCESSIVE = 0;
+    public static final int PLAY_ORDER_CIRCLE = 1;
+    public static final int PLAY_ORDER_RANDOM = 2;
 
     private static int sCustomCountdown; // 定时关闭用户自定义的时间 单位 分钟
     private static boolean sIsCloseAfterPlayEnd; // 定时关闭是否在当前歌曲播放完后(或中途暂停)再执行
     private static boolean sIsPlayControllerAutoExpand; // 是否跟随滑动自动展开
     private static int sMinDuration; // 歌曲过滤最小时间 单位 秒
     private static boolean sChangeSheetWithPlayList; //
+    private static int sPlayOrder; //
 
     private static Context sContext;
 
@@ -36,6 +42,7 @@ public class CustomConfiguration {
         sIsPlayControllerAutoExpand = SPHelper.getInstance().get(KEY_PLAY_CONTROLLER_AUTO_EXPAND, false);
         sMinDuration = SPHelper.getInstance().get(KEY_MIN_DURATION, 30);
         sChangeSheetWithPlayList = SPHelper.getInstance().get(KEY_CHANGE_SHEET_WITH_PLAY_LIST, false);
+        sPlayOrder = SPHelper.getInstance().get(KEY_PLAY_ORDER, PLAY_ORDER_SUCCESSIVE);
     }
 
     /**
@@ -114,5 +121,14 @@ public class CustomConfiguration {
 
     public static boolean isChangeSheetWithPlayList() {
         return sChangeSheetWithPlayList;
+    }
+
+    public static void savePlayOrder(int playOrder) {
+        sPlayOrder = playOrder;
+        SPHelper.getInstance().save(KEY_PLAY_ORDER, playOrder);
+    }
+
+    public static int getPlayOrder() {
+        return sPlayOrder;
     }
 }

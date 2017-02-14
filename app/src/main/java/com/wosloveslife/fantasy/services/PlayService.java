@@ -49,6 +49,7 @@ import com.wosloveslife.fantasy.helper.FileDataSourceFactory;
 import com.wosloveslife.fantasy.helper.NotificationHelper;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.interfaces.IPlay;
+import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
@@ -62,6 +63,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Created by zhangh on 2017/1/17.
@@ -261,14 +263,26 @@ public class PlayService extends Service {
      * 如果第一首歌也没有了,则抛出异常
      */
     public void next() {
-        BMusic next = MusicManager.getInstance().getNext(mCurrentMusic);
-        if (next == null) {
-            next = MusicManager.getInstance().getFirst();
+        BMusic next = null;
+        switch (CustomConfiguration.getPlayOrder()) {
+            case CustomConfiguration.PLAY_ORDER_SUCCESSIVE:
+                next = MusicManager.getInstance().getNext(mCurrentMusic);
+                if (next == null) {
+                    next = MusicManager.getInstance().getFirst();
+                }
+                break;
+            case CustomConfiguration.PLAY_ORDER_CIRCLE:
+                next = mCurrentMusic;
+                break;
+            case CustomConfiguration.PLAY_ORDER_RANDOM:
+                int nextInt = new Random().nextInt(MusicManager.getInstance().getMusicCount());
+                WLogger.d("next : nextIndex = " + nextInt);
+                next = MusicManager.getInstance().getMusic(nextInt);
+                break;
         }
 
         if (next == null) {
-            WLogger.e("next(); 获取下一首歌曲失败");
-            //todo 传递异常
+            pause();
             return;
         }
 
@@ -289,7 +303,8 @@ public class PlayService extends Service {
 
         /* 如果第一首歌也没有了,则说明发生了异常状况 */
         if (previous == null) {
-            WLogger.e("next(); 获取上一首歌曲失败");
+            pause();
+            return;
         }
 
         play(previous);

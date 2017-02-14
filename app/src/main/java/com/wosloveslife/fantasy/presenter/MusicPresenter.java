@@ -2,17 +2,17 @@ package com.wosloveslife.fantasy.presenter;
 
 import android.content.Context;
 
-import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
 import com.wosloveslife.fantasy.baidu.BaiduMusic;
 import com.wosloveslife.fantasy.baidu.BaiduSearchMusic;
 import com.wosloveslife.fantasy.net.ApiManager;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
 
+import java.io.IOException;
 import java.util.List;
 
 import rx.Observable;
-import rx.Scheduler;
-import rx.Subscriber;
+import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
 /**
@@ -32,24 +32,26 @@ public class MusicPresenter extends BasePresenter {
     }
 
     /** todo 优化代码结构,使用rx */
-    public void searchLrc(String query, final Scheduler scheduler, final Subscriber<BaiduLrc> subscriber) {
-        searchMusic(query).subscribe(new SubscriberAdapter<BaiduSearchMusic>() {
+    public Observable<BaiduLrc> searchLrc(String query) {
+        return searchMusic(query).map(new Func1<BaiduSearchMusic, BaiduLrc>() {
             @Override
-            public void onNext(BaiduSearchMusic baiduSearchMusic) {
-                super.onNext(baiduSearchMusic);
-                if (baiduSearchMusic != null) {
-                    List<BaiduMusic> song = baiduSearchMusic.getSong();
-                    if (song != null && song.size() > 0) {
-                        getLrc(baiduSearchMusic.getSong().get(0).getSongid())
-                                .observeOn(scheduler)
-                                .subscribe(subscriber);
-                    } else {
-                        subscriber.onNext(null);
+            public BaiduLrc call(BaiduSearchMusic baiduSearchMusic) {
+                if (baiduSearchMusic == null) return null;
+
+                BaiduLrc baiduLrc = null;
+                List<BaiduMusic> song = baiduSearchMusic.getSong();
+                if (song != null && song.size() > 0) {
+                    try {
+                        baiduLrc = ApiManager.getInstance()
+                                .getBaiduLrcApi()
+                                .callSearchLrc(ApiManager.LRC_METHOD, baiduSearchMusic.getSong().get(0).getSongid())
+                                .execute()
+                                .body();
+                    } catch (IOException e) {
+                        WLogger.w("call : 请求歌词发生错误， 可忽略 e = " + e);
                     }
-                } else {
-                    subscriber.onNext(null);
                 }
-                subscriber.onCompleted();
+                return baiduLrc;
             }
         });
     }

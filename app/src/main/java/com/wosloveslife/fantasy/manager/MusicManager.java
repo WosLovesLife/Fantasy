@@ -420,26 +420,28 @@ public class MusicManager {
         if (bLyric == null) {
             /* TODO 没有内嵌歌词 ,尝试从网络获取,如果开启了网络 */
             String query = bMusic.title + (TextUtils.equals(bMusic.artist, "<unknown>") ? " " : " " + bMusic.artist);
-            mPresenter.searchLrc(query, AndroidSchedulers.mainThread(), new SubscriberAdapter<BaiduLrc>() {
-                @Override
-                public void onError(Throwable e) {
-                    super.onError(e);
-                    subscriber.onError(e);
-                    subscriber.onCompleted();
-                }
+            mPresenter.searchLrc(query)
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(new SubscriberAdapter<BaiduLrc>() {
+                        @Override
+                        public void onError(Throwable e) {
+                            super.onError(e);
+                            subscriber.onError(e);
+                            subscriber.onCompleted();
+                        }
 
-                @Override
-                public void onNext(BaiduLrc baiduLrc) {
-                    super.onNext(baiduLrc);
-                    BLyric bLyric1 = null;
-                    if (baiduLrc != null) {
-                        bLyric1 = generateLrcData(baiduLrc.getLrcContent());
-                        saveLrc(bMusic, baiduLrc.getLrcContent());
-                    }
-                    subscriber.onNext(bLyric1);
-                    subscriber.onCompleted();
-                }
-            });
+                        @Override
+                        public void onNext(BaiduLrc baiduLrc) {
+                            super.onNext(baiduLrc);
+                            BLyric bLyric1 = null;
+                            if (baiduLrc != null) {
+                                bLyric1 = generateLrcData(baiduLrc.getLrcContent());
+                                saveLrc(bMusic, baiduLrc.getLrcContent());
+                            }
+                            subscriber.onNext(bLyric1);
+                            subscriber.onCompleted();
+                        }
+                    });
         } else {
             subscriber.onNext(bLyric);
             subscriber.onCompleted();
