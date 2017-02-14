@@ -33,7 +33,6 @@ import java.util.regex.Pattern;
 
 import rx.Observable;
 import rx.Subscriber;
-import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
@@ -396,56 +395,43 @@ public class MusicManager {
         return bitmap;
     }
 
-    public void getLrc(final BMusic bMusic, final Subscriber<BLyric> subscriber) {
-        if (subscriber == null) return;
-        if (bMusic == null) {
-            subscriber.onError(new IllegalArgumentException("BMusic不能为null"));
-            subscriber.onCompleted();
-            return;
-        }
-
-        BLyric bLyric = null;
-        try {
-            Mp3File mp3file = new Mp3File(bMusic.path);
-            if (mp3file.hasId3v2Tag()) {
-                String lyrics = mp3file.getId3v2Tag().getLyrics();
-                if (!TextUtils.isEmpty(lyrics)) {
-                    bLyric = generateLrcData(lyrics);
-                }
-            }
-        } catch (Throwable e) {
-            Logger.w("从本地歌曲中解析歌词失败,可忽略 error : " + e);
-        }
-
-        if (bLyric == null) {
-            /* TODO 没有内嵌歌词 ,尝试从网络获取,如果开启了网络 */
-            String query = bMusic.title + (TextUtils.equals(bMusic.artist, "<unknown>") ? " " : " " + bMusic.artist);
-            mPresenter.searchLrc(query)
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(new SubscriberAdapter<BaiduLrc>() {
-                        @Override
-                        public void onError(Throwable e) {
-                            super.onError(e);
-                            subscriber.onError(e);
-                            subscriber.onCompleted();
-                        }
-
-                        @Override
-                        public void onNext(BaiduLrc baiduLrc) {
-                            super.onNext(baiduLrc);
-                            BLyric bLyric1 = null;
-                            if (baiduLrc != null) {
-                                bLyric1 = generateLrcData(baiduLrc.getLrcContent());
-                                saveLrc(bMusic, baiduLrc.getLrcContent());
+    public Observable<BLyric> getLrc(final BMusic bMusic) {
+        String query = bMusic.title + (TextUtils.equals(bMusic.artist, "<unknown>") ? " " : " " + bMusic.artist);
+        Observable<BLyric> localOb = Observable.create(new Observable.OnSubscribe<BLyric>() {
+            @Override
+            public void call(Subscriber<? super BLyric> subscriber) {
+                try {
+                    Mp3File mp3file = new Mp3File(bMusic.path);
+                    if (mp3file.hasId3v2Tag()) {
+                        String lyrics = mp3file.getId3v2Tag().getLyrics();
+                        if (!TextUtils.isEmpty(lyrics)) {
+                            BLyric bLyric = generateLrcData(lyrics);
+                            if (bLyric != null) {
+                                /* 重点!!! 如果执行了onNext()即表明内容非empty,后面的Observer就不会执行 */
+                                subscriber.onNext(bLyric);
                             }
-                            subscriber.onNext(bLyric1);
-                            subscriber.onCompleted();
                         }
-                    });
-        } else {
-            subscriber.onNext(bLyric);
-            subscriber.onCompleted();
-        }
+                    }
+                } catch (Throwable e) {
+                    Logger.w("从本地歌曲中解析歌词失败,可忽略 error : " + e);
+                }
+                subscriber.onCompleted();
+            }
+        });
+        Observable<BLyric> netOb = mPresenter.searchLrc(query).map(new Func1<BaiduLrc, BLyric>() {
+            @Override
+            public BLyric call(BaiduLrc baiduLrc) {
+                BLyric lrc = null;
+                if (baiduLrc != null) {
+                    lrc = generateLrcData(baiduLrc.getLrcContent());
+                    saveLrc(bMusic, baiduLrc.getLrcContent());
+                }
+                return lrc;
+            }
+        });
+        return localOb
+                .switchIfEmpty(netOb)
+                .subscribeOn(Schedulers.io());
     }
 
     @WorkerThread

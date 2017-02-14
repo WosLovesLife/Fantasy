@@ -74,6 +74,7 @@ import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 import stackblur_java.StackBlurManager;
 
@@ -492,20 +493,23 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         updateProgress();
 
-        MusicManager.getInstance().getLrc(mCurrentMusic, new SubscriberAdapter<BLyric>() {
-            @Override
-            public void onError(Throwable e) {
-                super.onError(e);
-                updateLrc(null);
-                Toaster.showShort(getContext(), "错误 " + e);
-            }
+        MusicManager.getInstance()
+                .getLrc(mCurrentMusic)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new SubscriberAdapter<BLyric>() {
+                    @Override
+                    public void onError(Throwable e) {
+                        super.onError(e);
+                        updateLrc(null);
+                        Toaster.showShort(getContext(), "错误 " + e);
+                    }
 
-            @Override
-            public void onNext(BLyric bLyric) {
-                super.onNext(bLyric);
-                updateLrc(bLyric);
-            }
-        });
+                    @Override
+                    public void onNext(BLyric bLyric) {
+                        super.onNext(bLyric);
+                        updateLrc(bLyric);
+                    }
+                });
     }
 
     /**
