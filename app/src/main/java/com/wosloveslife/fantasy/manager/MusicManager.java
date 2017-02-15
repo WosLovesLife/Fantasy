@@ -8,10 +8,7 @@ import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
 
 import com.mpatric.mp3agic.ID3v2;
-import com.mpatric.mp3agic.ID3v23Tag;
-import com.mpatric.mp3agic.InvalidDataException;
 import com.mpatric.mp3agic.Mp3File;
-import com.mpatric.mp3agic.UnsupportedTagException;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.baidu.BaiduAlbum;
@@ -20,6 +17,7 @@ import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.dao.DbHelper;
 import com.wosloveslife.fantasy.file.AlbumFile;
+import com.wosloveslife.fantasy.file.LrcFile;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.presenter.MusicPresenter;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
@@ -437,8 +435,23 @@ public class MusicManager {
     }
 
     public Observable<BLyric> getLrc(final BMusic bMusic) {
+        Observable<BLyric> fileOb = Observable.create(new Observable.OnSubscribe<BLyric>() {
+            @Override
+            public void call(Subscriber<? super BLyric> subscriber) {
+                String lrc = LrcFile.getLrc(mContext, bMusic.title);
+                if (!TextUtils.isEmpty(lrc)) {
+                    BLyric bLyric = generateLrcData(lrc);
+                    if (bLyric != null) {
+                        /* 重点!!! 如果执行了onNext()即表明内容非empty,后面的Observer就不会执行 */
+                        subscriber.onNext(bLyric);
+                    }
+                }
+                subscriber.onCompleted();
+            }
+        });
+
         String query = bMusic.title + (TextUtils.equals(bMusic.artist, "<unknown>") ? " " : " " + bMusic.artist);
-        Observable<BLyric> localOb = Observable.create(new Observable.OnSubscribe<BLyric>() {
+        Observable<BLyric> id3v2Ob = Observable.create(new Observable.OnSubscribe<BLyric>() {
             @Override
             public void call(Subscriber<? super BLyric> subscriber) {
                 try {
@@ -448,7 +461,7 @@ public class MusicManager {
                         if (!TextUtils.isEmpty(lyrics)) {
                             BLyric bLyric = generateLrcData(lyrics);
                             if (bLyric != null) {
-                                /* 重点!!! 如果执行了onNext()即表明内容非empty,后面的Observer就不会执行 */
+                                LrcFile.saveLrc(mContext, bMusic.title, lyrics);
                                 subscriber.onNext(bLyric);
                             }
                         }
@@ -459,40 +472,25 @@ public class MusicManager {
                 subscriber.onCompleted();
             }
         });
+
         Observable<BLyric> netOb = mPresenter.searchLrc(query).map(new Func1<BaiduLrc, BLyric>() {
             @Override
             public BLyric call(BaiduLrc baiduLrc) {
-                BLyric lrc = null;
+                BLyric bLyric = null;
                 if (baiduLrc != null) {
-                    lrc = generateLrcData(baiduLrc.getLrcContent());
-                    saveLrc(bMusic, baiduLrc.getLrcContent());
+                    String lrc = baiduLrc.getLrcContent();
+                    if (!TextUtils.isEmpty(lrc)) {
+                        LrcFile.saveLrc(mContext, bMusic.title, lrc);
+                        bLyric = generateLrcData(lrc);
+                    }
                 }
-                return lrc;
+                return bLyric;
             }
         });
-        return localOb
+        return fileOb
+                .switchIfEmpty(id3v2Ob)
                 .switchIfEmpty(netOb)
                 .subscribeOn(Schedulers.io());
-    }
-
-    @WorkerThread
-    private void saveLrc(BMusic bMusic, String lrcContent) {
-        if (bMusic == null || TextUtils.isEmpty(lrcContent)) return;
-        try {
-            Mp3File mp3file = new Mp3File(bMusic.path);
-            if (mp3file.hasId3v2Tag()) {
-                ID3v2 id3v2Tag = mp3file.getId3v2Tag();
-                id3v2Tag.setLyrics(lrcContent);
-            } else {
-                ID3v23Tag id3v23Tag = new ID3v23Tag();
-                id3v23Tag.setTitle(bMusic.title);
-                id3v23Tag.setArtist(bMusic.artist);
-                id3v23Tag.setLyrics(lrcContent);
-                mp3file.setId3v2Tag(id3v23Tag);
-            }
-        } catch (IOException | UnsupportedTagException | InvalidDataException e) {
-            e.printStackTrace();
-        }
     }
 
     public static BLyric generateLrcData(String lrcContent) {
