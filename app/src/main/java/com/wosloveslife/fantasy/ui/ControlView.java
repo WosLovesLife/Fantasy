@@ -478,7 +478,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         if (mCurrentMusic == null) return;
 
         if (!TextUtils.equals(currentAlbum, music.album)) {
-            MusicManager.getAlbum(mCurrentMusic.path, mAlbumSize)
+            MusicManager.getInstance().getAlbum(mCurrentMusic, mAlbumSize)
                     .observeOn(Schedulers.computation())
                     .subscribe(new SubscriberAdapter<Bitmap>() {
                         @Override

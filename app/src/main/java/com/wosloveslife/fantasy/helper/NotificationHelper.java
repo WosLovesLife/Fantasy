@@ -110,7 +110,7 @@ public class NotificationHelper {
 
                 if (needAlbum) {
                     if (music != null) {
-                        MusicManager.getAlbum(music.path, mAlbumSize)
+                        MusicManager.getInstance().getAlbum(music, mAlbumSize)
                                 .observeOn(AndroidSchedulers.mainThread())
                                 .subscribe(new SubscriberAdapter<Bitmap>() {
                                     @Override

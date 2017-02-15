@@ -3,9 +3,10 @@ package com.wosloveslife.fantasy.presenter;
 import android.content.Context;
 import android.text.format.DateFormat;
 
+import com.wosloveslife.fantasy.baidu.BaiduAlbum;
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
 import com.wosloveslife.fantasy.baidu.BaiduMusic;
-import com.wosloveslife.fantasy.baidu.BaiduSearchMusic;
+import com.wosloveslife.fantasy.baidu.BaiduSearch;
 import com.wosloveslife.fantasy.net.ApiManager;
 import com.wosloveslife.fantasy.net.BaiduApi;
 import com.wosloveslife.fantasy.net.XiamiApi;
@@ -32,7 +33,7 @@ public class MusicPresenter extends BasePresenter {
         super(context);
     }
 
-    public Observable<BaiduSearchMusic> searchMusic(String query) {
+    public Observable<BaiduSearch> searchFromBaidu(String query) {
         return ApiManager.getInstance()
                 .getBaiduApi()
                 .getBaiduSearchMusicApi()
@@ -72,9 +73,9 @@ public class MusicPresenter extends BasePresenter {
 
     /** todo 优化代码结构,使用rx */
     public Observable<BaiduLrc> searchLrc(String query) {
-        return searchMusic(query).map(new Func1<BaiduSearchMusic, BaiduLrc>() {
+        return searchFromBaidu(query).map(new Func1<BaiduSearch, BaiduLrc>() {
             @Override
-            public BaiduLrc call(BaiduSearchMusic baiduSearchMusic) {
+            public BaiduLrc call(BaiduSearch baiduSearchMusic) {
                 if (baiduSearchMusic == null) return null;
 
                 BaiduLrc baiduLrc = null;
@@ -102,5 +103,21 @@ public class MusicPresenter extends BasePresenter {
                 .getBaiduLrcApi()
                 .searchLrc(BaiduApi.LRC_METHOD, musicId)
                 .subscribeOn(Schedulers.io());
+    }
+
+    public Observable<BaiduAlbum> searchAlbum(String query) {
+        return searchFromBaidu(query).map(new Func1<BaiduSearch, BaiduAlbum>() {
+            @Override
+            public BaiduAlbum call(BaiduSearch baiduSearchMusic) {
+                if (baiduSearchMusic == null) return null;
+
+                BaiduAlbum baiduAlbum = null;
+                List<BaiduAlbum> album = baiduSearchMusic.getAlbum();
+                if (album != null && album.size() > 0) {
+                    baiduAlbum = album.get(0);
+                }
+                return baiduAlbum;
+            }
+        });
     }
 }

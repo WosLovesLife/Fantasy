@@ -52,7 +52,7 @@ public class ApiManager {
         }
     };
     private static File httpCacheDirectory = new File(App.getAppContent().getCacheDir(), "OnlineRetailer");
-    private static int cacheSize = 20 * 1024 * 1024; // 10 MiB
+    private static long cacheSize = 100 * 1024 * 1024; // 100 MB
     private static Cache cache = new Cache(httpCacheDirectory, cacheSize);
     private OkHttpClient mOkHttpClient = new OkHttpClient.Builder()
             .addNetworkInterceptor(REWRITE_CACHE_CONTROL_INTERCEPTOR)

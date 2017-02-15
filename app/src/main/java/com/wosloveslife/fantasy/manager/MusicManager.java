@@ -2,6 +2,7 @@ package com.wosloveslife.fantasy.manager;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
@@ -13,10 +14,12 @@ import com.mpatric.mp3agic.Mp3File;
 import com.mpatric.mp3agic.UnsupportedTagException;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
+import com.wosloveslife.fantasy.baidu.BaiduAlbum;
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
 import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.dao.DbHelper;
+import com.wosloveslife.fantasy.file.AlbumFile;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.presenter.MusicPresenter;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
@@ -25,12 +28,16 @@ import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 import org.greenrobot.eventbus.EventBus;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import rx.Observable;
 import rx.Subscriber;
 import rx.functions.Func1;
@@ -343,38 +350,72 @@ public class MusicManager {
     /**
      * 获取歌曲封面, 会首先尝试从本地歌曲文件中通过ID3v2来获取封面,如果失败,会尝试从网络自动获取(如果开启了联网)
      *
-     * @param resPath    本地歌曲路径
+     * @param music      歌曲对象
      * @param bitmapSize 压缩后的大小,提高速度,避免OOM
      */
-    public static Observable<Bitmap> getAlbum(final String resPath, final int bitmapSize) {
-        return Observable.create(new Observable.OnSubscribe<Bitmap>() {
+    public Observable<Bitmap> getAlbum(final BMusic music, final int bitmapSize) {
+
+        Observable<Bitmap> fileOb = Observable.create(new Observable.OnSubscribe<Bitmap>() {
             @Override
             public void call(Subscriber<? super Bitmap> subscriber) {
-                Logger.d("尝试从本地歌曲文件中解析 时间 = " + System.currentTimeMillis());
-                Bitmap bitmap = null;
+                Bitmap bitmap = AlbumFile.getAlbum(mContext, music.album);
+                if (bitmap != null) {
+                    subscriber.onNext(bitmap);
+                }
+                subscriber.onCompleted();
+            }
+        });
+
+        final Observable<Bitmap> mp3Ob = Observable.create(new Observable.OnSubscribe<Bitmap>() {
+            @Override
+            public void call(Subscriber<? super Bitmap> subscriber) {
                 try {
-                    Mp3File mp3file = new Mp3File(resPath);
+                    Mp3File mp3file = new Mp3File(music.path);
                     if (mp3file.hasId3v2Tag()) {
-                        Logger.d("开始从ID3v2中解析封面 时间 = " + System.currentTimeMillis());
-                        bitmap = getAlbumFromID3v2(mp3file.getId3v2Tag(), bitmapSize);
+                        Bitmap bitmap = getAlbumFromID3v2(mp3file.getId3v2Tag(), bitmapSize);
+                        if (bitmap != null) {
+                            AlbumFile.saveAlbum(mContext, music.album, bitmap);
+                            subscriber.onNext(bitmap);
+                        }
                     }
                 } catch (Throwable e) {
                     Logger.w("从本地歌曲中解析封面失败,可忽略 error : " + e);
                 }
-
-                subscriber.onNext(bitmap);
                 subscriber.onCompleted();
             }
-        })
-                .map(new Func1<Bitmap, Bitmap>() {
-                    @Override
-                    public Bitmap call(Bitmap bitmap) {
-                        if (bitmap == null) {
-                            /* TODO 联网获取歌曲信息,并存储本地歌曲文件 */
+        });
+
+        String query = music.album;
+        Observable<Bitmap> netOb = mPresenter.searchAlbum(query).map(new Func1<BaiduAlbum, Bitmap>() {
+            @Override
+            public Bitmap call(BaiduAlbum baiduAlbum) {
+                if (baiduAlbum != null) {
+                    String artistpic = baiduAlbum.getArtistpic();
+                    if (!TextUtils.isEmpty(artistpic)) {
+                        artistpic = artistpic.replace("w_40", "w_500");
+                        Request request = new Request.Builder()
+                                .get()
+                                .url(artistpic)
+                                .build();
+                        try {
+                            Response execute = new OkHttpClient.Builder().build().newCall(request).execute();
+                            InputStream inputStream = execute.body().byteStream();
+                            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                            AlbumFile.saveAlbum(mContext, music.album, bitmap);
+                            return bitmap;
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                        return bitmap;
                     }
-                })
+                }
+
+                return null;
+            }
+        });
+
+        return fileOb
+                .switchIfEmpty(mp3Ob)
+                .switchIfEmpty(netOb)
                 .subscribeOn(Schedulers.computation());
     }
 

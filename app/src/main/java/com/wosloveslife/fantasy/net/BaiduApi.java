@@ -1,7 +1,7 @@
 package com.wosloveslife.fantasy.net;
 
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
-import com.wosloveslife.fantasy.baidu.BaiduSearchMusic;
+import com.wosloveslife.fantasy.baidu.BaiduSearch;
 
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
@@ -42,14 +42,14 @@ public class BaiduApi {
                 .build();
     }
 
-    BaiduSearchMusic.BaiduSearchMusicApi mBaiduSearchMusicApi;
+    BaiduSearch.BaiduSearchMusicApi mBaiduSearchMusicApi;
     BaiduLrc.BaiduLrcApi mBaiduLrcApi;
 
-    public BaiduSearchMusic.BaiduSearchMusicApi getBaiduSearchMusicApi() {
+    public BaiduSearch.BaiduSearchMusicApi getBaiduSearchMusicApi() {
         if (mBaiduSearchMusicApi == null) {
             synchronized (mSyncBlock) {
                 if (mBaiduSearchMusicApi == null) {
-                    mBaiduSearchMusicApi = createBase().create(BaiduSearchMusic.BaiduSearchMusicApi.class);
+                    mBaiduSearchMusicApi = createBase().create(BaiduSearch.BaiduSearchMusicApi.class);
                 }
             }
         }
