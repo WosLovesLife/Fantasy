@@ -63,6 +63,7 @@ import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
+import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.lrc.BLyric;
 import com.wosloveslife.fantasy.lrc.LrcView;
 import com.wosloveslife.fantasy.manager.CustomConfiguration;
@@ -84,6 +85,7 @@ import stackblur_java.StackBlurManager;
  */
 
 public class ControlView extends FrameLayout implements NestedScrollingParent {
+    private static final String KEY_IS_EXPAND = "fantasy.ui.ControlView.KEY_IS_EXPAND";
     private static final float PROGRESS_MAX = 100;
 
     @BindView(R.id.fl_root)
@@ -313,6 +315,13 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
 
         mWidth = w;
+
+        if (mFlRoot != null) {
+            boolean isExpand = SPHelper.getInstance().get(KEY_IS_EXPAND, false);
+            if (isExpand) {
+                toggleExpand(true);
+            }
+        }
     }
 
     @Override
@@ -712,6 +721,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         super.onDetachedFromWindow();
         mHandler.removeCallbacksAndMessages(null);
         mVelocityTracker.recycle();
+        SPHelper.getInstance().save(KEY_IS_EXPAND, mIsExpanded);
     }
 
     //==============================================================================================
