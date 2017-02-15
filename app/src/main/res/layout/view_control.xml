@@ -33,7 +33,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_margin="16dp"
-                android:visibility="gone"/>
+                android:visibility="invisible"/>
 
             <com.makeramen.roundedimageview.RoundedImageView
                 android:id="@+id/iv_album"
@@ -52,7 +52,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="70dp"
-                android:layout_marginRight="120dp"
+                android:layout_marginRight="92dp"
                 android:layout_marginTop="4dp"
                 android:ellipsize="marquee"
                 android:lines="1"
@@ -90,57 +90,33 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|end"
                 android:layout_marginBottom="4dp"
-                android:layout_marginRight="128dp"
+                android:layout_marginRight="92dp"
                 android:textColor="@android:color/white"
                 android:textSize="10sp"
                 tools:text="00:00"/>
 
             <ImageView
-                android:id="@+id/iv_previous_btn"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_gravity="center_vertical|end"
-                android:layout_marginRight="84dp"
-                android:background="@drawable/ripple_btn_oval"
-                android:clickable="true"
-                android:contentDescription="@null"
-                android:padding="5dp"
-                app:srcCompat="@drawable/ic_skip_previous"/>
-
-            <ImageView
                 android:id="@+id/iv_play_btn"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
-                android:layout_gravity="center_vertical|end"
+                android:layout_gravity="end"
                 android:layout_marginLeft="4dp"
-                android:layout_marginRight="44dp"
+                android:layout_marginRight="48dp"
+                android:layout_marginTop="10dp"
                 android:background="@drawable/ripple_btn_oval"
                 android:clickable="true"
                 android:contentDescription="@null"
                 app:srcCompat="@drawable/ic_play_arrow"/>
 
-            <ImageView
-                android:id="@+id/iv_next_btn"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_gravity="center_vertical|end"
-                android:layout_marginRight="2dp"
-                android:background="@drawable/ripple_btn_oval"
-                android:clickable="true"
-                android:contentDescription="@null"
-                android:padding="5dp"
-                android:visibility="gone"
-                app:srcCompat="@drawable/ic_skip_next"/>
-
             <android.support.v7.widget.AppCompatImageView
-                android:id="@+id/iv_favorite"
+                android:id="@+id/iv_favor"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:layout_gravity="end"
-                android:layout_marginRight="2dp"
+                android:layout_marginRight="6dp"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/ripple_btn_oval"
-                android:padding="6dp"
+                android:padding="5dp"
                 app:srcCompat="@drawable/ic_favor_white"/>
 
             <ProgressBar
@@ -167,7 +143,7 @@
                 android:text="03:20"
                 android:textColor="@color/white"
                 android:textSize="12sp"
-                android:visibility="gone"
+                android:visibility="invisible"
                 tools:visibility="visible"/>
         </FrameLayout>
 
@@ -178,7 +154,7 @@
             android:layout_marginTop="@dimen/statusBar_height"
             android:background="@color/colorPrimary"
             android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            android:visibility="gone"
+            android:visibility="invisible"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
             app:title="Hello World"/>
     </android.support.v7.widget.CardView>

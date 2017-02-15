@@ -115,15 +115,15 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     /** 播放/暂停 */
     @BindView(R.id.iv_play_btn)
     ImageView mIvPlayBtn;
-    /** 上一曲按钮 */
-    @BindView(R.id.iv_previous_btn)
-    ImageView mIvPreviousBtn;
-    /** 下一曲按钮 */
-    @BindView(R.id.iv_next_btn)
-    ImageView mIvNextBtn;
+//    /** 上一曲按钮 */
+//    @BindView(R.id.iv_previous_btn)
+//    ImageView mIvPreviousBtn;
+//    /** 下一曲按钮 */
+//    @BindView(R.id.iv_next_btn)
+//    ImageView mIvNextBtn;
     /** 收藏按钮 */
     @BindView(R.id.iv_favor)
-    AppCompatImageView mIvbFavor;
+    AppCompatImageView mIvFavor;
 
     /** 进度条(不可拖动) */
     @BindView(R.id.pb_progress)
@@ -184,8 +184,10 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     //======
     /** 封面的最大弧度(为圆形时) */
     int mAlbumMaxRadius;
-    /** 歌曲名/艺术家/播放进度文字等的最小左边距,同时也是最大向左偏移量 */
+    /** 播放进度文字等的最小左边距,同时也是最大向左偏移量 */
     int mMinLeftMargin;
+    /** 歌曲名/艺术家的最小Margin值,最大Margin值为最小Margin+mMinLeftMargin */
+    private int mTitleLeftMargin;
     int mAlbumSize;
     /** 播放总时长文字的最大向右偏移量 */
     int mDurationRightMargin;
@@ -209,6 +211,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     private Drawable mColorBody;
 
     private ID3v2 mCurrentId3v2;
+    private ValueAnimator mTitleAnimator;
 
     public ControlView(Context context) {
         this(context, null);
@@ -239,8 +242,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         /* 圆形的角度等于边长的一半,因为布局中写死了48dp,因此这里取24dp,如果有需要,应该在onSizeChanged()方法中监听子控件的边长除2 */
         mAlbumMaxRadius = Dp2Px.toPX(getContext(), 24);
         mMinLeftMargin = Dp2Px.toPX(getContext(), 56);
+        mTitleLeftMargin = Dp2Px.toPX(getContext(), 14);
         mAlbumSize = m48dp;
-        mDurationRightMargin = Dp2Px.toPX(getContext(), 58);
+        mDurationRightMargin = Dp2Px.toPX(getContext(), 22);
         mStatusBarHeight = (int) getResources().getDimension(R.dimen.statusBar_height);
         mTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
         mMinimumFlingVelocity = ViewConfiguration.get(getContext()).getScaledMinimumFlingVelocity();
@@ -393,7 +397,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             }
         });
 
-        mIvbFavor.setOnClickListener(new OnClickListener() {
+        mIvFavor.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mCurrentMusic == null) return;
@@ -460,9 +464,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         toggleLrcLoop();
 
         if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
-            mIvbFavor.setImageResource(R.drawable.ic_favored_white);
+            mIvFavor.setImageResource(R.drawable.ic_favored_white);
         } else {
-            mIvbFavor.setImageResource(R.drawable.ic_favor_white);
+            mIvFavor.setImageResource(R.drawable.ic_favor_white);
         }
 
         if (music.equals(mCurrentMusic)) return;
@@ -660,7 +664,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
     //===========================================状态同步-end=======================================
 
-    @OnClick({R.id.fl_root, R.id.toolbar, R.id.iv_previous_btn, R.id.iv_play_btn, R.id.iv_next_btn, R.id.fac_play_btn})
+    @OnClick({R.id.fl_root, R.id.toolbar, /*R.id.iv_previous_btn, R.id.iv_next_btn,*/ R.id.iv_play_btn, R.id.fac_play_btn})
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.fl_root:
@@ -670,11 +674,16 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             case R.id.toolbar:
                 toggleToolbarShown(false);
                 break;
-            case R.id.iv_previous_btn:
-                if (!mIsExpanded && mControlListener != null) {
-                    mControlListener.previous();
-                }
-                break;
+//            case R.id.iv_previous_btn:
+//                if (!mIsExpanded && mControlListener != null) {
+//                    mControlListener.previous();
+//                }
+//                break;
+//            case R.id.iv_next_btn:
+//                if (!mIsExpanded && mControlListener != null) {
+//                    mControlListener.next();
+//                }
+//                break;
             case R.id.iv_play_btn:
                 if (mIsExpanded) {
                     break;
@@ -693,11 +702,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     mControlListener.pause();
                 } else {
                     mControlListener.play();
-                }
-                break;
-            case R.id.iv_next_btn:
-                if (!mIsExpanded && mControlListener != null) {
-                    mControlListener.next();
                 }
                 break;
         }
@@ -823,7 +827,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     private void seekProgress(float x, float y, boolean seek) {
         if (!mSeeking) {
             mSeeking = true;
-            startFlowBtnAnim(0.3f, x - mFacPlayBtn.getLeft() - mFacPlayBtn.getWidth() / 2, new FastOutLinearInInterpolator());
+            startFlowBtnAnim(0.3f, mFacPlayBtn.getTranslationX(), new FastOutLinearInInterpolator());
         }
         mFacPlayBtn.setTranslationX(x - mFacPlayBtn.getLeft() - mFacPlayBtn.getWidth() / 2);
 
@@ -879,14 +883,14 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                         @Override
                         public void onAnimationCancel(Animator animation) {
                             super.onAnimationCancel(animation);
-                            mTvSeekValue.setVisibility(GONE);
+                            mTvSeekValue.setVisibility(INVISIBLE);
                             startFlowBtnAnim(1, 0, new LinearOutSlowInInterpolator());
                         }
 
                         @Override
                         public void onAnimationEnd(Animator animation) {
                             super.onAnimationEnd(animation);
-                            mTvSeekValue.setVisibility(GONE);
+                            mTvSeekValue.setVisibility(INVISIBLE);
                             startFlowBtnAnim(1, 0, new LinearOutSlowInInterpolator());
                         }
                     });
@@ -1074,10 +1078,11 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     toggleControlBtn(mIsExpanded);
                     if (mIsExpanded) {
                         mFacPlayBtn.show();
+                        toggleFacBtn(isPlaying());
                         mLrcView.setVisibility(VISIBLE);
                     } else {
                         mFacPlayBtn.hide();
-                        mLrcView.setVisibility(GONE);
+                        mLrcView.setVisibility(INVISIBLE);
                     }
                 }
             }).start();
@@ -1087,8 +1092,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             toggleControlBtn(false);
             mFacPlayBtn.hide();
             mFacPlayBtn.setTranslationX(0);
-            mTvSeekValue.setVisibility(GONE);
-            mLrcView.setVisibility(GONE);
+            mTvSeekValue.setVisibility(INVISIBLE);
+            mLrcView.setVisibility(INVISIBLE);
             getScaleAlphaAnim(mIvAlbum, value)
                     .setListener(null)
                     .start();
@@ -1096,22 +1101,36 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     }
 
     private void toggleTextOffset(boolean expand) {
-        controlTextOffsetAnim(mTvTitle, expand ? -mMinLeftMargin : 0);
-        controlTextOffsetAnim(mTvArtist, expand ? -mMinLeftMargin : 0);
+        updateTitleMargin(expand ? mTitleLeftMargin : mTitleLeftMargin + mMinLeftMargin);
         controlTextOffsetAnim(mTvProgress, expand ? -mMinLeftMargin : 0);
         controlTextOffsetAnim(mTvDuration, expand ? mDurationRightMargin : 0);
     }
 
-    private void toggleControlBtn(boolean expand) {
-        if (expand) {
-            controlBtnAnim(mIvNextBtn, 0);
-            controlBtnAnim(mIvPlayBtn, 0);
-            controlBtnAnim(mIvPreviousBtn, 0);
+    private void updateTitleMargin(int targetMargin) {
+        if (mTitleAnimator == null) {
+            mTitleAnimator = ValueAnimator.ofInt(mTvArtist.getLeft(), targetMargin);
+            mTitleAnimator.setDuration(240);
+            mTitleAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    int margin = (Integer) animation.getAnimatedValue();
+                    ViewGroup.MarginLayoutParams params = (MarginLayoutParams) mTvTitle.getLayoutParams();
+                    params.leftMargin = margin;
+                    mTvTitle.setLayoutParams(params);
+                    ViewGroup.MarginLayoutParams params2 = (MarginLayoutParams) mTvArtist.getLayoutParams();
+                    params2.leftMargin = margin;
+                    mTvArtist.setLayoutParams(params2);
+                }
+            });
         } else {
-            controlBtnAnim(mIvNextBtn, 1);
-            controlBtnAnim(mIvPlayBtn, 1);
-            controlBtnAnim(mIvPreviousBtn, 1);
+            mTitleAnimator.cancel();
         }
+        mTitleAnimator.setIntValues(mTvArtist.getLeft(), targetMargin);
+        mTitleAnimator.start();
+    }
+
+    private void toggleControlBtn(boolean expand) {
+        getScaleAlphaAnim(mIvPlayBtn, expand ? 0 : 1).start();
     }
 
     private void toggleAlbumBg(boolean expand) {
@@ -1122,8 +1141,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             } else {
                 source = getHeadColorDrawable();
             }
-            Drawable targetDrawable = getHeadDrawable();
-            mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 380));
+            mIvBg.setImageDrawable(getTransitionDrawable(source, getHeadDrawable(), 380));
         } else {    // 收起时背景为专辑色调纯色
             Drawable source;
             if (mIvBg.getDrawable() != null) {
@@ -1131,8 +1149,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             } else {
                 source = getHeadDrawable();
             }
-            Drawable targetDrawable = getHeadColorDrawable();
-            mIvBg.setImageDrawable(getTransitionDrawable(source, targetDrawable, 380));
+            mIvBg.setImageDrawable(getTransitionDrawable(source, getHeadColorDrawable(), 380));
         }
     }
 
@@ -1194,13 +1211,13 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     @Override
                     public void onAnimationEnd(Animator animation) {
                         super.onAnimationEnd(animation);
-                        mToolbar.setVisibility(GONE);
+                        mToolbar.setVisibility(INVISIBLE);
                     }
 
                     @Override
                     public void onAnimationCancel(Animator animation) {
                         super.onAnimationCancel(animation);
-                        mToolbar.setVisibility(GONE);
+                        mToolbar.setVisibility(INVISIBLE);
                     }
                 });
                 animator.start();
@@ -1212,7 +1229,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                             @Override
                             public void onAnimationEnd(View view) {
                                 super.onAnimationEnd(view);
-                                mToolbar.setVisibility(GONE);
+                                mToolbar.setVisibility(INVISIBLE);
                             }
                         })
                         .start();
@@ -1224,10 +1241,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     private float getOffsetRadius(int height) {
         float offsetY = height - mHeadMinHeight;
         return offsetY / mMaxOffsetY;
-    }
-
-    private void controlBtnAnim(View v, float value) {
-        getScaleAlphaAnim(v, value).start();
     }
 
     private ViewPropertyAnimatorCompat getScaleAlphaAnim(View v, float value) {
