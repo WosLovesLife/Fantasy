@@ -1,16 +1,24 @@
 package com.wosloveslife.fantasy.presenter;
 
 import android.content.Context;
+import android.text.format.DateFormat;
 
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
 import com.wosloveslife.fantasy.baidu.BaiduMusic;
 import com.wosloveslife.fantasy.baidu.BaiduSearchMusic;
 import com.wosloveslife.fantasy.net.ApiManager;
+import com.wosloveslife.fantasy.net.BaiduApi;
+import com.wosloveslife.fantasy.net.XiamiApi;
+import com.wosloveslife.fantasy.utils.AliUtils;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 
 import java.io.IOException;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import okhttp3.Request;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
@@ -26,9 +34,40 @@ public class MusicPresenter extends BasePresenter {
 
     public Observable<BaiduSearchMusic> searchMusic(String query) {
         return ApiManager.getInstance()
-                .getMyOrderListDataApi()
-                .searchMusic(ApiManager.SEARCH_METHOD, query)
+                .getBaiduApi()
+                .getBaiduSearchMusicApi()
+                .searchMusic(BaiduApi.SEARCH_METHOD, query)
                 .subscribeOn(Schedulers.io());
+    }
+
+    @Deprecated
+    public Request searchMusicFromXiami(String query) {
+        String timestamp = DateFormat.format("yyyy-MM-dd HH:mm:ss", new Date()).toString();
+        Map<String, String> params = new HashMap<>();
+        params.put("method", XiamiApi.SEARCH_METHOD);
+        params.put("app_key", XiamiApi.APP_KEY);
+        params.put("sign_method", XiamiApi.SIGN_METHOD);
+        params.put("v", XiamiApi.V);
+        params.put("timestamp", timestamp);
+        params.put("partner_id", XiamiApi.PARTNER_ID);
+        params.put("format", XiamiApi.FORMAT);
+        params.put("force_sensitive_param_fuzzy", XiamiApi.FORCE_SENSITIVE_PARAM_FUZZY);
+        params.put("key", "赵雷");
+
+        Request request = null;
+        try {
+            request = ApiManager.getInstance()
+                    .getXiamiApi()
+                    .getXiamiMusicSearchApi()
+                    .searchMusic(XiamiApi.SEARCH_METHOD, XiamiApi.APP_KEY, XiamiApi.SIGN_METHOD,
+                            XiamiApi.V, timestamp, XiamiApi.PARTNER_ID, XiamiApi.FORMAT,
+                            XiamiApi.FORCE_SENSITIVE_PARAM_FUZZY, null, null, "赵雷",
+                            AliUtils.signTopRequest(params, XiamiApi.APP_SECRET, "HMAC"))
+                    .request();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return request;
     }
 
     /** todo 优化代码结构,使用rx */
@@ -43,8 +82,9 @@ public class MusicPresenter extends BasePresenter {
                 if (song != null && song.size() > 0) {
                     try {
                         baiduLrc = ApiManager.getInstance()
+                                .getBaiduApi()
                                 .getBaiduLrcApi()
-                                .callSearchLrc(ApiManager.LRC_METHOD, baiduSearchMusic.getSong().get(0).getSongid())
+                                .callSearchLrc(BaiduApi.LRC_METHOD, baiduSearchMusic.getSong().get(0).getSongid())
                                 .execute()
                                 .body();
                     } catch (IOException e) {
@@ -58,8 +98,9 @@ public class MusicPresenter extends BasePresenter {
 
     public Observable<BaiduLrc> getLrc(String musicId) {
         return ApiManager.getInstance()
+                .getBaiduApi()
                 .getBaiduLrcApi()
-                .searchLrc(ApiManager.LRC_METHOD, musicId)
+                .searchLrc(BaiduApi.LRC_METHOD, musicId)
                 .subscribeOn(Schedulers.io());
     }
 }

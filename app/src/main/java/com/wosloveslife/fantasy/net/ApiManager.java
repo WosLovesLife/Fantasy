@@ -2,8 +2,6 @@ package com.wosloveslife.fantasy.net;
 
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.App;
-import com.wosloveslife.fantasy.baidu.BaiduLrc;
-import com.wosloveslife.fantasy.baidu.BaiduSearchMusic;
 import com.wosloveslife.fantasy.utils.NetWorkUtil;
 
 import java.io.File;
@@ -16,22 +14,14 @@ import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import retrofit2.Retrofit;
-import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * Created by zhangh on 2017/2/2.
  */
 
 public class ApiManager {
-    private static final String BAIDU_HOST = "http://tingapi.ting.baidu.com/";
-    public static final String SEARCH_METHOD = "baidu.ting.search.catalogSug";
-    public static final String LRC_METHOD = "baidu.ting.song.lry";
-
     private static ApiManager sApiManager;
 
-    private final Object mSyncBlock = new Object();
     //======================================基础网络配置 - start====================================
     private static final Interceptor REWRITE_CACHE_CONTROL_INTERCEPTOR = new Interceptor() {
         @Override
@@ -74,9 +64,6 @@ public class ApiManager {
             .build();
     //=====================================基础网络配置 - end=======================================
 
-    BaiduSearchMusic.BaiduSearchMusicApi mBaiduSearchMusicApi;
-    BaiduLrc.BaiduLrcApi mBaiduLrcApi;
-
     private ApiManager() {
     }
 
@@ -91,36 +78,15 @@ public class ApiManager {
         return sApiManager;
     }
 
-    private Retrofit createBase() {
-        return new Retrofit.Builder()
-                .baseUrl(BAIDU_HOST)
-                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
-                .client(mOkHttpClient)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+    OkHttpClient getOkHttpClient() {
+        return mOkHttpClient;
     }
 
-    //============================================Apis==============================================
-
-    public BaiduSearchMusic.BaiduSearchMusicApi getMyOrderListDataApi() {
-        if (mBaiduSearchMusicApi == null) {
-            synchronized (mSyncBlock) {
-                if (mBaiduSearchMusicApi == null) {
-                    mBaiduSearchMusicApi = createBase().create(BaiduSearchMusic.BaiduSearchMusicApi.class);
-                }
-            }
-        }
-        return mBaiduSearchMusicApi;
+    public BaiduApi getBaiduApi() {
+        return BaiduApi.getInstance();
     }
 
-    public BaiduLrc.BaiduLrcApi getBaiduLrcApi() {
-        if (mBaiduLrcApi == null) {
-            synchronized (mSyncBlock) {
-                if (mBaiduLrcApi == null) {
-                    mBaiduLrcApi = createBase().create(BaiduLrc.BaiduLrcApi.class);
-                }
-            }
-        }
-        return mBaiduLrcApi;
+    public XiamiApi getXiamiApi() {
+        return XiamiApi.getInstance();
     }
 }
