@@ -28,7 +28,7 @@
             android:layout_height="56dp"
             android:layout_marginTop="@dimen/statusBar_height">
 
-            <com.wosloveslife.fantasy.ui.LrcView
+            <com.wosloveslife.fantasy.lrc.LrcView
                 android:id="@+id/lrc_view"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
@@ -132,14 +132,15 @@
                 android:visibility="gone"
                 app:srcCompat="@drawable/ic_skip_next"/>
 
-            <android.support.v7.widget.AppCompatImageButton
-                android:id="@+id/ivb_favorite"
-                style="@style/Widget.AppCompat.Button.Borderless"
+            <android.support.v7.widget.AppCompatImageView
+                android:id="@+id/iv_favorite"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
-                android:layout_marginTop="10dp"
                 android:layout_gravity="end"
                 android:layout_marginRight="2dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/ripple_btn_oval"
+                android:padding="6dp"
                 app:srcCompat="@drawable/ic_favor_white"/>
 
             <ProgressBar

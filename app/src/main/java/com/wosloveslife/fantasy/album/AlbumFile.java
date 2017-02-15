@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy.file;
+package com.wosloveslife.fantasy.album;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -29,17 +29,19 @@ public class AlbumFile {
         return albumsDir;
     }
 
+    private static boolean hasAlbum(Context context, String albumName) {
+        File albumFile = new File(getAlbumDir(context), albumName);
+        return albumFile.exists() && albumFile.length() > 0;
+    }
+
     public static Bitmap getAlbum(Context context, String albumName) {
+        if (context == null || TextUtils.isEmpty(albumName)) return null;
+
         File albumFile = new File(getAlbumDir(context), albumName);
         if (albumFile.exists()) {
             return BitmapFactory.decodeFile(albumFile.getAbsolutePath());
         }
         return null;
-    }
-
-    public static boolean hasAlbum(Context context, String albumName) {
-        File albumFile = new File(getAlbumDir(context), albumName);
-        return albumFile.exists() && albumFile.length() > 0;
     }
 
     public static boolean saveAlbum(Context context, String albumName, Bitmap bitmap) {

@@ -33,7 +33,7 @@ import android.support.v4.view.ViewPropertyAnimatorListenerAdapter;
 import android.support.v4.view.animation.FastOutLinearInInterpolator;
 import android.support.v4.view.animation.LinearOutSlowInInterpolator;
 import android.support.v7.graphics.Palette;
-import android.support.v7.widget.AppCompatImageButton;
+import android.support.v7.widget.AppCompatImageView;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
@@ -62,8 +62,9 @@ import com.wosloveslife.fantasy.App;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
-import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
+import com.wosloveslife.fantasy.lrc.BLyric;
+import com.wosloveslife.fantasy.lrc.LrcView;
 import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.utils.FormatUtils;
@@ -120,9 +121,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     /** 下一曲按钮 */
     @BindView(R.id.iv_next_btn)
     ImageView mIvNextBtn;
-    /** 下一曲按钮 */
-    @BindView(R.id.ivb_favorite)
-    AppCompatImageButton mIvbFavorite;
+    /** 收藏按钮 */
+    @BindView(R.id.iv_favor)
+    AppCompatImageView mIvbFavor;
 
     /** 进度条(不可拖动) */
     @BindView(R.id.pb_progress)
@@ -392,7 +393,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             }
         });
 
-        mIvbFavorite.setOnClickListener(new OnClickListener() {
+        mIvbFavor.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mCurrentMusic == null) return;
@@ -459,9 +460,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         toggleLrcLoop();
 
         if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
-            mIvbFavorite.setImageResource(R.drawable.ic_favored_white);
+            mIvbFavor.setImageResource(R.drawable.ic_favored_white);
         } else {
-            mIvbFavorite.setImageResource(R.drawable.ic_favor_white);
+            mIvbFavor.setImageResource(R.drawable.ic_favor_white);
         }
 
         if (music.equals(mCurrentMusic)) return;

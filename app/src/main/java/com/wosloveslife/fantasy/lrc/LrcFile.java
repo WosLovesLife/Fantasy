@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy.file;
+package com.wosloveslife.fantasy.lrc;
 
 import android.content.Context;
 import android.text.TextUtils;

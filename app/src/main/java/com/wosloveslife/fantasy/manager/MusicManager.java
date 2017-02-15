@@ -11,16 +11,16 @@ import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.Mp3File;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
+import com.wosloveslife.fantasy.album.AlbumFile;
 import com.wosloveslife.fantasy.baidu.BaiduAlbum;
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
-import com.wosloveslife.fantasy.bean.BLyric;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.dao.DbHelper;
-import com.wosloveslife.fantasy.file.AlbumFile;
-import com.wosloveslife.fantasy.file.LrcFile;
 import com.wosloveslife.fantasy.helper.SPHelper;
+import com.wosloveslife.fantasy.lrc.BLyric;
+import com.wosloveslife.fantasy.lrc.LrcFile;
+import com.wosloveslife.fantasy.lrc.LrcParser;
 import com.wosloveslife.fantasy.presenter.MusicPresenter;
-import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 
 import org.greenrobot.eventbus.EventBus;
@@ -30,8 +30,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -46,7 +44,6 @@ import rx.schedulers.Schedulers;
  */
 public class MusicManager {
     private static final String KEY_LAST_SHEET = "fantasy.manager.MusicManager.KEY_LAST_SHEET";
-    private static final Pattern PATTERN_LRC_INTERVAL = Pattern.compile("\\u005b[0-9]{2}:[0-9]{2}\\u002e[0-9]{2}\\u005d");
     private static MusicManager sMusicManager;
 
     Context mContext;
@@ -440,7 +437,7 @@ public class MusicManager {
             public void call(Subscriber<? super BLyric> subscriber) {
                 String lrc = LrcFile.getLrc(mContext, bMusic.title);
                 if (!TextUtils.isEmpty(lrc)) {
-                    BLyric bLyric = generateLrcData(lrc);
+                    BLyric bLyric = LrcParser.parseLrc(lrc);
                     if (bLyric != null) {
                         /* 重点!!! 如果执行了onNext()即表明内容非empty,后面的Observer就不会执行 */
                         subscriber.onNext(bLyric);
@@ -459,7 +456,7 @@ public class MusicManager {
                     if (mp3file.hasId3v2Tag()) {
                         String lyrics = mp3file.getId3v2Tag().getLyrics();
                         if (!TextUtils.isEmpty(lyrics)) {
-                            BLyric bLyric = generateLrcData(lyrics);
+                            BLyric bLyric = LrcParser.parseLrc(lyrics);
                             if (bLyric != null) {
                                 LrcFile.saveLrc(mContext, bMusic.title, lyrics);
                                 subscriber.onNext(bLyric);
@@ -481,7 +478,7 @@ public class MusicManager {
                     String lrc = baiduLrc.getLrcContent();
                     if (!TextUtils.isEmpty(lrc)) {
                         LrcFile.saveLrc(mContext, bMusic.title, lrc);
-                        bLyric = generateLrcData(lrc);
+                        bLyric = LrcParser.parseLrc(lrc);
                     }
                 }
                 return bLyric;
@@ -491,64 +488,6 @@ public class MusicManager {
                 .switchIfEmpty(id3v2Ob)
                 .switchIfEmpty(netOb)
                 .subscribeOn(Schedulers.io());
-    }
-
-    public static BLyric generateLrcData(String lrcContent) {
-        if (TextUtils.isEmpty(lrcContent)) return null;
-
-        List<BLyric.LyricLine> lrcLines;
-        if (PATTERN_LRC_INTERVAL.matcher(lrcContent).find()) {
-            lrcLines = match(lrcContent);
-        } else {
-            String[] split = lrcContent.split("\r\n");
-            lrcLines = new ArrayList<>();
-            for (String s : split) {
-                lrcLines.add(new BLyric.LyricLine(-1, s));
-            }
-        }
-
-        return new BLyric(lrcLines);
-    }
-
-    private static List<BLyric.LyricLine> match(String content) {
-        List<BLyric.LyricLine> lyricLines = new ArrayList<>();
-        int start = 0;
-        int end;
-        String time = null;
-        Matcher matcher = PATTERN_LRC_INTERVAL.matcher(content);
-        while (matcher.find()) {
-            /* 时间字段开始处为上一次遍历的内容的起始处 */
-            end = matcher.start();
-            if (end > 0) {
-                String lrcLine = content.substring(start, end);
-                if (lrcLine.endsWith("\n")) {
-                    lrcLine = lrcLine.substring(0, lrcLine.length() - 1);
-                }
-                WLogger.d("match : LrcLine = " + lrcLine);
-                lyricLines.add(new BLyric.LyricLine(lrcTime2Timestamp(time), lrcLine));
-            }
-            /* 本次的时间结尾处作为下一次查询的本次内容的起始处 */
-            start = matcher.end();
-            time = matcher.group();
-        }
-        return lyricLines;
-    }
-
-    private static int lrcTime2Timestamp(String time) {
-        if (time == null || time.equals("")) return 0;
-        int minutes = string2Int(time.substring(1, 3));
-        int seconds = string2Int(time.substring(4, 6));
-        int milliseconds = string2Int(time.substring(7, 9));
-        return minutes * 60 * 1000 + seconds * 1000 + milliseconds * 10;
-    }
-
-    public static int string2Int(String str) {
-        try {
-            return Integer.parseInt(str);
-        } catch (Throwable e) {
-            Logger.w("时间转换错误");
-        }
-        return 0;
     }
 
 

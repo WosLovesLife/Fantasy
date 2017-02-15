@@ -1,6 +1,6 @@
 package com.wosloveslife.fantasy;
 
-import com.wosloveslife.fantasy.bean.BLyric;
+import com.wosloveslife.fantasy.lrc.BLyric;
 
 import org.junit.Test;
 

@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy.bean;
+package com.wosloveslife.fantasy.lrc;
 
 import android.text.StaticLayout;
 

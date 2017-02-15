@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy.ui;
+package com.wosloveslife.fantasy.lrc;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -22,7 +22,6 @@ import android.view.ViewConfiguration;
 import android.view.animation.DecelerateInterpolator;
 
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.bean.BLyric;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
@@ -489,7 +488,7 @@ public class LrcView extends View {
         mOnSeekLrcProgressListener = listener;
     }
 
-    interface OnSeekLrcProgressListener {
+    public interface OnSeekLrcProgressListener {
         void onSeekingProgress(long progress);
 
         void onSeekFinish(long progress);
