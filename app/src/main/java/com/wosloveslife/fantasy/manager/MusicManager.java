@@ -2,7 +2,6 @@ package com.wosloveslife.fantasy.manager;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
@@ -25,9 +24,11 @@ import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 
 import org.greenrobot.eventbus.EventBus;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -270,8 +271,11 @@ public class MusicManager {
         if (bMusic == null) return;
         if (!mFavoredSheet.contains(bMusic.title)) {
             mFavoredSheet.add(bMusic.title);
-            EventBus.getDefault().post(new OnFavorite(bMusic, true));
-            addMusicBelongTo(bMusic, "1");
+            EventBus.getDefault().post(new OnAddMusic(bMusic, "1"));
+
+            BMusic favorMusic = new BMusic(bMusic);
+            favorMusic.joinTimestamp = new Date();
+            addMusicBelongTo(favorMusic, "1");
         }
     }
 
@@ -279,8 +283,8 @@ public class MusicManager {
         if (bMusic == null) return;
         if (mFavoredSheet.contains(bMusic.title)) {
             mFavoredSheet.remove(bMusic.title);
-            EventBus.getDefault().post(new OnFavorite(bMusic, false));
-            removeMusicBelongFrom(bMusic.path, "1");
+            EventBus.getDefault().post(new OnRemoveMusic(bMusic, "1"));
+            removeMusicBelongFrom(bMusic, "1");
         }
     }
 
@@ -291,12 +295,19 @@ public class MusicManager {
     //==============播放记录
     public void addRecent(BMusic bMusic) {
         if (bMusic == null) return;
-        addMusicBelongTo(bMusic, "2");
+        List<BMusic> bMusics = DbHelper.getMusicHelper().loadEntities(bMusic.path, "2");
+        if (bMusics != null && bMusics.size() > 0) {
+            removeMusicBelongFrom(bMusic, "2");
+        }
+        BMusic newRecent = new BMusic(bMusic);
+        newRecent.joinTimestamp = new Date();
+        EventBus.getDefault().post(new OnMusicChanged(newRecent, "2"));
+        addMusicBelongTo(newRecent, "2");
     }
 
     public void removeRecent(BMusic bMusic) {
         if (bMusic == null) return;
-        removeMusicBelongFrom(bMusic.path, "2");
+        removeMusicBelongFrom(bMusic, "2");
     }
 
     public List<BMusic> getRecentMusic() {
@@ -325,9 +336,9 @@ public class MusicManager {
         DbHelper.getMusicHelper().insertOrReplace(newMusic);
     }
 
-    private void removeMusicBelongFrom(String path, String belong) {
-        if (TextUtils.isEmpty(path) || TextUtils.isEmpty(belong)) return;
-        DbHelper.getMusicHelper().remove(path, belong);
+    private void removeMusicBelongFrom(BMusic bMusic, String belong) {
+        if (TextUtils.isEmpty(bMusic.path) || TextUtils.isEmpty(belong)) return;
+        DbHelper.getMusicHelper().remove(bMusic.path, belong);
     }
 
     /**
@@ -353,8 +364,9 @@ public class MusicManager {
         Observable<Bitmap> fileOb = Observable.create(new Observable.OnSubscribe<Bitmap>() {
             @Override
             public void call(Subscriber<? super Bitmap> subscriber) {
-                Bitmap bitmap = AlbumFile.getAlbum(mContext, music.album);
-                if (bitmap != null) {
+                File albumFile = AlbumFile.getAlbumFile(mContext, music.album);
+                if (albumFile != null) {
+                    Bitmap bitmap = BitmapUtils.getScaledDrawable(albumFile.getAbsolutePath(), bitmapSize, bitmapSize, Bitmap.Config.RGB_565);
                     subscriber.onNext(bitmap);
                 }
                 subscriber.onCompleted();
@@ -395,7 +407,7 @@ public class MusicManager {
                         try {
                             Response execute = new OkHttpClient.Builder().build().newCall(request).execute();
                             InputStream inputStream = execute.body().byteStream();
-                            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                            Bitmap bitmap = BitmapUtils.getScaledDrawable(inputStream, bitmapSize, bitmapSize, Bitmap.Config.RGB_565);
                             AlbumFile.saveAlbum(mContext, music.album, bitmap);
                             return bitmap;
                         } catch (IOException e) {
@@ -509,31 +521,33 @@ public class MusicManager {
         }
     }
 
-    public static class OnFavorite {
+    public static class OnRemoveMusic {
         public BMusic mMusic;
-        public boolean mFavorite;
+        public String mBelongTo;
 
-        public OnFavorite(BMusic music, boolean favorite) {
+        public OnRemoveMusic(BMusic music, String belongTo) {
             mMusic = music;
-            mFavorite = favorite;
+            mBelongTo = belongTo;
         }
     }
 
-    public static class OnPlayStateChangedEvent {
-        public boolean mPlay;
+    public static class OnAddMusic {
+        public BMusic mMusic;
+        public String mBelongTo;
 
-        public OnPlayStateChangedEvent(boolean play) {
-            mPlay = play;
+        public OnAddMusic(BMusic music, String belongTo) {
+            mMusic = music;
+            mBelongTo = belongTo;
         }
     }
 
-    public static class OnChangedMusicEvent {
-        public BMusic mCurrentMusic;
-        public BMusic mPreviousMusic;
+    public static class OnMusicChanged {
+        public BMusic mMusic;
+        public String mBelongTo;
 
-        public OnChangedMusicEvent(BMusic previousMusic, BMusic currentMusic) {
-            mPreviousMusic = previousMusic;
-            mCurrentMusic = currentMusic;
+        public OnMusicChanged(BMusic music, String belongTo) {
+            mMusic = music;
+            mBelongTo = belongTo;
         }
     }
 }

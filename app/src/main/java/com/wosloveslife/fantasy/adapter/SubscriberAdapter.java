@@ -16,7 +16,7 @@ public class SubscriberAdapter<T> extends Subscriber<T> {
 
     @Override
     public void onError(Throwable e) {
-        WLogger.e(e, "SubscriberAdapter onError : ");
+        WLogger.w("SubscriberAdapter onError : " + e);
     }
 
     @Override

@@ -59,8 +59,19 @@ public class MusicDbHelper {
         }
     }
 
+    public List<BMusic> loadEntities(String path, String belong) {
+        return mDao.queryBuilder()
+                .where(MusicEntityDao.Properties.Path.eq(path), MusicEntityDao.Properties.BelongTo.eq(belong))
+                .build()
+                .list();
+    }
+
     public List<BMusic> loadSheet(String belong) {
-        return mDao.queryBuilder().where(MusicEntityDao.Properties.BelongTo.eq(belong)).build().list();
+        return mDao.queryBuilder()
+                .where(MusicEntityDao.Properties.BelongTo.eq(belong))
+                .orderDesc(MusicEntityDao.Properties.JoinTimestamp)
+                .build()
+                .list();
     }
 
     public void remove(BMusic bMusic) {

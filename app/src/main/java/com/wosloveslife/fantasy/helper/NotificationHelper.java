@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.os.Build;
 import android.support.annotation.WorkerThread;
 import android.support.v4.app.NotificationCompat;
+import android.text.TextUtils;
 import android.widget.RemoteViews;
 
 import com.wosloveslife.fantasy.R;
@@ -102,6 +103,9 @@ public class NotificationHelper {
             @Override
             public void call(Subscriber<? super Object> subscriber) {
                 boolean needAlbum = mCurrentMusic != music;
+                if (mCurrentMusic != null && music != null) {
+                    needAlbum = !TextUtils.equals(mCurrentMusic.album, music.album);
+                }
                 mCurrentMusic = music;
                 if (mNotification == null) {
                     createNotification();

@@ -69,6 +69,7 @@ import com.wosloveslife.fantasy.lrc.LrcView;
 import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.utils.FormatUtils;
+import com.wosloveslife.fantasy.utils.NetWorkUtil;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
@@ -498,9 +499,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                         @Override
                         public void onNext(Bitmap bitmap) {
                             super.onNext(bitmap);
-                            Logger.d("syncPlayView onNext 时间 = " + System.currentTimeMillis());
                             updateAlbum(bitmap);
-                            Logger.d("syncPlayView onNext2 时间 = " + System.currentTimeMillis());
                         }
                     });
         }
@@ -515,7 +514,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     public void onError(Throwable e) {
                         super.onError(e);
                         updateLrc(null);
-                        Toaster.showShort(getContext(), "错误 " + e);
+                        if (NetWorkUtil.isNetWorkAvailable(getContext())) {
+                            Toaster.showShort(getContext(), "错误 " + e.getMessage());
+                        }
                     }
 
                     @Override

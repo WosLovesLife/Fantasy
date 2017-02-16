@@ -6,6 +6,8 @@ import android.graphics.Matrix;
 import android.media.ThumbnailUtils;
 import android.support.annotation.NonNull;
 
+import com.yesing.blibrary_wos.utils.systemUtils.IOUtils;
+
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -24,7 +26,7 @@ public class BitmapUtils {
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 
-    public static Bitmap getScaledDrawable(String path, int maxWidth, int minWidth) {
+    public static Bitmap getScaledDrawableWithWith(String path, int maxWidth, int minWidth, Bitmap.Config mode) {
         /* 创建一个位图工厂的配置器对象 */
         BitmapFactory.Options options = new BitmapFactory.Options();
         /* 配置器设置为只解析图片的边框大小 */
@@ -44,6 +46,7 @@ public class BitmapUtils {
         options = new BitmapFactory.Options();
         /* 根据之前的计算结果,设置图片的缩放比 */
         options.inSampleSize = inSampleSize;
+        options.inPreferredConfig = mode;
         /* 按照改变了缩放比的option获取位图对象 */
         Bitmap bitmap = BitmapFactory.decodeFile(path, options);
 
@@ -66,6 +69,48 @@ public class BitmapUtils {
         return bitmap;
     }
 
+
+    public static Bitmap getScaledDrawable(String path, float destWidth, float destHeight, Bitmap.Config mode) {
+        if (destWidth < 1) destWidth = 1;
+        if (destHeight < 1) destHeight = 1;
+
+        /* 获取只截取边缘的Option */
+        BitmapFactory.Options options = getBoundOption();
+        /* 用位图工厂析出一个只有边框大小的数据的Option对象 */
+        BitmapFactory.decodeFile(path, options);
+
+        /*获取压缩比例 */
+        int inSampleSize = getSampleSize(destWidth, destHeight, options);
+
+        options = getScaledOptions(inSampleSize);
+        options.inPreferredConfig = mode;
+
+        return BitmapFactory.decodeFile(path, options);
+    }
+
+    public static Bitmap getScaledDrawable(InputStream inputStream, float destWidth, float destHeight, Bitmap.Config mode) {
+        if (destWidth < 1) destWidth = 1;
+        if (destHeight < 1) destHeight = 1;
+
+        /* 获取只截取边缘的Option */
+        BitmapFactory.Options options = getBoundOption();
+        /* 用位图工厂析出一个只有边框大小的数据的Option对象 */
+        decodeImg(inputStream, options);
+
+        /*获取压缩比例 */
+        int inSampleSize = getSampleSize(destWidth, destHeight, options);
+
+        options = getScaledOptions(inSampleSize);
+        options.inPreferredConfig = mode;
+
+        try {
+            inputStream.reset();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return decodeImg(inputStream, options);
+    }
+
     public static Bitmap getScaledDrawable(byte[] bytes, float destWidth, float destHeight, Bitmap.Config mode) {
         if (destWidth < 1) destWidth = 1;
         if (destHeight < 1) destHeight = 1;
@@ -85,23 +130,18 @@ public class BitmapUtils {
     }
 
     public static Bitmap decodeImg(byte[] imgByte, BitmapFactory.Options options) {
+        return decodeImg(new ByteArrayInputStream(imgByte), options);
+    }
+
+    public static Bitmap decodeImg(InputStream input, BitmapFactory.Options options) {
         Bitmap bitmap = null;
-        InputStream input = null;
         try {
-            input = new ByteArrayInputStream(imgByte);
             SoftReference softRef = new SoftReference(BitmapFactory.decodeStream(input, null, options));
             bitmap = (Bitmap) softRef.get();
-            ;
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            if (input != null) {
-                try {
-                    input.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            IOUtils.closeStream(input);
         }
         return bitmap;
     }

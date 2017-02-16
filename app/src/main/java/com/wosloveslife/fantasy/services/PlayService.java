@@ -215,6 +215,7 @@ public class PlayService extends Service {
         if (mCurrentMusic != null) {
             prepare(music.path);
             play();
+            MusicManager.getInstance().addRecent(music);
             SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
         } else {
             pause();
@@ -569,9 +570,19 @@ public class PlayService extends Service {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onFavorite(MusicManager.OnFavorite event) {
-        if (event == null) return;
-        mNotificationHelper.update(isPlaying(), mCurrentMusic);
+    public void onAddMusic(MusicManager.OnAddMusic event) {
+        if (event == null || event.mMusic == null) return;
+        if (event.mMusic.equals(mCurrentMusic)) {
+            mNotificationHelper.update(isPlaying(), mCurrentMusic);
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onRemoveMusic(MusicManager.OnRemoveMusic event) {
+        if (event == null || event.mMusic == null) return;
+        if (event.mMusic.equals(mCurrentMusic)) {
+            mNotificationHelper.update(isPlaying(), mCurrentMusic);
+        }
     }
 
     //==================================记录生命周期-忽略===========================================

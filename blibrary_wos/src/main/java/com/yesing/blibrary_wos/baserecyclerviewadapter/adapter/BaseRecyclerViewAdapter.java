@@ -294,6 +294,11 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
      * @param position 插入到的位置(普通数据集合中的下标)
      */
     public void addItem(T t, int position) {
+        addItemNotNofity(t, position);
+        notifyItemInserted(getHeadersCount() + position);
+    }
+
+    public void addItemNotNofity(T t, int position) {
         if (position > getRealItemCount()) {
             position = getRealItemCount();
         } else if (position < getRealItemCount()) {
@@ -304,7 +309,6 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
             mData = new ArrayList<>();
         }
         mData.add(position, t);
-        notifyItemInserted(getHeadersCount() + position);
     }
 
     /**
@@ -326,9 +330,16 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
      * @return 是否移除成功
      */
     public boolean removeItem(int position) {
+        if (removeItemNotNotify(position)) {
+            notifyItemRemoved(position + getHeadersCount());//Attention!
+            return true;
+        }
+        return false;
+    }
+
+    public boolean removeItemNotNotify(int position) {
         if (mData != null && position > -1 && position < getRealItemCount()) {
             mData.remove(position);
-            notifyItemRemoved(position + getHeadersCount());//Attention!
             return true;
         }
         return false;

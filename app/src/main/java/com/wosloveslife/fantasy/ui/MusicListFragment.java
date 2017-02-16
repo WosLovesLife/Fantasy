@@ -152,7 +152,7 @@ public class MusicListFragment extends BaseFragment {
             @Override
             public void onItemClick(final BMusic music, View v, int position) {
                 if (!TextUtils.equals(MusicManager.getInstance().getCurrentSheetOrdinal(), mCurrentSheetOrdinal)) {
-                    MusicManager.getInstance().getMusicSheet(mCurrentSheetOrdinal);
+                    MusicManager.getInstance().changeSheet(mCurrentSheetOrdinal);
                 }
                 if (mCurrentMusic != music) {
                     mCurrentMusic = music;
@@ -207,7 +207,6 @@ public class MusicListFragment extends BaseFragment {
         View header = LayoutInflater.from(getActivity()).inflate(R.layout.layout_navigation_header, mRvNavigation, false);
         mNavigationAdapter.addHeaderView(header);
         mNavigationAdapter.setData(generateNavigationItems());
-        mNavigationAdapter.setChosenPosition(1);
         mCurrentSheetOrdinal = MusicManager.getInstance().getCurrentSheetOrdinal();
         onChangeSheet(mCurrentSheetOrdinal);
         mNavigationAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<NavigationItem>() {
@@ -219,37 +218,19 @@ public class MusicListFragment extends BaseFragment {
                 switch (navigationItem.mTitle) {
                     case "本地音乐":
                         mDrawerLayout.closeDrawer(Gravity.LEFT);
-                        mNavigationAdapter.setChosenPosition(position);
-                        mToolbar.setTitle("本地音乐");
-                        if (!TextUtils.equals(mCurrentSheetOrdinal, "0")) {
-                            mCurrentSheetOrdinal = "0";
-                            if (CustomConfiguration.isChangeSheetWithPlayList()) {
-                                MusicManager.getInstance().changeSheet("0");
-                            } else {
-                                setData(MusicManager.getInstance().getMusicSheet("0"));
-                            }
-                        }
+                        onChangeSheet("0");
                         break;
                     case "我的收藏":
                         mDrawerLayout.closeDrawer(Gravity.LEFT);
-                        mNavigationAdapter.setChosenPosition(position);
-                        mToolbar.setTitle("我的收藏");
-                        if (!TextUtils.equals(mCurrentSheetOrdinal, "1")) {
-                            mCurrentSheetOrdinal = "1";
-                            if (CustomConfiguration.isChangeSheetWithPlayList()) {
-                                MusicManager.getInstance().changeSheet("1");
-                            } else {
-                                setData(MusicManager.getInstance().getMusicSheet("1"));
-                            }
-                        }
+                        onChangeSheet("1");
                         break;
                     case "最近播放":
                         mDrawerLayout.closeDrawer(Gravity.LEFT);
-                        mNavigationAdapter.setChosenPosition(position);
+                        onChangeSheet("2");
                         break;
                     case "下载管理":
                         mDrawerLayout.closeDrawer(Gravity.LEFT);
-                        mNavigationAdapter.setChosenPosition(position);
+                        onChangeSheet("3");
                         break;
                     case "定时停止播放":
                         mDrawerLayout.closeDrawer(Gravity.LEFT);
@@ -285,15 +266,40 @@ public class MusicListFragment extends BaseFragment {
     private void onChangeSheet(String currentSheetOrdinal) {
         switch (currentSheetOrdinal) {
             case "0":
-                mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount());
-                mToolbar.setTitle("本地音乐");
+                if (!TextUtils.equals(mCurrentSheetOrdinal, "0")) {
+                    mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount());
+                    mToolbar.setTitle("本地音乐");
+                    mCurrentSheetOrdinal = "0";
+                    if (CustomConfiguration.isChangeSheetWithPlayList()) {
+                        MusicManager.getInstance().changeSheet("0");
+                    } else {
+                        setData(MusicManager.getInstance().getMusicSheet("0"));
+                    }
+                }
                 break;
             case "1":
-                mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 1);
-                mToolbar.setTitle("我的收藏");
+                if (!TextUtils.equals(mCurrentSheetOrdinal, "1")) {
+                    mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 1);
+                    mToolbar.setTitle("我的收藏");
+                    mCurrentSheetOrdinal = "1";
+                    if (CustomConfiguration.isChangeSheetWithPlayList()) {
+                        MusicManager.getInstance().changeSheet("1");
+                    } else {
+                        setData(MusicManager.getInstance().getMusicSheet("1"));
+                    }
+                }
                 break;
             case "2":
-                mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 2);
+                if (!TextUtils.equals(mCurrentSheetOrdinal, "2")) {
+                    mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 2);
+                    mToolbar.setTitle("最近播放");
+                    mCurrentSheetOrdinal = "2";
+                    if (CustomConfiguration.isChangeSheetWithPlayList()) {
+                        MusicManager.getInstance().changeSheet("2");
+                    } else {
+                        setData(MusicManager.getInstance().getMusicSheet("2"));
+                    }
+                }
                 break;
             case "3":
                 mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 3);
@@ -448,10 +454,46 @@ public class MusicListFragment extends BaseFragment {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onFavorite(MusicManager.OnFavorite event) {
-        if (event == null) return;
-        if (event.mMusic == mCurrentMusic) {
-            mControlView.syncPlayView(event.mMusic);
+    public void onAddMusic(MusicManager.OnAddMusic event) {
+        if (event == null || event.mMusic == null) return;
+        BMusic music = event.mMusic;
+        if (TextUtils.equals(mCurrentSheetOrdinal, event.mBelongTo)) {
+            mAdapter.addItem(music, 0);
+        }
+        if (music.equals(mCurrentMusic)) {
+            mControlView.syncPlayView(music);
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onRemoveMusic(MusicManager.OnRemoveMusic event) {
+        if (event == null || event.mMusic == null) return;
+        BMusic music = event.mMusic;
+        if (TextUtils.equals(mCurrentSheetOrdinal, event.mBelongTo)) {
+            mAdapter.removeItem(music);
+        }
+        if (music.equals(mCurrentMusic)) {
+            mControlView.syncPlayView(music);
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMusicChanged(MusicManager.OnMusicChanged event) {
+        if (event == null || event.mMusic == null) return;
+        BMusic music = event.mMusic;
+        if (TextUtils.equals(mCurrentSheetOrdinal, event.mBelongTo) && TextUtils.equals(mCurrentSheetOrdinal, "2")) {
+            int oldPosition = mAdapter.getNormalPosition(event.mMusic);
+            int itemPosition = mLayoutManager.findFirstVisibleItemPosition();
+            if (mRecyclerView.getItemAnimator().isRunning()) {
+                mRecyclerView.getItemAnimator().endAnimations();
+            }
+            mAdapter.removeItemNotNotify(oldPosition);
+            mAdapter.addItemNotNofity(music, 0);
+            mAdapter.notifyItemRangeChanged(0, oldPosition + 1);
+            mRecyclerView.scrollToPosition(itemPosition);
+        }
+        if (music.equals(mCurrentMusic)) {
+            mControlView.syncPlayView(music);
         }
     }
 

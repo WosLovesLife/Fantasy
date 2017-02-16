@@ -2,7 +2,6 @@ package com.wosloveslife.fantasy.album;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Environment;
 import android.text.TextUtils;
 
@@ -34,12 +33,12 @@ public class AlbumFile {
         return albumFile.exists() && albumFile.length() > 0;
     }
 
-    public static Bitmap getAlbum(Context context, String albumName) {
+    public static File getAlbumFile(Context context, String albumName) {
         if (context == null || TextUtils.isEmpty(albumName)) return null;
 
         File albumFile = new File(getAlbumDir(context), albumName);
         if (albumFile.exists()) {
-            return BitmapFactory.decodeFile(albumFile.getAbsolutePath());
+            return albumFile;
         }
         return null;
     }

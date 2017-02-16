@@ -49,7 +49,6 @@ public abstract class BaseActivity extends BackActivity {
         mAppBarLayout = (AppBarLayout) findViewById(R.id.app_bar_layout);
 
         bindToolbar();
-        setActivityTitle();
 
         setContentView();
 
@@ -68,10 +67,12 @@ public abstract class BaseActivity extends BackActivity {
         if (sDefActionbarIcon != 0) {
             mToolbar.setNavigationIcon(sDefActionbarIcon);
         }
+
+        setActivityTitle();
     }
 
     private void setActivityTitle() {
-        mToolbar.setTitle(setLabel());
+        setTitle(setLabel());
     }
 
     /**
