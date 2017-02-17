@@ -137,8 +137,6 @@ public class MusicListFragment extends BaseFragment {
     public void initView() {
         initServiceBinder();
 
-        initToolbar();
-
         mLayoutManager = new LinearLayoutManager(getActivity());
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.addItemDecoration(new DividerDecoration(
@@ -165,6 +163,8 @@ public class MusicListFragment extends BaseFragment {
             }
         });
         mRecyclerView.setAdapter(mAdapter);
+
+        initToolbar();
 
         /** 监听控制面板中的事件 */
         mControlView.setControlListener(new ControlView.ControlListener() {
@@ -207,8 +207,7 @@ public class MusicListFragment extends BaseFragment {
         View header = LayoutInflater.from(getActivity()).inflate(R.layout.layout_navigation_header, mRvNavigation, false);
         mNavigationAdapter.addHeaderView(header);
         mNavigationAdapter.setData(generateNavigationItems());
-        mCurrentSheetOrdinal = MusicManager.getInstance().getCurrentSheetOrdinal();
-        onChangeSheet(mCurrentSheetOrdinal);
+        onChangeSheet(MusicManager.getInstance().getCurrentSheetOrdinal());
         mNavigationAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<NavigationItem>() {
             @Override
             public void onItemClick(final NavigationItem navigationItem, View v, final int position) {
@@ -233,18 +232,9 @@ public class MusicListFragment extends BaseFragment {
                         onChangeSheet("3");
                         break;
                     case "定时停止播放":
-                        mDrawerLayout.closeDrawer(Gravity.LEFT);
-                        mDrawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
-                            @Override
-                            public void onDrawerClosed(View drawerView) {
-                                super.onDrawerClosed(drawerView);
-                                mDrawerLayout.removeDrawerListener(this);
-
-                                CountdownPickDialog pickDialog = new CountdownPickDialog();
-                                pickDialog.setTargetFragment(MusicListFragment.this, 0);
-                                pickDialog.show(getChildFragmentManager(), "pick_time");
-                            }
-                        });
+                        CountdownPickDialog pickDialog = new CountdownPickDialog();
+                        pickDialog.setTargetFragment(MusicListFragment.this, 0);
+                        pickDialog.show(getChildFragmentManager(), "pick_time");
                         break;
                     case "设置":
                         startActivity(SettingActivity.newStartIntent(getActivity()));
@@ -269,7 +259,6 @@ public class MusicListFragment extends BaseFragment {
                 if (!TextUtils.equals(mCurrentSheetOrdinal, "0")) {
                     mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount());
                     mToolbar.setTitle("本地音乐");
-                    mCurrentSheetOrdinal = "0";
                     if (CustomConfiguration.isChangeSheetWithPlayList()) {
                         MusicManager.getInstance().changeSheet("0");
                     } else {
@@ -281,7 +270,6 @@ public class MusicListFragment extends BaseFragment {
                 if (!TextUtils.equals(mCurrentSheetOrdinal, "1")) {
                     mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 1);
                     mToolbar.setTitle("我的收藏");
-                    mCurrentSheetOrdinal = "1";
                     if (CustomConfiguration.isChangeSheetWithPlayList()) {
                         MusicManager.getInstance().changeSheet("1");
                     } else {
@@ -293,7 +281,6 @@ public class MusicListFragment extends BaseFragment {
                 if (!TextUtils.equals(mCurrentSheetOrdinal, "2")) {
                     mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 2);
                     mToolbar.setTitle("最近播放");
-                    mCurrentSheetOrdinal = "2";
                     if (CustomConfiguration.isChangeSheetWithPlayList()) {
                         MusicManager.getInstance().changeSheet("2");
                     } else {
@@ -305,6 +292,7 @@ public class MusicListFragment extends BaseFragment {
                 mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 3);
                 break;
         }
+        mCurrentSheetOrdinal = currentSheetOrdinal;
     }
 
     @Override
@@ -513,7 +501,9 @@ public class MusicListFragment extends BaseFragment {
             /* todo 没有音乐,显示空白页面 */
 
         }
-        mAdapter.setData(musicList);
+        if (mAdapter != null) {
+            mAdapter.setData(musicList);
+        }
     }
 
     /**

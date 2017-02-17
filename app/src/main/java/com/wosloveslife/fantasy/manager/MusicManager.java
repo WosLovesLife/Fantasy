@@ -57,6 +57,7 @@ public class MusicManager {
     @Deprecated
     List<String> mPinyinIndex;
     List<BMusic> mMusicList;
+    List<BMusic> mRecentMusicList;
     private Set<String> mFavoredSheet;
     BMusic mCurrentMusic;
     private String mCurrentSheetOrdinal;
@@ -86,6 +87,14 @@ public class MusicManager {
     private void dispose() {
         mCurrentSheetOrdinal = SPHelper.getInstance().get(KEY_LAST_SHEET, "0");
         loadLastSheet();
+        if (TextUtils.equals(mCurrentSheetOrdinal, "2")) {
+            if (mRecentMusicList == null) {
+                mRecentMusicList = new ArrayList<>();
+            } else {
+                mRecentMusicList.clear();
+            }
+            mRecentMusicList.addAll(mMusicList);
+        }
 
         mFavoredSheet = DbHelper.getMusicHelper().loadFavored("1");
     }
@@ -181,7 +190,11 @@ public class MusicManager {
     @Nullable
     public BMusic getMusic(int position) {
         if (position >= 0 && position < mMusicList.size()) {
-            return mMusicList.get(position);
+            if (TextUtils.equals(mCurrentSheetOrdinal, "2") && mRecentMusicList != null) {
+                return mRecentMusicList.get(position);
+            } else {
+                return mMusicList.get(position);
+            }
         }
         return null;
     }
@@ -206,9 +219,16 @@ public class MusicManager {
     @Nullable
     public BMusic getNext(BMusic music) {
         if (music != null) {
-            int index = mMusicList.indexOf(music) + 1;
-            if (index < mMusicList.size()) {
-                return getMusic(index);
+            if (TextUtils.equals(mCurrentSheetOrdinal, "2") && mRecentMusicList != null) {
+                int index = mRecentMusicList.indexOf(music) + 1;
+                if (index < mRecentMusicList.size()) {
+                    return getMusic(index);
+                }
+            } else {
+                int index = mMusicList.indexOf(music) + 1;
+                if (index < mMusicList.size()) {
+                    return getMusic(index);
+                }
             }
             return getNext(music.titlePinyin);
         }
@@ -227,9 +247,16 @@ public class MusicManager {
     @Nullable
     public BMusic getPrevious(BMusic music) {
         if (music != null) {
-            int index = mMusicList.indexOf(music) - 1;
-            if (index >= 0) {
-                return getMusic(index);
+            if (TextUtils.equals(mCurrentSheetOrdinal, "2") && mRecentMusicList != null) {
+                int index = mRecentMusicList.indexOf(music) - 1;
+                if (index >= 0) {
+                    return getMusic(index);
+                }
+            } else {
+                int index = mMusicList.indexOf(music) - 1;
+                if (index >= 0) {
+                    return getMusic(index);
+                }
             }
             return getPrevious(music.titlePinyin);
         }
@@ -263,6 +290,14 @@ public class MusicManager {
         } else {
             saveCurrentSheetOrdinal(ordinal);
             onGotData(getMusicSheet(ordinal));
+        }
+        if (TextUtils.equals(ordinal, "2")) {
+            if (mRecentMusicList == null) {
+                mRecentMusicList = new ArrayList<>();
+            } else {
+                mRecentMusicList.clear();
+            }
+            mRecentMusicList.addAll(mMusicList);
         }
     }
 
