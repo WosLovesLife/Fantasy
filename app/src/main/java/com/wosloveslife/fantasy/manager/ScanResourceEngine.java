@@ -7,6 +7,7 @@ import android.provider.MediaStore;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.bean.BFolder;
 import com.wosloveslife.fantasy.bean.BMusic;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -41,6 +42,7 @@ public class ScanResourceEngine {
                         Set<String> fileFilter = CustomConfiguration.getFilteredFolders();
                         Set<BFolder> folders = new HashSet<>();
 
+                        int offset = 0;
                         do {
                             String path = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
                             String folder = path.substring(0, path.lastIndexOf("/"));
@@ -96,7 +98,7 @@ public class ScanResourceEngine {
                             //加入的歌单, 这里都加入本地歌单
                             bMusic.setBelongTo("0");
                             //加入歌单的时间
-                            bMusic.setJoinTimestamp(new Date());
+                            bMusic.setJoinTimestamp(new Date(System.currentTimeMillis() + (++offset)));
 
                             musicList.add(bMusic);
                         } while (cursor.moveToNext());
