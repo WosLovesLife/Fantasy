@@ -457,7 +457,9 @@ public class MusicListFragment extends BaseFragment {
         if (event == null || event.mMusic == null) return;
         BMusic music = event.mMusic;
         if (TextUtils.equals(mCurrentSheetOrdinal, event.mBelongTo)) {
+            int startPosition = mAdapter.getNormalPosition(music);
             mAdapter.removeItem(music);
+            mAdapter.notifyItemRangeChanged(startPosition, mAdapter.getRealItemCount() - startPosition);
         }
         if (music.equals(mCurrentMusic)) {
             mControlView.syncPlayView(music);

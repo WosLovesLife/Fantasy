@@ -143,8 +143,10 @@ public class LrcView extends View {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         if (mWidth != w && mLyricLines != null) {
+            mMaxScrollRange = 0;
             for (BLyric.LyricLine line : mLyricLines) {
                 line.staticLayout = new StaticLayout(line.content, mPaint, w, Layout.Alignment.ALIGN_CENTER, 1f, 0f, false);
+                mMaxScrollRange += line.staticLayout.getLineCount() * mTextSpace;
             }
         }
         mWidth = w;
@@ -172,25 +174,24 @@ public class LrcView extends View {
         }
 
         canvas.translate(0, y);
-        int offCount;
+        int offY;
+        StaticLayout staticLayout;
         for (BLyric.LyricLine lyricLine : mBLyric.mLrc) {
-            if (y > getScrollY() - mTextSpace && y < getScrollY() + getHeight() + mTextSpace) {
-                offCount = lyricLine.staticLayout.getLineCount();
+            staticLayout = lyricLine.staticLayout;
+            offY = staticLayout.getLineCount() * mTextSpace;
+            if (y > getScrollY() - offY && y < getScrollY() + getHeight() + mTextSpace) {
                 if (mSupportAutoScroll && lineCount == mCurrentLine) {
-                    lyricLine.staticLayout.getPaint().setColor(mColorWhite);
+                    staticLayout.getPaint().setColor(mColorWhite);
                 } else if (isSeeking() && lineCount == mChosenLine) {
-                    lyricLine.staticLayout.getPaint().setColor(mColorGrayLight);
+                    staticLayout.getPaint().setColor(mColorGrayLight);
                 } else {
-                    lyricLine.staticLayout.getPaint().setColor(mColorGrayText);
+                    staticLayout.getPaint().setColor(mColorGrayText);
                 }
-                lyricLine.staticLayout.draw(canvas);
-            } else {
-                offCount = 1;
+                staticLayout.draw(canvas);
             }
-            int offY = offCount * mTextSpace;
             canvas.translate(0, offY);
             y += offY;
-            lineCount += offCount;
+            ++lineCount;
         }
     }
 
@@ -448,18 +449,18 @@ public class LrcView extends View {
     //==============================================================================================
     public void setLrc(BLyric lrc) {
         mBLyric = lrc;
+        mMaxScrollRange = 0;
         if (mBLyric != null && mBLyric.mLrc != null) {
             mLyricLines = mBLyric.mLrc;
-            mMaxScrollRange = (mLyricLines.size() - 1) * mTextSpace;
 
             if (mWidth > 0) {
                 for (BLyric.LyricLine line : mLyricLines) {
                     line.staticLayout = new StaticLayout(line.content, mPaint, mWidth, Layout.Alignment.ALIGN_CENTER, 1f, 0f, false);
+                    mMaxScrollRange += line.staticLayout.getLineCount() * mTextSpace;
                 }
             }
         } else {
             mLyricLines = null;
-            mMaxScrollRange = 0;
         }
         mChosenLine = 0;
         mCurrentLine = 0;
