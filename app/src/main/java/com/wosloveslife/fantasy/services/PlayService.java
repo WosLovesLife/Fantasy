@@ -213,6 +213,9 @@ public class PlayService extends Service {
     public void play(BMusic music) {
         mCurrentMusic = music;
         if (mCurrentMusic != null) {
+            /* 这里有一个未知的Bug，调用过ExoPlayer.seekTo()方法后,跳转歌曲的一瞬间进度会闪烁一下,
+             * 导致歌词控件同步也会迅速滚动歌词一下, 因此这里在播放一首歌之前先将之前的歌的进度归零 */
+            mPlayer.seekTo(0);
             prepare(music.path);
             play();
             MusicManager.getInstance().addRecent(music);

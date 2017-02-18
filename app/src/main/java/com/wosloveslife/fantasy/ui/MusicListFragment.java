@@ -145,11 +145,10 @@ public class MusicListFragment extends BaseFragment {
                 Dp2Px.toPX(getContext(), 48)));
 
         mAdapter = new MusicListAdapter();
-        mAdapter.setUseOriginData(true);
         mAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<BMusic>() {
             @Override
             public void onItemClick(final BMusic music, View v, int position) {
-                if (!TextUtils.equals(MusicManager.getInstance().getCurrentSheetOrdinal(), mCurrentSheetOrdinal)) {
+                if (!TextUtils.equals(MusicManager.getInstance().getCurrentSheetOrdinal(), mCurrentSheetOrdinal) || TextUtils.equals(mCurrentSheetOrdinal, "2")) {
                     MusicManager.getInstance().changeSheet(mCurrentSheetOrdinal);
                 }
                 if (mCurrentMusic != music) {
