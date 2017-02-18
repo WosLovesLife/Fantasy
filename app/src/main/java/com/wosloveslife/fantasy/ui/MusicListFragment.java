@@ -151,7 +151,7 @@ public class MusicListFragment extends BaseFragment {
                 if (!TextUtils.equals(MusicManager.getInstance().getCurrentSheetOrdinal(), mCurrentSheetOrdinal) || TextUtils.equals(mCurrentSheetOrdinal, "2")) {
                     MusicManager.getInstance().changeSheet(mCurrentSheetOrdinal);
                 }
-                if (mCurrentMusic != music) {
+                if (mCurrentMusic == null || !mCurrentMusic.equals(music)) {
                     mCurrentMusic = music;
                     mPlayBinder.play(music);
                 } else {
@@ -326,7 +326,7 @@ public class MusicListFragment extends BaseFragment {
         navigationItems.add(item);
         navigationItems.add(item2);
         navigationItems.add(item3);
-        navigationItems.add(item4);
+//        navigationItems.add(item4);
         NavigationItem item5 = new NavigationItem(3, 0, "工具");
         navigationItems.add(item5);
         NavigationItem item6 = new NavigationItem(0, 1, R.drawable.ic_countdown_tiemr, "定时停止播放");
