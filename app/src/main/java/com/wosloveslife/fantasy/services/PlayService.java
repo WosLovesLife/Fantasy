@@ -107,6 +107,7 @@ public class PlayService extends Service {
     private RemoteViews mRemoteViews;
     private NotificationHelper mNotificationHelper;
     private AudioHelper mAudioHelper;
+    private CacheDataSourceFactory mCacheDataSourceFactory;
 
     public PlayService() {
     }
@@ -495,6 +496,8 @@ public class PlayService extends Service {
         mDataSourceFactory = new DefaultDataSourceFactory(mContext, Util.getUserAgent(mContext, "com.wosloveslife.fantasy"), mBandwidthMeter);
         // Produces Extractor instances for parsing the media data.
         mExtractorsFactory = new DefaultExtractorsFactory();
+
+        mCacheDataSourceFactory = generateCacheDataSourceFactory();
     }
 
     private void prepare(String path) {
@@ -504,7 +507,29 @@ public class PlayService extends Service {
             return;
         }
 
-        Uri uri = Uri.parse(path);
+        /* 将带缓存的source作为资源传入,构建普通多媒体播放资源 */
+        MediaSource videoSource = new ExtractorMediaSource(
+                Uri.parse(path),
+                path.startsWith("http") ? mCacheDataSourceFactory : mDataSourceFactory,
+                mExtractorsFactory,
+                new Handler(getMainLooper()) {
+                    @Override
+                    public void handleMessage(Message msg) {
+                        super.handleMessage(msg);
+
+                    }
+                },
+                new ExtractorMediaSource.EventListener() {
+                    @Override
+                    public void onLoadError(IOException error) {
+
+                    }
+                });
+
+        mPlayer.prepare(videoSource);
+    }
+
+    private CacheDataSourceFactory generateCacheDataSourceFactory() {
         SimpleCache simpleCache = new SimpleCache(getExternalFilesDir(Environment.DIRECTORY_MUSIC), new NoOpCacheEvictor());
         /* 这个文件大小指的是单个缓存文件的尺寸2MB, 例如一首歌10MB,则需要5个缓存文件
          * 同时它也会影响到缓存的时机.
@@ -515,11 +540,11 @@ public class PlayService extends Service {
         long cacheFileSize = CacheDataSource.DEFAULT_MAX_CACHE_FILE_SIZE;
 
         /* 构建带缓存的Source */
-        CacheDataSourceFactory cacheDataSourceFactory = new CacheDataSourceFactory(
+        return new CacheDataSourceFactory(
                 simpleCache,
                 mDataSourceFactory,
-                new FileDataSourceFactory(null),
-                new com.wosloveslife.fantasy.helper.CacheDataSinkFactory(simpleCache, cacheFileSize, null),
+                new FileDataSourceFactory(mBandwidthMeter),
+                new com.wosloveslife.fantasy.helper.CacheDataSinkFactory(simpleCache, cacheFileSize, mBandwidthMeter),
                 1,
                 new CacheDataSource.EventListener() {
                     @Override
@@ -527,22 +552,6 @@ public class PlayService extends Service {
                         Logger.d("cacheSizeBytes = " + cacheSizeBytes + "; cachedBytesRead = " + cachedBytesRead);
                     }
                 });
-
-        /* 将带缓存的source作为资源传入,构建普通多媒体播放资源 */
-        MediaSource videoSource = new ExtractorMediaSource(uri, cacheDataSourceFactory, mExtractorsFactory, new Handler(getMainLooper()) {
-            @Override
-            public void handleMessage(Message msg) {
-                super.handleMessage(msg);
-
-            }
-        }, new ExtractorMediaSource.EventListener() {
-            @Override
-            public void onLoadError(IOException error) {
-
-            }
-        });
-
-        mPlayer.prepare(videoSource);
     }
 
     private void resetPlayService() {
