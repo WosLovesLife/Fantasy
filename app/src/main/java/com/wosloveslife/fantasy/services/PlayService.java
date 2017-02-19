@@ -276,7 +276,7 @@ public class PlayService extends Service {
                     next = MusicManager.getInstance().getFirst();
                 }
                 break;
-            case CustomConfiguration.PLAY_ORDER_CIRCLE:
+            case CustomConfiguration.PLAY_ORDER_REPEAT_ONE:
                 next = mCurrentMusic;
                 break;
             case CustomConfiguration.PLAY_ORDER_RANDOM:
@@ -583,7 +583,7 @@ public class PlayService extends Service {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onAddMusic(MusicManager.OnAddMusic event) {
-        if (event == null || event.mMusic == null) return;
+        if (event == null || event.mMusic == null || !mNotificationHelper.isShown()) return;
         if (event.mMusic.equals(mCurrentMusic)) {
             mNotificationHelper.update(isPlaying(), mCurrentMusic);
         }
@@ -591,7 +591,15 @@ public class PlayService extends Service {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onRemoveMusic(MusicManager.OnRemoveMusic event) {
-        if (event == null || event.mMusic == null) return;
+        if (event == null || event.mMusic == null || !mNotificationHelper.isShown()) return;
+        if (event.mMusic.equals(mCurrentMusic)) {
+            mNotificationHelper.update(isPlaying(), mCurrentMusic);
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMusicChanged(MusicManager.OnMusicChanged event) {
+        if (event == null || event.mMusic == null || !mNotificationHelper.isShown()) return;
         if (event.mMusic.equals(mCurrentMusic)) {
             mNotificationHelper.update(isPlaying(), mCurrentMusic);
         }

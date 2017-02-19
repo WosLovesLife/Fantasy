@@ -81,6 +81,8 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 import stackblur_java.StackBlurManager;
 
+import static com.wosloveslife.fantasy.R.id.iv_favor;
+
 /**
  * Created by zhangh on 2017/1/15.
  */
@@ -125,8 +127,10 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 //    @BindView(R.id.iv_next_btn)
 //    ImageView mIvNextBtn;
     /** 收藏按钮 */
-    @BindView(R.id.iv_favor)
+    @BindView(iv_favor)
     AppCompatImageView mIvFavor;
+    @BindView(R.id.iv_playOrder)
+    AppCompatImageView mIvPlayOrder;
 
     /** 进度条(不可拖动) */
     @BindView(R.id.pb_progress)
@@ -407,19 +411,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             }
         });
 
-        mIvFavor.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mCurrentMusic == null) return;
-
-                /* 通过等待歌曲同步来改变收藏状态 */
-                if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
-                    MusicManager.getInstance().removeFavor(mCurrentMusic);
-                } else {
-                    MusicManager.getInstance().addFavor(mCurrentMusic);
-                }
-            }
-        });
+        syncPlayOrderVisual();
 
         addView(view);
     }
@@ -674,7 +666,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
     //===========================================状态同步-end=======================================
 
-    @OnClick({R.id.fl_root, R.id.toolbar, /*R.id.iv_previous_btn, R.id.iv_next_btn,*/ R.id.iv_play_btn, R.id.fac_play_btn})
+    @OnClick({R.id.fl_root, R.id.toolbar, R.id.iv_play_btn, R.id.fac_play_btn,
+            iv_favor, R.id.iv_playOrder})
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.fl_root:
@@ -684,16 +677,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             case R.id.toolbar:
                 toggleToolbarShown(false);
                 break;
-//            case R.id.iv_previous_btn:
-//                if (!mIsExpanded && mControlListener != null) {
-//                    mControlListener.previous();
-//                }
-//                break;
-//            case R.id.iv_next_btn:
-//                if (!mIsExpanded && mControlListener != null) {
-//                    mControlListener.next();
-//                }
-//                break;
             case R.id.iv_play_btn:
                 if (mIsExpanded) {
                     break;
@@ -713,6 +696,44 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 } else {
                     mControlListener.play();
                 }
+                break;
+            case iv_favor:
+                if (mCurrentMusic == null) return;
+
+                /* 通过等待歌曲同步来改变收藏状态 */
+                if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
+                    MusicManager.getInstance().removeFavor(mCurrentMusic);
+                } else {
+                    MusicManager.getInstance().addFavor(mCurrentMusic);
+                }
+                break;
+            case R.id.iv_playOrder:
+                switch (CustomConfiguration.getPlayOrder()) {
+                    case CustomConfiguration.PLAY_ORDER_SUCCESSIVE: // 列表循环
+                        CustomConfiguration.savePlayOrder(CustomConfiguration.PLAY_ORDER_RANDOM);
+                        break;
+                    case CustomConfiguration.PLAY_ORDER_REPEAT_ONE: // 单曲循环
+                        CustomConfiguration.savePlayOrder(CustomConfiguration.PLAY_ORDER_SUCCESSIVE);
+                        break;
+                    case CustomConfiguration.PLAY_ORDER_RANDOM: // 随机播放
+                        CustomConfiguration.savePlayOrder(CustomConfiguration.PLAY_ORDER_REPEAT_ONE);
+                        break;
+                }
+                syncPlayOrderVisual();
+                break;
+        }
+    }
+
+    private void syncPlayOrderVisual() {
+        switch (CustomConfiguration.getPlayOrder()) {
+            case CustomConfiguration.PLAY_ORDER_SUCCESSIVE: // 列表循环
+                mIvPlayOrder.setImageResource(R.drawable.ic_successive);
+                break;
+            case CustomConfiguration.PLAY_ORDER_REPEAT_ONE: // 单曲循环
+                mIvPlayOrder.setImageResource(R.drawable.ic_repeat_one);
+                break;
+            case CustomConfiguration.PLAY_ORDER_RANDOM: // 随机播放
+                mIvPlayOrder.setImageResource(R.drawable.ic_random);
                 break;
         }
     }
@@ -1091,9 +1112,11 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                         mFacPlayBtn.show();
                         toggleFacBtn(isPlaying());
                         mLrcView.setVisibility(VISIBLE);
+                        mIvPlayOrder.setVisibility(VISIBLE);
                     } else {
                         mFacPlayBtn.hide();
                         mLrcView.setVisibility(INVISIBLE);
+                        mIvPlayOrder.setVisibility(INVISIBLE);
                     }
                 }
             }).start();
@@ -1108,6 +1131,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             getScaleAlphaAnim(mIvAlbum, value)
                     .setListener(null)
                     .start();
+            mIvPlayOrder.setVisibility(INVISIBLE);
         }
     }
 

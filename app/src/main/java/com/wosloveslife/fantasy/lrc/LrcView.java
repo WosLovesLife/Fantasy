@@ -224,11 +224,15 @@ public class LrcView extends View {
         invalidate();
     }
 
+    /**
+     * @param enable         启用/禁用歌词自动滚动.
+     * @param offsetProgress 如果 < 0 则不进行同步
+     */
     public void setAutoSyncLrc(boolean enable, long offsetProgress) {
         if (!mSupportAutoScroll) return;
 
         mHandler.removeMessages(0);
-        if (offsetProgress > 0) {
+        if (offsetProgress >= 0) {
             syncLrc(offsetProgress);
         }
 
@@ -262,7 +266,7 @@ public class LrcView extends View {
                         invalidate();
                     }
 
-                    setAutoSyncLrc(true, 0);
+                    setAutoSyncLrc(true, -1);
                     break;
                 case 1:
                     smoothScroll(mCurrentLine * mTextSpace);
@@ -493,5 +497,12 @@ public class LrcView extends View {
         void onSeekingProgress(long progress);
 
         void onSeekFinish(long progress);
+    }
+
+    public long getProgress() {
+        if (mLyricLines != null && mLyricLines.size() > mCurrentLine) {
+            return mLyricLines.get(mCurrentLine).time;
+        }
+        return 0;
     }
 }

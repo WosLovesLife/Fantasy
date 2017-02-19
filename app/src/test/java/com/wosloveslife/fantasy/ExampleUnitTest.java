@@ -1,5 +1,6 @@
 package com.wosloveslife.fantasy;
 
+import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.lrc.BLyric;
 
 import org.junit.Test;
@@ -9,7 +10,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.wosloveslife.fantasy.manager.MusicManager.string2Int;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -131,5 +131,14 @@ public class ExampleUnitTest {
             time = matcher.group();
         }
         return lyricLines;
+    }
+
+    private static int string2Int(String str) {
+        try {
+            return Integer.parseInt(str);
+        } catch (Throwable e) {
+            Logger.w("时间转换错误");
+        }
+        return 0;
     }
 }

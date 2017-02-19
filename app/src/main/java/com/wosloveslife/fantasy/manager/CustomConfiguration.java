@@ -22,7 +22,7 @@ public class CustomConfiguration {
     private static final String KEY_PLAY_ORDER = "setting.KEY_PLAY_ORDER";
 
     public static final int PLAY_ORDER_SUCCESSIVE = 0;
-    public static final int PLAY_ORDER_CIRCLE = 1;
+    public static final int PLAY_ORDER_REPEAT_ONE = 1;
     public static final int PLAY_ORDER_RANDOM = 2;
 
     private static int sCustomCountdown; // 定时关闭用户自定义的时间 单位 分钟

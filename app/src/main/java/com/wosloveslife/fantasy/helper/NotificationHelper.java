@@ -35,6 +35,8 @@ public class NotificationHelper {
     private RemoteViews mRemoteViews;
     private BMusic mCurrentMusic;
 
+    private boolean mIsShown;
+
     public NotificationHelper(Service service) {
         if (service == null) {
             throw new NullPointerException("Service 不能为null");
@@ -155,6 +157,11 @@ public class NotificationHelper {
     private void show() {
         if (mService != null) {
             mService.startForeground(3, mNotification);
+            mIsShown = true;
         }
+    }
+
+    public boolean isShown() {
+        return mIsShown;
     }
 }

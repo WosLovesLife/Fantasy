@@ -145,6 +145,18 @@
                 android:textSize="12sp"
                 android:visibility="invisible"
                 tools:visibility="visible"/>
+
+            <android.support.v7.widget.AppCompatImageView
+                android:id="@+id/iv_playOrder"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginLeft="8dp"
+                android:layout_marginRight="8dp"
+                android:layout_marginTop="48dp"
+                android:background="@drawable/ripple_btn_oval"
+                android:padding="5dp"
+                android:visibility="invisible"
+                app:srcCompat="@drawable/ic_repeat_one"/>
         </FrameLayout>
 
         <android.support.v7.widget.Toolbar
