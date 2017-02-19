@@ -22,6 +22,7 @@ import android.support.annotation.RequiresApi;
 import android.support.annotation.UiThread;
 import android.support.annotation.WorkerThread;
 import android.support.design.widget.FloatingActionButton;
+import android.support.graphics.drawable.AnimatedVectorDrawableCompat;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.NestedScrollingChild;
 import android.support.v4.view.NestedScrollingParent;
@@ -727,13 +728,21 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     private void syncPlayOrderVisual() {
         switch (CustomConfiguration.getPlayOrder()) {
             case CustomConfiguration.PLAY_ORDER_SUCCESSIVE: // 列表循环
-                mIvPlayOrder.setImageResource(R.drawable.ic_successive);
+                AnimatedVectorDrawableCompat vectorDrawableCompat = AnimatedVectorDrawableCompat.create(getContext(), R.drawable.animated_vector_order_dismiss);
+                mIvPlayOrder.setImageDrawable(vectorDrawableCompat);
+                if (vectorDrawableCompat != null) {
+                    vectorDrawableCompat.start();
+                }
                 break;
             case CustomConfiguration.PLAY_ORDER_REPEAT_ONE: // 单曲循环
-                mIvPlayOrder.setImageResource(R.drawable.ic_repeat_one);
+                AnimatedVectorDrawableCompat vectorDrawableCompat1 = AnimatedVectorDrawableCompat.create(getContext(), R.drawable.animated_vector_order_show);
+                mIvPlayOrder.setImageDrawable(vectorDrawableCompat1);
+                if (vectorDrawableCompat1 != null) {
+                    vectorDrawableCompat1.start();
+                }
                 break;
             case CustomConfiguration.PLAY_ORDER_RANDOM: // 随机播放
-                mIvPlayOrder.setImageResource(R.drawable.ic_random);
+                mIvPlayOrder.setImageResource(R.drawable.ic_order_random);
                 break;
         }
     }
@@ -1112,11 +1121,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                         mFacPlayBtn.show();
                         toggleFacBtn(isPlaying());
                         mLrcView.setVisibility(VISIBLE);
-                        mIvPlayOrder.setVisibility(VISIBLE);
                     } else {
                         mFacPlayBtn.hide();
                         mLrcView.setVisibility(INVISIBLE);
-                        mIvPlayOrder.setVisibility(INVISIBLE);
                     }
                 }
             }).start();
@@ -1131,7 +1138,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             getScaleAlphaAnim(mIvAlbum, value)
                     .setListener(null)
                     .start();
-            mIvPlayOrder.setVisibility(INVISIBLE);
         }
     }
 
@@ -1166,6 +1172,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
     private void toggleControlBtn(boolean expand) {
         getScaleAlphaAnim(mIvPlayBtn, expand ? 0 : 1).start();
+        getScaleAlphaAnim(mIvPlayOrder, expand ? 1 : 0).start();
     }
 
     private void toggleAlbumBg(boolean expand) {
