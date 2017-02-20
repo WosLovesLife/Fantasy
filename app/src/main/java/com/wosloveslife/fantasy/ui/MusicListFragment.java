@@ -12,24 +12,32 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.PopupWindowCompat;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.PopupWindow;
 
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.MusicListAdapter;
+import com.wosloveslife.fantasy.adapter.SearchHistoryAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.bean.NavigationItem;
+import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.services.CountdownTimerService;
@@ -40,6 +48,7 @@ import com.wosloveslife.fantasy.utils.DividerDecoration;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
+import com.yesing.blibrary_wos.utils.screenAdaptation.ScreenTranslationHelper;
 import com.yesing.blibrary_wos.utils.systemUtils.SystemServiceUtils;
 
 import org.greenrobot.eventbus.EventBus;
@@ -63,10 +72,6 @@ public class MusicListFragment extends BaseFragment {
     DrawerLayout mDrawerLayout;
     @BindView(R.id.control_view)
     ControlView mControlView;
-    //    @BindView(R.id.navigation_view)
-//    NavigationView mNavigationView;
-    //    @BindView(R.id.sll_navigation)
-//    ScrollLinearLayout mSllNavigation;
     @BindView(R.id.recycler_view)
     RecyclerView mRecyclerView;
     @BindView(R.id.card_view_navigation)
@@ -89,6 +94,11 @@ public class MusicListFragment extends BaseFragment {
 
     boolean mIsCountdown;
     private String mCurrentSheetOrdinal;
+    private SearchView mSearchView;
+    private PopupWindow mSearchHistoryPop;
+    private ScreenTranslationHelper mScreenTranslationHelper;
+
+    private int mKeyboardHeight;
 
     public static MusicListFragment newInstance() {
 
@@ -136,6 +146,24 @@ public class MusicListFragment extends BaseFragment {
 
     public void initView() {
         initServiceBinder();
+
+        mScreenTranslationHelper = new ScreenTranslationHelper(getActivity());
+        mScreenTranslationHelper.setEnable(true);
+        mScreenTranslationHelper.addOnScreenSizeChangedListener(new ScreenTranslationHelper.OnScreenSizeChangedListener() {
+            @Override
+            public void onScreenChanged(boolean isKeyboardShow) {
+                if (isKeyboardShow) {
+                    mKeyboardHeight = mScreenTranslationHelper.getKeyboardHeight();
+                    if (mSearchHistoryPop.isShowing()) {
+                        int height = mControlView.getHeight() - mKeyboardHeight - mToolbar.getBottom();
+                        if (height != mSearchHistoryPop.getHeight()) {
+                            mSearchHistoryPop.setHeight(height);
+                            SPHelper.getInstance().save("key_pop_height", height);
+                        }
+                    }
+                }
+            }
+        });
 
         mLayoutManager = new LinearLayoutManager(getActivity());
         mRecyclerView.setLayoutManager(mLayoutManager);
@@ -414,6 +442,81 @@ public class MusicListFragment extends BaseFragment {
             return true;
         }
         return super.onBackPressed();
+    }
+
+    @Override
+    protected int initMenu() {
+        return R.menu.menu_search;
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        mSearchView = (SearchView) menu.findItem(R.id.item_search).getActionView();
+
+        final RecyclerView recyclerView = new RecyclerView(getActivity());
+        recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        recyclerView.addItemDecoration(new DividerDecoration(
+                new ColorDrawable(getResources().getColor(R.color.gray_light)),
+                (int) Math.max(Dp2Px.toPX(getContext(), 0.5f), 1),
+                Dp2Px.toPX(getContext(), 16)));
+        final SearchHistoryAdapter adapter = new SearchHistoryAdapter();
+        adapter.setHistoryListener(new SearchHistoryAdapter.HistoryListener() {
+            @Override
+            public void onChosenItem(String item, View view, int position) {
+                mSearchView.setQuery(item, false);
+            }
+
+            @Override
+            public void onDeleteItem(String item, View view, int position) {
+                adapter.removeItem(item);
+                /* 同时覆盖搜索记录 */
+            }
+        });
+        recyclerView.setAdapter(adapter);
+        recyclerView.setBackgroundResource(R.color.white);
+
+        final MusicListAdapter musicListAdapter = new MusicListAdapter();
+
+        int popHeight = SPHelper.getInstance().get("key_pop_height", WindowManager.LayoutParams.WRAP_CONTENT);
+        mSearchHistoryPop = new PopupWindow(WindowManager.LayoutParams.MATCH_PARENT, popHeight);
+        mSearchHistoryPop.setContentView(recyclerView);
+
+        mSearchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    recyclerView.setAdapter(adapter);
+                    if (mKeyboardHeight > 0) {
+                        int height = mControlView.getHeight() - mKeyboardHeight - mToolbar.getBottom();
+                        if (height != mSearchHistoryPop.getHeight()) {
+                            mSearchHistoryPop.setHeight(height);
+                            SPHelper.getInstance().save("key_pop_height", height);
+                        }
+                    }
+                    PopupWindowCompat.showAsDropDown(mSearchHistoryPop, mToolbar, 0, 0, Gravity.TOP);
+                } else {
+                    mSearchHistoryPop.dismiss();
+                }
+            }
+        });
+
+        mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                adapter.addItem(query, 0);
+                mSearchView.setQuery("", false);
+                List<BMusic> bMusics = MusicManager.getInstance().searchMusic(query);
+                musicListAdapter.setData(bMusics);
+                recyclerView.setAdapter(musicListAdapter);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return true;
+            }
+        });
     }
 
     //==========================================事件================================================

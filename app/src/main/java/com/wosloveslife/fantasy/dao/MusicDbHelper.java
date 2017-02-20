@@ -111,4 +111,11 @@ public class MusicDbHelper {
         }
         return favored;
     }
+
+    public List<BMusic> search(String title) {
+        return mDao.queryBuilder()
+                .where(MusicEntityDao.Properties.Title.like("%" + title + "%"))
+                .build()
+                .list();
+    }
 }

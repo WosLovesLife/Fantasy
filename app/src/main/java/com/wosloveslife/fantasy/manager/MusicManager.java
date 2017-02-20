@@ -6,6 +6,7 @@ import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
 
+import com.github.promeg.pinyinhelper.Pinyin;
 import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.Mp3File;
 import com.orhanobut.logger.Logger;
@@ -143,6 +144,9 @@ public class MusicManager {
             mMusicList.clear();
 
             if (bMusics != null && bMusics.size() > 0) {
+                for (BMusic music : bMusics) {
+                    mPinyinIndex.add(Pinyin.toPinyin(music.title, ""));
+                }
                 mMusicList.addAll(bMusics);
             }
         }
@@ -242,6 +246,10 @@ public class MusicManager {
 
     public void scanMusic() {
         scan();
+    }
+
+    public List<BMusic> searchMusic(String title) {
+        return DbHelper.getMusicHelper().search(title);
     }
 
     //=========================================歌单操作=============================================
