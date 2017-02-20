@@ -21,7 +21,7 @@ public class ScreenTranslationHelper {
     /** 额外偏移量 */
     int mAddOffset;
 
-    boolean mEnable;
+    boolean mEnable = true;
 
     private View mDecorView;
 
@@ -140,7 +140,7 @@ public class ScreenTranslationHelper {
     //==========================================工具方法============================================
 
     /** 获取除底边操作栏之外的高度 */
-    private int getContentViewHeight() {
+    public int getContentViewHeight() {
         if (mContentView != null) return mContentView.getHeight();
         return mActivity.getWindowManager().getDefaultDisplay().getHeight();
     }

@@ -11,6 +11,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import de.greenrobot.dao.query.WhereCondition;
+
 /**
  * Created by zhangh on 2017/2/10.
  */
@@ -115,6 +117,18 @@ public class MusicDbHelper {
     public List<BMusic> search(String title) {
         return mDao.queryBuilder()
                 .where(MusicEntityDao.Properties.Title.like("%" + title + "%"))
+                .build()
+                .list();
+    }
+
+    public List<BMusic> search(String query, String belongTo) {
+        WhereCondition condition = mDao.queryBuilder().or(
+                MusicEntityDao.Properties.Title.like("%" + query + "%"),
+                MusicEntityDao.Properties.Artist.like("%" + query + "%"),
+                MusicEntityDao.Properties.Album.like("%" + query + "%"));
+        return mDao
+                .queryBuilder()
+                .where(condition, MusicEntityDao.Properties.BelongTo.eq(belongTo))
                 .build()
                 .list();
     }

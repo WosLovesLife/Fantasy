@@ -249,7 +249,18 @@ public class MusicManager {
     }
 
     public List<BMusic> searchMusic(String title) {
-        return DbHelper.getMusicHelper().search(title);
+        return searchMusic(title, null);
+    }
+
+    public List<BMusic> searchMusic(String title, String belongTo) {
+        if (TextUtils.isEmpty(title)) {
+            return null;
+        }
+        if (TextUtils.isEmpty(belongTo)) {
+            return DbHelper.getMusicHelper().search(title);
+        } else {
+            return DbHelper.getMusicHelper().search(title, belongTo);
+        }
     }
 
     //=========================================歌单操作=============================================
