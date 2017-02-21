@@ -25,5 +25,12 @@
     <color name="black_blue_text">#3c4f5e</color>
     <color name="black_title">#323232</color>
 
-    <color name="blue_light">#27A1E1</color>
+    <color name="blue_light">#64B5F6</color>
+    <color name="blue">#2196F3</color>
+    <color name="blue_a700">#2962FF</color>
+    <color name="blue_a900">#0D47A1</color>
+
+    <color name="indigo_light">#7986CB</color>
+    <color name="indigo">#3F51B5</color>
+
 </resources>

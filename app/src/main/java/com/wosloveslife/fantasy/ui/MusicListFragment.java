@@ -424,7 +424,7 @@ public class MusicListFragment extends BaseFragment {
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         SearchView searchView = (SearchView) menu.findItem(R.id.item_search).getActionView();
-
+        searchView.setQueryHint("搜索歌单内歌曲/歌手/专辑...");
         new SearchSuggestLayout
                 .Builder(getActivity())
                 .setSheet(mCurrentSheetOrdinal)

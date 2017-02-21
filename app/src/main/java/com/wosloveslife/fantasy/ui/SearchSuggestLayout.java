@@ -4,20 +4,22 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.adapter.MusicListAdapter;
+import com.wosloveslife.fantasy.adapter.SearchResultAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.utils.DividerDecoration;
@@ -34,15 +36,14 @@ import butterknife.ButterKnife;
  */
 
 public class SearchSuggestLayout extends FrameLayout {
-    @BindView(R.id.rv_history)
-    RecyclerView mRvHistory;
     @BindView(R.id.rv_result)
     RecyclerView mRvResult;
+    @BindView(R.id.tv_msg)
+    TextView mTvMsg;
 
     SearchView mSearchView;
 
-    private MusicListAdapter mMusicListAdapter;
-//    private SearchHistoryAdapter mSearchHistoryAdapter;
+    private SearchResultAdapter mMusicListAdapter;
 
     public SearchSuggestLayout(Context context) {
         this(context, null);
@@ -74,28 +75,8 @@ public class SearchSuggestLayout extends FrameLayout {
                 (int) Math.max(Dp2Px.toPX(getContext(), 0.5f), 1),
                 Dp2Px.toPX(getContext(), 16)));
 
-        mMusicListAdapter = new MusicListAdapter();
+        mMusicListAdapter = new SearchResultAdapter();
         mRvResult.setAdapter(mMusicListAdapter);
-
-//        mRvHistory.setLayoutManager(new LinearLayoutManager(getContext()));
-//        mRvHistory.addItemDecoration(new DividerDecoration(
-//                new ColorDrawable(getResources().getColor(R.color.gray_light)),
-//                (int) Math.max(Dp2Px.toPX(getContext(), 0.5f), 1),
-//                Dp2Px.toPX(getContext(), 16)));
-//        mSearchHistoryAdapter = new SearchHistoryAdapter();
-//        mSearchHistoryAdapter.setHistoryListener(new SearchHistoryAdapter.HistoryListener() {
-//            @Override
-//            public void onChosenItem(String item, View view, int position) {
-//                mSearchView.setQuery(item, false);
-//            }
-//
-//            @Override
-//            public void onDeleteItem(String item, View view, int position) {
-//                mSearchHistoryAdapter.removeItem(item);
-//                /* 同时覆盖搜索记录 */
-//            }
-//        });
-//        mRvHistory.setAdapter(mSearchHistoryAdapter);
     }
 
     private String mBelongTo;
@@ -117,17 +98,14 @@ public class SearchSuggestLayout extends FrameLayout {
         mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                mSearchView.setQuery("", false);
-
-                List<BMusic> bMusics = MusicManager.getInstance().searchMusic(query, mBelongTo);
-                mMusicListAdapter.setData(bMusics);
+                searchAndShow();
                 return true;
             }
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                mHandler.removeMessages(0);
-                mHandler.sendEmptyMessageDelayed(0, 300);
+                removeCallbacks(mSearch);
+                postDelayed(mSearch, 100);
                 return true;
             }
         });
@@ -166,21 +144,38 @@ public class SearchSuggestLayout extends FrameLayout {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        mHandler.removeCallbacksAndMessages(null);
+        removeCallbacks(mSearch);
     }
 
-    Handler mHandler = new Handler(Looper.getMainLooper()) {
+    Runnable mSearch = new Runnable() {
         @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            switch (msg.what) {
-                case 0:
-                    List<BMusic> bMusics = MusicManager.getInstance().searchMusic(mSearchView.getQuery().toString(), mBelongTo);
-                    mMusicListAdapter.setData(bMusics);
-                    break;
-            }
+        public void run() {
+            searchAndShow();
         }
     };
+
+    private void searchAndShow() {
+        String query = mSearchView.getQuery().toString().trim();
+        if (TextUtils.isEmpty(query)) {
+            mMusicListAdapter.setData(null);
+            mTvMsg.setText("");
+            return;
+        }
+
+        List<BMusic> bMusics = MusicManager.getInstance().searchMusic(query, mBelongTo);
+
+        mMusicListAdapter.setKey(query);
+        mMusicListAdapter.setData(bMusics);
+
+        if (bMusics == null || bMusics.size() == 0) {
+            SpannableString spannableString = SpannableString.valueOf("没有包含 " + query + " 的歌曲");
+            ForegroundColorSpan foregroundColorSpan = new ForegroundColorSpan(getContext().getResources().getColor(R.color.blue_a700));
+            spannableString.setSpan(foregroundColorSpan, 5, 5 + query.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            mTvMsg.setText(spannableString);
+        } else {
+            mTvMsg.setText("");
+        }
+    }
 
     public static class Builder {
         private final SearchSuggestLayout mSuggestLayout;
