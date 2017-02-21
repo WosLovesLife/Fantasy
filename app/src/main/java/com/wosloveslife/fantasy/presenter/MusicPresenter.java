@@ -6,6 +6,7 @@ import android.text.format.DateFormat;
 import com.wosloveslife.fantasy.baidu.BaiduAlbum;
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
 import com.wosloveslife.fantasy.baidu.BaiduMusic;
+import com.wosloveslife.fantasy.baidu.BaiduMusicInfo;
 import com.wosloveslife.fantasy.baidu.BaiduSearch;
 import com.wosloveslife.fantasy.net.ApiManager;
 import com.wosloveslife.fantasy.net.BaiduApi;
@@ -119,5 +120,12 @@ public class MusicPresenter extends BasePresenter {
                 return baiduAlbum;
             }
         });
+    }
+
+    public Observable<BaiduMusicInfo> getMusicInfo(String songId) {
+        return ApiManager.getInstance().getBaiduApi()
+                .getBaiduMusicInfocApi()
+                .searchMusic(BaiduApi.PLAY_METHOD, songId)
+                .subscribeOn(Schedulers.io());
     }
 }

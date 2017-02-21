@@ -63,6 +63,8 @@ public class BMusic {
     public String belongTo;
     public Date joinTimestamp;
 
+    public String songId;
+
     public BMusic() {
     }
 

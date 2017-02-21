@@ -6,14 +6,18 @@ import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.animation.GlideAnimation;
+import com.bumptech.glide.request.target.SimpleTarget;
 import com.github.promeg.pinyinhelper.Pinyin;
 import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.Mp3File;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.album.AlbumFile;
-import com.wosloveslife.fantasy.baidu.BaiduAlbum;
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
+import com.wosloveslife.fantasy.baidu.BaiduMusicInfo;
+import com.wosloveslife.fantasy.baidu.BaiduSearch;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.dao.DbHelper;
 import com.wosloveslife.fantasy.helper.SPHelper;
@@ -21,23 +25,20 @@ import com.wosloveslife.fantasy.lrc.BLyric;
 import com.wosloveslife.fantasy.lrc.LrcFile;
 import com.wosloveslife.fantasy.lrc.LrcParser;
 import com.wosloveslife.fantasy.presenter.MusicPresenter;
+import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 
 import org.greenrobot.eventbus.EventBus;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 import rx.Observable;
 import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
@@ -349,6 +350,11 @@ public class MusicManager {
     private void removeMusicBelongFrom(BMusic bMusic, String belong) {
         if (TextUtils.isEmpty(bMusic.path) || TextUtils.isEmpty(belong)) return;
         DbHelper.getMusicHelper().remove(bMusic.path, belong);
+        /* TODO 临时办法,如果一首歌曲的路径包含该关键字说明是网络歌曲,则其path路径是随机的,因此通过模糊方法将含有该songId的歌曲删掉 */
+        if (bMusic.path.contains(".mp3?")) {
+            String substring = bMusic.path.substring(0, bMusic.path.indexOf(".mp3?xcode"));
+            DbHelper.getMusicHelper().removeVague(substring, belong);
+        }
     }
 
     /**
@@ -361,7 +367,7 @@ public class MusicManager {
         return DbHelper.getMusicHelper().loadSheet(belong);
     }
 
-    //=======================================工具方法=============================================
+    //=======================================获取歌曲信息===========================================
 
     /**
      * 获取歌曲封面, 会首先尝试从本地歌曲文件中通过ID3v2来获取封面,如果失败,会尝试从网络自动获取(如果开启了联网)
@@ -402,38 +408,83 @@ public class MusicManager {
             }
         });
 
-        String query = music.album;
-        Observable<Bitmap> netOb = mPresenter.searchAlbum(query).map(new Func1<BaiduAlbum, Bitmap>() {
+        Observable<Bitmap> netOb;
+        String query = music.title + (TextUtils.equals(music.artist, "<unknown>") ? " " : " " + music.artist);
+
+        Func1<BaiduMusicInfo, Observable<? extends Bitmap>> info2BitmapOb = new Func1<BaiduMusicInfo, Observable<? extends Bitmap>>() {
             @Override
-            public Bitmap call(BaiduAlbum baiduAlbum) {
-                if (baiduAlbum != null) {
-                    String artistpic = baiduAlbum.getArtistpic();
-                    if (!TextUtils.isEmpty(artistpic)) {
-                        artistpic = artistpic.replace("w_40", "w_500");
-                        Request request = new Request.Builder()
-                                .get()
-                                .url(artistpic)
-                                .build();
-                        try {
-                            Response execute = new OkHttpClient.Builder().build().newCall(request).execute();
-                            InputStream inputStream = execute.body().byteStream();
-                            Bitmap bitmap = BitmapUtils.getScaledDrawable(inputStream, bitmapSize, bitmapSize, Bitmap.Config.RGB_565);
-                            AlbumFile.saveAlbum(mContext, music.album, bitmap);
-                            return bitmap;
-                        } catch (IOException e) {
-                            e.printStackTrace();
+            public Observable<? extends Bitmap> call(BaiduMusicInfo baiduMusicInfo) {
+                if (baiduMusicInfo != null) {
+                    BaiduMusicInfo.SonginfoBean songinfo = baiduMusicInfo.getSonginfo();
+                    if (songinfo != null) {
+                        music.album = songinfo.getAlbum_title();
+                        String albumAddress = songinfo.getPic_premium();
+                        if (TextUtils.isEmpty(albumAddress)) {
+                            albumAddress = songinfo.getPic_big();
+                            if (TextUtils.isEmpty(albumAddress)) {
+                                albumAddress = songinfo.getPic_radio();
+                                if (TextUtils.isEmpty(albumAddress)) {
+                                    albumAddress = songinfo.getPic_small();
+                                }
+                            }
                         }
+
+                        DbHelper.getMusicHelper().insertOrReplace(music);
+                        return getAlbumByAddress(albumAddress, music.album, bitmapSize);
                     }
                 }
-
                 return null;
             }
-        });
+        };
+
+        if (TextUtils.isEmpty(music.songId)) {
+            netOb = mPresenter.searchFromBaidu(query)
+                    .concatMap(new Func1<BaiduSearch, Observable<BaiduMusicInfo>>() {
+                        @Override
+                        public Observable<BaiduMusicInfo> call(BaiduSearch baiduSearch) {
+                            if (baiduSearch != null) {
+                                try {
+                                    return mPresenter.getMusicInfo(baiduSearch.getSong().get(0).getSongid());
+                                } catch (Throwable e) {
+                                    WLogger.w("call : 未搜索到歌曲,可忽略 e = " + e);
+                                }
+                            }
+                            return null;
+                        }
+                    })
+                    .concatMap(info2BitmapOb);
+        } else {
+            netOb = mPresenter.getMusicInfo(music.songId)
+                    .concatMap(info2BitmapOb);
+        }
 
         return fileOb
                 .switchIfEmpty(mp3Ob)
                 .switchIfEmpty(netOb)
                 .subscribeOn(Schedulers.computation());
+    }
+
+    private Observable<Bitmap> getAlbumByAddress(final String address, final String album, final int bitmapSize) {
+        return Observable.create(new Observable.OnSubscribe<Bitmap>() {
+            @Override
+            public void call(final Subscriber<? super Bitmap> subscriber) {
+                Glide.with(mContext)
+                        .load(address)
+                        .downloadOnly(new SimpleTarget<File>() {
+                            @Override
+                            public void onResourceReady(File resource, GlideAnimation<? super File> glideAnimation) {
+                                if (resource != null) {
+                                    Bitmap bitmap = BitmapUtils.getScaledDrawable(resource.getAbsolutePath(), bitmapSize, bitmapSize, Bitmap.Config.RGB_565);
+                                    if (bitmap != null) {
+                                        AlbumFile.saveAlbum(mContext, album, bitmap);
+                                    }
+                                    subscriber.onNext(bitmap);
+                                }
+                                subscriber.onCompleted();
+                            }
+                        });
+            }
+        }).subscribeOn(AndroidSchedulers.mainThread());
     }
 
     /**
@@ -512,6 +563,13 @@ public class MusicManager {
                 .subscribeOn(Schedulers.io());
     }
 
+    public Observable<BaiduSearch> searchMusicByNet(String query) {
+        return mPresenter.searchFromBaidu(query);
+    }
+
+    public Observable<BaiduMusicInfo> getMusicInfoByNet(String songId) {
+        return mPresenter.getMusicInfo(songId);
+    }
 
     //========================================事件==================================================
 

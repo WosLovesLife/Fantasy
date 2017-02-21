@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
  */
 
 public class LrcParser {
-    private static final Pattern PATTERN_LRC_INTERVAL = Pattern.compile("\\u005b[0-9]{2}:[0-9]{2}\\u002e[0-9]{2}\\u005d");
+    private static final Pattern PATTERN_LRC_INTERVAL = Pattern.compile("\\u005b[0-9]+:[0-9]+\\u002e[0-9]+\\u005d");
 
     public static BLyric parseLrc(String lrcContent) {
         if (TextUtils.isEmpty(lrcContent)) return null;

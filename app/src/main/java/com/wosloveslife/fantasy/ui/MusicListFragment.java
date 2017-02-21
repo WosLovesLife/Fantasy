@@ -88,6 +88,7 @@ public class MusicListFragment extends BaseFragment {
 
     boolean mIsCountdown;
     private String mCurrentSheetOrdinal;
+    private SearchSuggestLayout mSuggestLayout;
 
     public static MusicListFragment newInstance() {
 
@@ -291,6 +292,9 @@ public class MusicListFragment extends BaseFragment {
                 break;
         }
         mCurrentSheetOrdinal = currentSheetOrdinal;
+        if (mSuggestLayout != null) {
+            mSuggestLayout.setSheet(mCurrentSheetOrdinal);
+        }
     }
 
     @Override
@@ -425,7 +429,7 @@ public class MusicListFragment extends BaseFragment {
         super.onCreateOptionsMenu(menu, inflater);
         SearchView searchView = (SearchView) menu.findItem(R.id.item_search).getActionView();
         searchView.setQueryHint("搜索歌单内歌曲/歌手/专辑...");
-        new SearchSuggestLayout
+        mSuggestLayout = new SearchSuggestLayout
                 .Builder(getActivity())
                 .setSheet(mCurrentSheetOrdinal)
                 .setOnItemChosenListener(new BaseRecyclerViewAdapter.OnItemClickListener<BMusic>() {
@@ -496,14 +500,12 @@ public class MusicListFragment extends BaseFragment {
         BMusic music = event.mMusic;
         if (TextUtils.equals(mCurrentSheetOrdinal, event.mBelongTo) && TextUtils.equals(mCurrentSheetOrdinal, "2")) {
             int oldPosition = mAdapter.getNormalPosition(event.mMusic);
-            int itemPosition = mLayoutManager.findFirstVisibleItemPosition();
             if (mRecyclerView.getItemAnimator().isRunning()) {
                 mRecyclerView.getItemAnimator().endAnimations();
             }
             mAdapter.removeItemNotNotify(oldPosition);
             mAdapter.addItemNotNofity(music, 0);
             mAdapter.notifyItemRangeChanged(0, oldPosition + 1);
-            mRecyclerView.scrollToPosition(itemPosition);
         }
         if (music.equals(mCurrentMusic)) {
             mControlView.syncPlayView(music);

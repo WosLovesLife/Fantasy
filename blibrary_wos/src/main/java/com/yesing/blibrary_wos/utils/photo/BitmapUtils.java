@@ -9,12 +9,11 @@ import android.support.annotation.NonNull;
 import com.yesing.blibrary_wos.utils.systemUtils.IOUtils;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.ref.SoftReference;
 
 /**
  * Created by YesingBeijing on 2016/9/1.
@@ -95,7 +94,12 @@ public class BitmapUtils {
         /* 获取只截取边缘的Option */
         BitmapFactory.Options options = getBoundOption();
         /* 用位图工厂析出一个只有边框大小的数据的Option对象 */
-        decodeImg(inputStream, options);
+        try {
+            decodeImg(inputStream, options);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
 
         /*获取压缩比例 */
         int inSampleSize = getSampleSize(destWidth, destHeight, options);
@@ -108,7 +112,14 @@ public class BitmapUtils {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return decodeImg(inputStream, options);
+        try {
+            return decodeImg(inputStream, options);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            IOUtils.closeStream(inputStream);
+        }
+        return null;
     }
 
     public static Bitmap getScaledDrawable(byte[] bytes, float destWidth, float destHeight, Bitmap.Config mode) {
@@ -118,7 +129,12 @@ public class BitmapUtils {
         /* 获取只截取边缘的Option */
         BitmapFactory.Options options = getBoundOption();
         /* 用位图工厂析出一个只有边框大小的数据的Option对象 */
-        decodeImg(bytes, options);
+        try {
+            decodeImg(bytes, options);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
 
         /*获取压缩比例 */
         int inSampleSize = getSampleSize(destWidth, destHeight, options);
@@ -126,24 +142,49 @@ public class BitmapUtils {
         options = getScaledOptions(inSampleSize);
         options.inPreferredConfig = mode;
 
-        return decodeImg(bytes, options);
-    }
-
-    public static Bitmap decodeImg(byte[] imgByte, BitmapFactory.Options options) {
-        return decodeImg(new ByteArrayInputStream(imgByte), options);
-    }
-
-    public static Bitmap decodeImg(InputStream input, BitmapFactory.Options options) {
-        Bitmap bitmap = null;
         try {
-            SoftReference softRef = new SoftReference(BitmapFactory.decodeStream(input, null, options));
-            bitmap = (Bitmap) softRef.get();
-        } catch (Exception e) {
+            return decodeImg(bytes, options);
+        } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            IOUtils.closeStream(input);
         }
-        return bitmap;
+        return null;
+    }
+
+    private static Bitmap decodeImg(byte[] imgByte, BitmapFactory.Options options) throws IOException {
+        return BitmapFactory.decodeByteArray(imgByte, 0, imgByte.length, options);
+    }
+
+//    public static Bitmap decodeImg(InputStream input, BitmapFactory.Options options) {
+//        Bitmap bitmap = null;
+//        try {
+//            SoftReference softRef = new SoftReference(BitmapFactory.decodeStream(input, null, options));
+//            bitmap = (Bitmap) softRef.get();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        } finally {
+//            IOUtils.closeStream(input);
+//        }
+//        return bitmap;
+//    }
+
+    private static Bitmap decodeImg(InputStream input, BitmapFactory.Options options) throws IOException {
+        byte[] bytes = getBytes(input);
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+    }
+
+    private static byte[] getBytes(InputStream is) throws IOException {
+        ByteArrayOutputStream outstream = null;
+        try {
+            outstream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[50 * 1024]; // 用数据装
+            int len;
+            while ((len = is.read(buffer)) != -1) {
+                outstream.write(buffer, 0, len);
+            }
+        }finally {
+            IOUtils.closeStream(outstream);
+        }
+        return outstream.toByteArray();
     }
 
     @NonNull

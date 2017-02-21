@@ -1,6 +1,7 @@
 package com.wosloveslife.fantasy.net;
 
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
+import com.wosloveslife.fantasy.baidu.BaiduMusicInfo;
 import com.wosloveslife.fantasy.baidu.BaiduSearch;
 
 import retrofit2.Retrofit;
@@ -18,6 +19,7 @@ public class BaiduApi {
     public static final String HOST = "http://tingapi.ting.baidu.com/";
     public static final String SEARCH_METHOD = "baidu.ting.search.catalogSug";
     public static final String LRC_METHOD = "baidu.ting.song.lry";
+    public static final String PLAY_METHOD = "baidu.ting.song.play";
 
     private BaiduApi() {
     }
@@ -44,6 +46,7 @@ public class BaiduApi {
 
     BaiduSearch.BaiduSearchMusicApi mBaiduSearchMusicApi;
     BaiduLrc.BaiduLrcApi mBaiduLrcApi;
+    BaiduMusicInfo.BaiduMusicInfoApi mBaiduMusicInfoApi;
 
     public BaiduSearch.BaiduSearchMusicApi getBaiduSearchMusicApi() {
         if (mBaiduSearchMusicApi == null) {
@@ -65,5 +68,16 @@ public class BaiduApi {
             }
         }
         return mBaiduLrcApi;
+    }
+
+    public BaiduMusicInfo.BaiduMusicInfoApi getBaiduMusicInfocApi() {
+        if (mBaiduMusicInfoApi == null) {
+            synchronized (mSyncBlock) {
+                if (mBaiduMusicInfoApi == null) {
+                    mBaiduMusicInfoApi = createBase().create(BaiduMusicInfo.BaiduMusicInfoApi.class);
+                }
+            }
+        }
+        return mBaiduMusicInfoApi;
     }
 }

@@ -94,6 +94,13 @@ public class MusicDbHelper {
                 .executeDeleteWithoutDetachingEntities();
     }
 
+    public void removeVague(String path, String belong) {
+        mDao.queryBuilder()
+                .where(MusicEntityDao.Properties.Path.like("%" + path + "%"), MusicEntityDao.Properties.BelongTo.eq(belong))
+                .buildDelete()
+                .executeDeleteWithoutDetachingEntities();
+    }
+
     @NonNull
     public Set<String> loadFavored(String belong) {
         Set<String> favored = new HashSet<>();
