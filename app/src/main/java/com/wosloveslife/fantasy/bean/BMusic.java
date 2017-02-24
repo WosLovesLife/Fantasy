@@ -6,8 +6,8 @@ import java.util.Date;
  * Created by zhangh on 2017/1/2.
  */
 public class BMusic {
-    /** 主键id */
-    public Long _id;
+    /** 用来判断一首歌的唯一值,如果歌曲来源于本地,则该值为path的hash值,如果来源于网络,则为API返回的歌曲id */
+    public String songId;
     /** 资源名(歌曲名) */
     public String title;
     /** 艺术家(歌手) */
@@ -63,12 +63,11 @@ public class BMusic {
     public String belongTo;
     public Date joinTimestamp;
 
-    public String songId;
-
     public BMusic() {
     }
 
-    public BMusic(String title, String artist, String album, String path, long size) {
+    public BMusic(String songId, String title, String artist, String album, String path, long size) {
+        this.songId = songId;
         this.title = title;
         this.artist = artist;
         this.album = album;
@@ -76,9 +75,9 @@ public class BMusic {
         this.size = size;
     }
 
-    public BMusic(Long _id, String title, String artist, String album, String path, long duration,
+    public BMusic(String songId, String title, String artist, String album, String path, long duration,
                   long size, String titlePinyin, String artistPinyin, boolean isOnline) {
-        this._id = _id;
+        this.songId = songId;
         this.title = title;
         this.artist = artist;
         this.album = album;
@@ -90,12 +89,12 @@ public class BMusic {
         mIsOnline = isOnline;
     }
 
-    public BMusic(Long _id, String title, String artist, String titlePinyin, String artistPinyin, String album,
+    public BMusic(String songId, String title, String artist, String titlePinyin, String artistPinyin, String album,
                   String path, long duration, long size, boolean isOnline,
                   String genre, int year, int track, int discId, boolean isMusic,
                   boolean isRingtone, boolean isAlarm, boolean isNotification, boolean isPodcast,
                   boolean isFavorite, String belongTo, Date joinTimestamp) {
-        this._id = _id;
+        this.songId = songId;
         this.title = title;
         this.artist = artist;
         this.album = album;
@@ -120,6 +119,7 @@ public class BMusic {
     }
 
     public BMusic(BMusic bMusic) {
+        this.songId = bMusic.songId;
         this.title = bMusic.title;
         this.artist = bMusic.artist;
         this.album = bMusic.album;
@@ -137,14 +137,14 @@ public class BMusic {
         this.isPodcast = bMusic.isPodcast;
         this.titlePinyin = bMusic.titlePinyin;
         this.artistPinyin = bMusic.artistPinyin;
-        mIsOnline = bMusic.mIsOnline;
+        this.mIsOnline = bMusic.mIsOnline;
         this.isFavorite = bMusic.isFavorite;
         this.belongTo = bMusic.belongTo;
         this.joinTimestamp = bMusic.joinTimestamp;
     }
 
-    public void set_id(Long _id) {
-        this._id = _id;
+    public void setSongId(String songId) {
+        this.songId = songId;
     }
 
     public void setTitle(String title) {
@@ -228,8 +228,8 @@ public class BMusic {
         this.belongTo = belongTo;
     }
 
-    public Long get_id() {
-        return _id;
+    public String getSongId() {
+        return songId;
     }
 
     public String getTitle() {

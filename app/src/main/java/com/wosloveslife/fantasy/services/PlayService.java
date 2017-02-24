@@ -17,6 +17,7 @@ import android.text.TextUtils;
 import android.widget.RemoteViews;
 
 import com.google.android.exoplayer2.DefaultLoadControl;
+import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.LoadControl;
@@ -217,10 +218,13 @@ public class PlayService extends Service {
             /* 这里有一个未知的Bug，调用过ExoPlayer.seekTo()方法后,跳转歌曲的一瞬间进度会闪烁一下,
              * 导致歌词控件同步也会迅速滚动歌词一下, 因此这里在播放一首歌之前先将之前的歌的进度归零 */
             mPlayer.seekTo(0);
-            prepare(music.path);
-            play();
-            MusicManager.getInstance().addRecent(music);
-            SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
+            if (prepare(music.path)) {
+                play();
+                MusicManager.getInstance().addRecent(music);
+                SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
+            } else {
+                pause();
+            }
         } else {
             pause();
         }
@@ -243,6 +247,13 @@ public class PlayService extends Service {
     public void play() {
         mStopPlay = false;
         if (mCurrentMusic != null) {
+            /* 如果有未处理的异常,则重置播放并将进度保持一致*/
+            if (mEncounteredException != null) {
+                mEncounteredException = null;
+                long currentPosition = mPlayer.getCurrentPosition();
+                prepare(mCurrentMusic.path);
+                mPlayer.seekTo(currentPosition);
+            }
             mAudioHelper.registerAudioFocus();
             mPlayer.setPlayWhenReady(true);
             notifyNotification();
@@ -357,6 +368,8 @@ public class PlayService extends Service {
         void onPause();
     }
 
+    Throwable mEncounteredException;
+
     /** 只在服务第一次创建时调用 */
     @Override
     public void onCreate() {
@@ -367,7 +380,21 @@ public class PlayService extends Service {
 
         initPlayer();
 
+        mAudioHelper = new AudioHelper(this);
+
+        mNotificationHelper = new NotificationHelper(this);
+
         mPlayer.addListener(new ExoPlayerEventListenerAdapter() {
+
+            @Override
+            public void onPlayerError(ExoPlaybackException error) {
+                /* 播放中断 TODO ExoPlaybackException cause by HttpDataSourceException
+                  * 在这里记录播放状态, 监听网络变化,弹出网络提示, 如果网络恢复并且之前的状态是播放, 则继续播放 */
+                super.onPlayerError(error);
+                mEncounteredException = error;
+                pause();
+            }
+
             @Override
             public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
                 if (mCountdownUp
@@ -399,10 +426,6 @@ public class PlayService extends Service {
             mCurrentMusic = new Gson().fromJson(currentMusic, BMusic.class);
             prepare(mCurrentMusic.path);
         }
-
-        mAudioHelper = new AudioHelper(this);
-
-        mNotificationHelper = new NotificationHelper(this);
 
         EventBus.getDefault().register(this);
         BroadcastManager.getInstance().init(this);
@@ -500,15 +523,15 @@ public class PlayService extends Service {
         mCacheDataSourceFactory = generateCacheDataSourceFactory();
     }
 
-    private void prepare(String path) {
+    private boolean prepare(String path) {
         if (TextUtils.isEmpty(path)) {
             /* todo 没有播放地址,传递错误 */
             Toaster.showShort(this, "找不到播放地址");
-            return;
+            return false;
         }
 
         /* 将带缓存的source作为资源传入,构建普通多媒体播放资源 */
-        MediaSource videoSource = new ExtractorMediaSource(
+        MediaSource source = new ExtractorMediaSource(
                 Uri.parse(path),
                 path.startsWith("http") ? mCacheDataSourceFactory : mDataSourceFactory,
                 mExtractorsFactory,
@@ -516,17 +539,19 @@ public class PlayService extends Service {
                     @Override
                     public void handleMessage(Message msg) {
                         super.handleMessage(msg);
-
                     }
                 },
                 new ExtractorMediaSource.EventListener() {
                     @Override
                     public void onLoadError(IOException error) {
-
+                        // 缓存中断 网络错误 TODO HttpDataSource.HttpDataSourceException
+                        // 但触发该异常并不代表当前播放被影响. 可能目前还在部分之前缓存的部分.
+                        // 最终播放被迫暂停要在 ExoPlayerEventListener.onPlayerError()中回调
                     }
                 });
 
-        mPlayer.prepare(videoSource);
+        mPlayer.prepare(source);
+        return true;
     }
 
     private CacheDataSourceFactory generateCacheDataSourceFactory() {

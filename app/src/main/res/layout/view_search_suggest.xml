@@ -12,13 +12,30 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-    <TextView
-        android:id="@+id/tv_msg"
+    <FrameLayout
+        android:id="@+id/fl_errorPage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="100dp"
-        android:gravity="center"
-        android:textColor="@color/black_blue_text"
-        android:textSize="16sp"/>
+        android:layout_marginTop="100dp">
+
+        <ProgressBar
+            android:id="@+id/pb_loading"
+            style="@style/Widget.AppCompat.ProgressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/tv_msg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="56dp"
+            android:gravity="center"
+            android:textColor="@color/black_blue_text"
+            android:textSize="16sp"
+            tools:text="loading"/>
+    </FrameLayout>
 </FrameLayout>

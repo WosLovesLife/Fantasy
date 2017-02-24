@@ -63,6 +63,8 @@ public class ScanResourceEngine {
 
                             BMusic bMusic = new BMusic();
 
+                            //歌曲ID
+                            bMusic.songId = String.valueOf(path.hashCode());
                             //歌曲标题
                             bMusic.title = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE));
                             //歌曲的专辑名：MediaStore.Audio.Media.ALBUM

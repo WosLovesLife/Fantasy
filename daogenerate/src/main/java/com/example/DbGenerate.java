@@ -32,7 +32,7 @@ public class DbGenerate {
         // 创建 歌曲总表
         Schema schema = new Schema(1, "com.wosloveslife.fantasy");
         Entity entity = schema.addEntity("MusicEntity");
-        entity.addLongProperty("_id").primaryKey(); // 主ID 自增长
+        entity.addLongProperty("songId").primaryKey(); // 主ID 自增长
         entity.addStringProperty("title"); // 音乐名
         entity.addStringProperty("artist"); // 艺术家
         entity.addStringProperty("titlePinyin");
@@ -61,7 +61,7 @@ public class DbGenerate {
         // !!!最关键的!!!: 如何使歌单和歌曲对应上:
         // 每一个歌单都应该对应一个唯一的ID(以数字的16进制表示可以节省空间)(可以按照用户创建的顺序)
         // 预占用0-9的范围, 其中0是本地列表,1是收藏列表, 2是最近播放, 3是下载管理
-        entity.addStringProperty("belongTo");
+        entity.addStringProperty("belongTo").primaryKey();
         entity.addLongProperty("joinTimestamp");
 
 

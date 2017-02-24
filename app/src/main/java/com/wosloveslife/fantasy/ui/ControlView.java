@@ -494,6 +494,12 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                             super.onNext(bitmap);
                             updateAlbum(bitmap);
                         }
+
+                        @Override
+                        public void onError(Throwable e) {
+                            super.onError(e);
+                            updateAlbum(null);
+                        }
                     });
         }
 

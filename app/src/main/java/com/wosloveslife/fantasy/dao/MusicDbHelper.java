@@ -61,6 +61,13 @@ public class MusicDbHelper {
         }
     }
 
+    public List<BMusic> loadEntitiesBySongId(String songId) {
+        return mDao.queryBuilder()
+                .where(MusicEntityDao.Properties.SongId.eq(songId))
+                .build()
+                .list();
+    }
+
     public List<BMusic> loadEntities(String path, String belong) {
         return mDao.queryBuilder()
                 .where(MusicEntityDao.Properties.Path.eq(path), MusicEntityDao.Properties.BelongTo.eq(belong))
@@ -87,16 +94,16 @@ public class MusicDbHelper {
                 .executeDeleteWithoutDetachingEntities();
     }
 
-    public void remove(String path, String belong) {
+    public void removeById(String songId, String belong) {
         mDao.queryBuilder()
-                .where(MusicEntityDao.Properties.Path.eq(path), MusicEntityDao.Properties.BelongTo.eq(belong))
+                .where(MusicEntityDao.Properties.SongId.eq(songId), MusicEntityDao.Properties.BelongTo.eq(belong))
                 .buildDelete()
                 .executeDeleteWithoutDetachingEntities();
     }
 
-    public void removeVague(String path, String belong) {
+    public void removeByPath(String path, String belong) {
         mDao.queryBuilder()
-                .where(MusicEntityDao.Properties.Path.like("%" + path + "%"), MusicEntityDao.Properties.BelongTo.eq(belong))
+                .where(MusicEntityDao.Properties.Path.eq(path), MusicEntityDao.Properties.BelongTo.eq(belong))
                 .buildDelete()
                 .executeDeleteWithoutDetachingEntities();
     }

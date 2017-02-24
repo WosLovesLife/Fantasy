@@ -15,7 +15,7 @@ import de.greenrobot.dao.internal.DaoConfig;
 /**
  * DAO for table "MUSIC_ENTITY".
  */
-public class MusicEntityDao extends AbstractDao<BMusic, Long> {
+public class MusicEntityDao extends AbstractDao<BMusic, Void> {
 
     public static final String TABLENAME = "MUSIC_ENTITY";
 
@@ -24,7 +24,7 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
      * Can be used for QueryBuilder and for referencing column names.
      */
     public static class Properties {
-        public final static Property _id = new Property(0, Long.class, "_id", true, "_ID");
+        public final static Property SongId = new Property(0, String.class, "SongId", true, "SONG_ID");
         public final static Property Title = new Property(1, String.class, "title", false, "TITLE");
         public final static Property Artist = new Property(2, String.class, "artist", false, "ARTIST");
         public final static Property TitlePinyin = new Property(3, String.class, "titlePinyin", false, "TITLE_PINYIN");
@@ -60,7 +60,7 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
     public static void createTable(SQLiteDatabase db, boolean ifNotExists) {
         String constraint = ifNotExists ? "IF NOT EXISTS " : "";
         db.execSQL("CREATE TABLE " + constraint + "\"MUSIC_ENTITY\" (" + //
-                "\"_ID\" INTEGER PRIMARY KEY ," + // 0: _id
+                "\"SONG_ID\" TEXT NOT NULL," + // 0: songId
                 "\"TITLE\" TEXT," + // 1: title
                 "\"ARTIST\" TEXT," + // 2: artist
                 "\"TITLE_PINYIN\" TEXT," + // 3: titlePinyin
@@ -80,8 +80,9 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
                 "\"IS_PODCAST\" INTEGER," + // 17: isPodcast
                 "\"IS_NOTIFICATION\" INTEGER," + // 18: isNotification
                 "\"IS_FAVORITE\" INTEGER," + // 19: isFavorite
-                "\"BELONG_TO\" TEXT," + // 20: belongTo
-                "\"JOIN_TIMESTAMP\" INTEGER);"); // 21: joinTimestamp
+                "\"BELONG_TO\" TEXT NOT NULL," + // 20: belongTo
+                "\"JOIN_TIMESTAMP\" INTEGER," +
+                "PRIMARY KEY (SONG_ID, BELONG_TO));"); // 21: joinTimestamp
     }
 
     /** Drops the underlying database table. */
@@ -95,9 +96,9 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
     protected void bindValues(SQLiteStatement stmt, BMusic entity) {
         stmt.clearBindings();
 
-        Long _id = entity.get_id();
-        if (_id != null) {
-            stmt.bindLong(1, _id);
+        String songId = entity.getSongId();
+        if (songId != null) {
+            stmt.bindString(1, songId);
         }
 
         String title = entity.getTitle();
@@ -184,15 +185,15 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
 
     /** @inheritdoc */
     @Override
-    public Long readKey(Cursor cursor, int offset) {
-        return cursor.isNull(offset) ? 0 : cursor.getLong(offset);
+    public Void readKey(Cursor cursor, int offset) {
+        return null;
     }
 
     /** @inheritdoc */
     @Override
     public BMusic readEntity(Cursor cursor, int offset) {
         return new BMusic( //
-                cursor.isNull(offset + 0) ? null : cursor.getLong(offset + 0), // _id
+                cursor.isNull(offset + 0) ? null : cursor.getString(offset + 0), // songId
                 cursor.isNull(offset + 1) ? null : cursor.getString(offset + 1), // title
                 cursor.isNull(offset + 2) ? null : cursor.getString(offset + 2), // artist
                 cursor.isNull(offset + 3) ? null : cursor.getString(offset + 3), // titlePinyin
@@ -220,7 +221,7 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
     /** @inheritdoc */
     @Override
     public void readEntity(Cursor cursor, BMusic entity, int offset) {
-        entity.set_id(cursor.isNull(offset + 0) ? null : cursor.getLong(offset + 0));
+        entity.setSongId(cursor.isNull(offset + 0) ? null : cursor.getString(offset + 0));
         entity.setTitle(cursor.isNull(offset + 1) ? null : cursor.getString(offset + 1));
         entity.setArtist(cursor.isNull(offset + 2) ? null : cursor.getString(offset + 2));
         entity.setTitlePinyin(cursor.isNull(offset + 3) ? null : cursor.getString(offset + 3));
@@ -246,19 +247,14 @@ public class MusicEntityDao extends AbstractDao<BMusic, Long> {
 
     /** @inheritdoc */
     @Override
-    protected Long updateKeyAfterInsert(BMusic entity, long rowId) {
-        entity.set_id(rowId);
-        return rowId;
+    protected Void updateKeyAfterInsert(BMusic entity, long rowId) {
+        return null;
     }
 
     /** @inheritdoc */
     @Override
-    public Long getKey(BMusic entity) {
-        if (entity != null) {
-            return entity.get_id();
-        } else {
-            return null;
-        }
+    public Void getKey(BMusic entity) {
+        return null;
     }
 
     /** @inheritdoc */

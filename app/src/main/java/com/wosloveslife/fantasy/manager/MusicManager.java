@@ -306,10 +306,6 @@ public class MusicManager {
     //==============播放记录
     public void addRecent(BMusic bMusic) {
         if (bMusic == null) return;
-        List<BMusic> bMusics = DbHelper.getMusicHelper().loadEntities(bMusic.path, "2");
-        if (bMusics != null && bMusics.size() > 0) {
-            removeMusicBelongFrom(bMusic, "2");
-        }
         BMusic newRecent = new BMusic(bMusic);
         newRecent.joinTimestamp = new Date();
         EventBus.getDefault().post(new OnMusicChanged(newRecent, "2"));
@@ -348,13 +344,13 @@ public class MusicManager {
     }
 
     private void removeMusicBelongFrom(BMusic bMusic, String belong) {
-        if (TextUtils.isEmpty(bMusic.path) || TextUtils.isEmpty(belong)) return;
-        DbHelper.getMusicHelper().remove(bMusic.path, belong);
-        /* TODO 临时办法,如果一首歌曲的路径包含该关键字说明是网络歌曲,则其path路径是随机的,因此通过模糊方法将含有该songId的歌曲删掉 */
-        if (bMusic.path.contains(".mp3?")) {
-            String substring = bMusic.path.substring(0, bMusic.path.indexOf(".mp3?xcode"));
-            DbHelper.getMusicHelper().removeVague(substring, belong);
-        }
+        if (TextUtils.isEmpty(bMusic.songId) || TextUtils.isEmpty(belong)) return;
+        DbHelper.getMusicHelper().removeById(bMusic.songId, belong);
+//        /* TODO 临时办法,如果一首歌曲的路径包含该关键字说明是网络歌曲,则其path路径是随机的,因此通过模糊方法将含有该songId的歌曲删掉 */
+//        if (bMusic.path.contains(".mp3?")) {
+//            String substring = bMusic.path.substring(0, bMusic.path.indexOf(".mp3?xcode"));
+//            DbHelper.getMusicHelper().removeVague(substring, belong);
+//        }
     }
 
     /**
@@ -417,7 +413,7 @@ public class MusicManager {
                 if (baiduMusicInfo != null) {
                     BaiduMusicInfo.SonginfoBean songinfo = baiduMusicInfo.getSonginfo();
                     if (songinfo != null) {
-                        music.album = songinfo.getAlbum_title();
+                        String albumTitle = songinfo.getAlbum_title();
                         String albumAddress = songinfo.getPic_premium();
                         if (TextUtils.isEmpty(albumAddress)) {
                             albumAddress = songinfo.getPic_big();
@@ -429,7 +425,10 @@ public class MusicManager {
                             }
                         }
 
-                        DbHelper.getMusicHelper().insertOrReplace(music);
+                        if (TextUtils.equals(music.album, albumTitle)) {
+                            music.album = albumTitle;
+                            DbHelper.getMusicHelper().insertOrReplace(music);
+                        }
                         return getAlbumByAddress(albumAddress, music.album, bitmapSize);
                     }
                 }
@@ -437,7 +436,7 @@ public class MusicManager {
             }
         };
 
-        if (TextUtils.isEmpty(music.songId)) {
+        if (!music.isOnline()) {
             netOb = mPresenter.searchFromBaidu(query)
                     .concatMap(new Func1<BaiduSearch, Observable<BaiduMusicInfo>>() {
                         @Override
@@ -461,7 +460,7 @@ public class MusicManager {
         return fileOb
                 .switchIfEmpty(mp3Ob)
                 .switchIfEmpty(netOb)
-                .subscribeOn(Schedulers.computation());
+                .subscribeOn(Schedulers.io());
     }
 
     private Observable<Bitmap> getAlbumByAddress(final String address, final String album, final int bitmapSize) {
