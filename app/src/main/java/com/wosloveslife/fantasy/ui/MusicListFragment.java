@@ -30,6 +30,7 @@ import android.view.ViewGroup;
 
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.R;
+import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.adapter.MusicListAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.bean.NavigationItem;
@@ -349,22 +350,19 @@ public class MusicListFragment extends BaseFragment {
         public void onServiceConnected(ComponentName name, IBinder service) {
             Logger.d("连接到播放服务");
             mPlayBinder = (PlayService.PlayBinder) service;
-
-            mPlayBinder.addPlayStateListener(new PlayService.PlayStateListener() {
-
+            mPlayBinder.addListener(new ExoPlayerEventListenerAdapter() {
                 @Override
-                public void onPlay(BMusic music) {
-                    syncVisual(music);
-                }
-
-                @Override
-                public void onPause() {
-                    mControlView.syncPlayView(mCurrentMusic);
-                    mAdapter.togglePlay(false);
-
-                    if (mIsCountdown && !mPlayBinder.isCountdown()) {
-                        mIsCountdown = false;
-                        updateNvCountdown(0, 0);
+                public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+                    super.onPlayerStateChanged(playWhenReady, playbackState);
+                    if (playWhenReady) {
+                        syncVisual(mPlayBinder.getCurrentMusic());
+                    } else {
+                        mControlView.syncPlayView(mCurrentMusic);
+                        mAdapter.togglePlay(false);
+                        if (mIsCountdown && !mPlayBinder.isCountdown()) {
+                            mIsCountdown = false;
+                            updateNvCountdown(0, 0);
+                        }
                     }
                 }
             });

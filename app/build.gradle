@@ -55,4 +55,6 @@ dependencies {
     compile 'de.greenrobot:greendao:2.1.0'
     //============拼音转换
     compile 'com.github.promeg:tinypinyin:2.0.2'
+    //============带loading的FAB
+    compile 'com.github.jorgecastilloprz:fabprogresscircle:1.01@aar'
 }

@@ -2,7 +2,7 @@ package com.wosloveslife.fantasy.helper;
 
 import android.media.AudioManager;
 
-import com.wosloveslife.fantasy.bean.BMusic;
+import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.services.PlayService;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 
@@ -26,15 +26,14 @@ public class AudioHelper {
 
     public AudioHelper(PlayService playService) {
         mPlayService = playService;
-        mPlayService.addPlayStateListener(new PlayService.PlayStateListener() {
+        mPlayService.addListener(new ExoPlayerEventListenerAdapter() {
             @Override
-            public void onPlay(BMusic music) {
-                /* 在这里重置该值, 避免影响后续的播放状态 */
-                mSavePlay = false;
-            }
-
-            @Override
-            public void onPause() {
+            public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+                super.onPlayerStateChanged(playWhenReady, playbackState);
+                if (playWhenReady) {
+                    /* 在这里重置该值, 避免影响后续的播放状态 */
+                    mSavePlay = false;
+                }
             }
         });
     }

@@ -2,6 +2,9 @@ package com.wosloveslife.fantasy.interfaces;
 
 import android.support.annotation.IntDef;
 
+import com.google.android.exoplayer2.ExoPlayer;
+import com.wosloveslife.fantasy.bean.BMusic;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
@@ -19,6 +22,8 @@ public interface IPlay {
     @interface PlayState {
     }
 
+    void play(BMusic music);
+
     void play();
 
     void pause();
@@ -27,5 +32,11 @@ public interface IPlay {
 
     void previous();
 
-    void setProgress(int progress);
+    void seekTo(long progress);
+
+    boolean isPlaying();
+
+    int getBufferState();
+
+    void addListener(ExoPlayer.EventListener listener);
 }

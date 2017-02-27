@@ -2,7 +2,6 @@ package com.wosloveslife.fantasy.ui;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
-import android.animation.TimeInterpolator;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -69,6 +68,7 @@ import com.wosloveslife.fantasy.lrc.BLyric;
 import com.wosloveslife.fantasy.lrc.LrcView;
 import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.wosloveslife.fantasy.manager.MusicManager;
+import com.wosloveslife.fantasy.ui.loadingfac.FabProgressGlue;
 import com.wosloveslife.fantasy.utils.FormatUtils;
 import com.wosloveslife.fantasy.utils.NetWorkUtil;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
@@ -220,6 +220,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
     private ID3v2 mCurrentId3v2;
     private ValueAnimator mTitleAnimator;
+    private FabProgressGlue mFabProgressGlue;
 
     public ControlView(Context context) {
         this(context, null);
@@ -342,7 +343,10 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             mPbProgress.setProgressBackgroundTintList(ColorStateList.valueOf(getResources().getColor(R.color.transparent)));
         }
 
-        mFacPlayBtn.hide();
+        ProgressBar mPbLoadingBig = (ProgressBar) view.findViewById(R.id.pb_loading_big);
+        ViewCompat.setElevation(mPbLoadingBig, mFacPlayBtn.getCompatElevation());
+        mFabProgressGlue = new FabProgressGlue(mFacPlayBtn, mPbLoadingBig);
+        mFabProgressGlue.hide();
 
         mFlRoot.setOnTouchListener(new OnTouchListener() {
             @Override
@@ -874,7 +878,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     private void seekProgress(float x, float y, boolean seek) {
         if (!mSeeking) {
             mSeeking = true;
-            startFlowBtnAnim(0.3f, mFacPlayBtn.getTranslationX(), new FastOutLinearInInterpolator());
+            mFabProgressGlue.smoothTranslationAndScale(0.3f, mFacPlayBtn.getTranslationX(), new FastOutLinearInInterpolator(), null);
+            mFabProgressGlue.hideLoading();
         }
         mFacPlayBtn.setTranslationX(x - mFacPlayBtn.getLeft() - mFacPlayBtn.getWidth() / 2);
 
@@ -930,15 +935,13 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                         @Override
                         public void onAnimationCancel(Animator animation) {
                             super.onAnimationCancel(animation);
-                            mTvSeekValue.setVisibility(INVISIBLE);
-                            startFlowBtnAnim(1, 0, new LinearOutSlowInInterpolator());
+                            recoverFac();
                         }
 
                         @Override
                         public void onAnimationEnd(Animator animation) {
                             super.onAnimationEnd(animation);
-                            mTvSeekValue.setVisibility(INVISIBLE);
-                            startFlowBtnAnim(1, 0, new LinearOutSlowInInterpolator());
+                            recoverFac();
                         }
                     });
         }
@@ -968,14 +971,21 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         animator.start();
     }
 
-    private void startFlowBtnAnim(float scale, float tranX, TimeInterpolator interpolator) {
-        mFacPlayBtn.animate().cancel();
-        mFacPlayBtn.animate()
-                .scaleX(scale)
-                .scaleY(scale)
-                .setDuration(200)
-                .translationX(tranX)
-                .setInterpolator(interpolator);
+    private void recoverFac() {
+        mTvSeekValue.setVisibility(INVISIBLE);
+        mFabProgressGlue.smoothTranslationAndScale(1, 0, new LinearOutSlowInInterpolator(), new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                super.onAnimationCancel(animation);
+                mFabProgressGlue.showLoading();
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                super.onAnimationEnd(animation);
+                mFabProgressGlue.showLoading();
+            }
+        });
     }
 
     //========================================NestScroll-start======================================
@@ -1124,11 +1134,11 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     toggleTextOffset(mIsExpanded);
                     toggleControlBtn(mIsExpanded);
                     if (mIsExpanded) {
-                        mFacPlayBtn.show();
+                        mFabProgressGlue.show(true);
                         toggleFacBtn(isPlaying());
                         mLrcView.setVisibility(VISIBLE);
                     } else {
-                        mFacPlayBtn.hide();
+                        mFabProgressGlue.hide();
                         mLrcView.setVisibility(INVISIBLE);
                     }
                 }
@@ -1137,7 +1147,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             toggleAlbumBg(false);
             toggleTextOffset(false);
             toggleControlBtn(false);
-            mFacPlayBtn.hide();
+            mFabProgressGlue.hide();
             mFacPlayBtn.setTranslationX(0);
             mTvSeekValue.setVisibility(INVISIBLE);
             mLrcView.setVisibility(INVISIBLE);

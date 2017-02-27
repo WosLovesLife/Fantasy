@@ -108,6 +108,14 @@
                 android:contentDescription="@null"
                 app:srcCompat="@drawable/ic_play_arrow"/>
 
+            <ProgressBar
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="end"
+                android:layout_marginLeft="4dp"
+                android:layout_marginRight="48dp"
+                android:layout_marginTop="10dp"/>
+
             <android.support.v7.widget.AppCompatImageView
                 android:id="@+id/iv_favor"
                 android:layout_width="36dp"
@@ -171,6 +179,33 @@
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
             app:title="Hello World"/>
     </android.support.v7.widget.CardView>
+
+    <!--<com.wosloveslife.fantasy.ui.loadingfac.LoadingFacButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:elevation="7dp"
+        app:layout_anchor="@id/fl_root"
+        app:layout_anchorGravity="bottom|end"
+        app:srcCompat="@drawable/ic_play_arrow">
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/fac_play_btn"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:elevation="0dp"
+            app:fabSize="mini"
+            app:srcCompat="@drawable/ic_play_arrow"
+            tools:visibility="visible"/>
+    </com.wosloveslife.fantasy.ui.loadingfac.LoadingFacButton>-->
+
+    <ProgressBar
+        android:id="@+id/pb_loading_big"
+        android:layout_margin="11dp"
+        app:layout_anchor="@id/fl_root"
+        app:layout_anchorGravity="bottom|end"
+        android:layout_width="58dp"
+        android:layout_height="58dp"/>
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fac_play_btn"

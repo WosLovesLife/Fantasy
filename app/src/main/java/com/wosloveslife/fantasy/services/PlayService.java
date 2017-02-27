@@ -62,8 +62,6 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
 /**
@@ -102,7 +100,6 @@ public class PlayService extends Service {
     long mCountdownTargetTimestamp;
     boolean mCloseAfterPlayComplete;
 
-    List<PlayStateListener> mPlayStateListeners = new ArrayList<>();
     private AudioManager mAudioManager;
     private Notification mNotification;
     private RemoteViews mRemoteViews;
@@ -152,11 +149,9 @@ public class PlayService extends Service {
 
         /**
          * 跳转进度
-         *
-         * @param progress 0~100
          */
         @Override
-        public void setProgress(int progress) {
+        public void seekTo(long progress) {
             PlayService.this.setProgress(progress);
         }
 
@@ -174,13 +169,30 @@ public class PlayService extends Service {
             return PlayService.this.isPlaying();
         }
 
-        //========================================监听相关-start====================================
-        public boolean addPlayStateListener(PlayStateListener listener) {
-            return PlayService.this.addPlayStateListener(listener);
+        @Override
+        public int getBufferState() {
+            return PlayService.this.getBufferState();
         }
 
-        public boolean removePlayStateListener(PlayStateListener listener) {
-            return PlayService.this.removePlayStateListener(listener);
+        @Override
+        public void addListener(ExoPlayer.EventListener listener) {
+            PlayService.this.addListener(listener);
+        }
+
+        public long getCurrentPosition() {
+            return PlayService.this.getCurrentPosition();
+        }
+
+        public long getDuration() {
+            return PlayService.this.getDuration();
+        }
+
+        public long getBufferedPosition() {
+            return PlayService.this.getBufferedPosition();
+        }
+
+        public int getPlaybackState() {
+            return PlayService.this.getPlaybackState();
         }
 
         public void setCountdown(long pickDate, boolean closeAfterPlayComplete) {
@@ -331,8 +343,8 @@ public class PlayService extends Service {
      *
      * @param progress 0~100
      */
-    public void setProgress(int progress) {
-        mPlayer.seekTo((long) (progress / 100f * mPlayer.getDuration()));
+    public void setProgress(long progress) {
+        mPlayer.seekTo(progress);
     }
 
     //========================================播放相关-end======================================
@@ -349,24 +361,33 @@ public class PlayService extends Service {
         return mPlayer.getPlayWhenReady();
     }
 
-    //========================================监听相关-start====================================
-    public boolean addPlayStateListener(PlayStateListener listener) {
-        return listener != null && mPlayStateListeners.add(listener);
+    public int getBufferState() {
+        return 0;
     }
 
-    public boolean removePlayStateListener(PlayStateListener listener) {
-        return listener != null && mPlayStateListeners.remove(listener);
+    public void addListener(ExoPlayer.EventListener listener) {
+        mPlayer.addListener(listener);
+    }
+
+    private long getCurrentPosition() {
+        return mPlayer.getCurrentPosition();
+    }
+
+    private long getDuration() {
+        return mPlayer.getDuration();
+    }
+
+    private long getBufferedPosition() {
+        return mPlayer.getBufferedPosition();
+    }
+
+    private int getPlaybackState() {
+        return mPlayer.getPlaybackState();
     }
 
     //==============================================================================================
     //==============================================================================================
     //==============================================================================================
-
-    public interface PlayStateListener {
-        void onPlay(BMusic music);
-
-        void onPause();
-    }
 
     Throwable mEncounteredException;
 
@@ -402,21 +423,8 @@ public class PlayService extends Service {
                         && System.currentTimeMillis() >= mCountdownTargetTimestamp) {
                     mStopPlay = true;
                     resetPlayService();
-                    for (PlayStateListener listener : mPlayStateListeners) {
-                        listener.onPause();
-                    }
                 } else if (!mStopPlay && playbackState == ExoPlayer.STATE_ENDED) {
                     next();
-                } else {
-                    if (playWhenReady) {
-                        for (PlayStateListener listener : mPlayStateListeners) {
-                            listener.onPlay(mCurrentMusic);
-                        }
-                    } else {
-                        for (PlayStateListener listener : mPlayStateListeners) {
-                            listener.onPause();
-                        }
-                    }
                 }
             }
         });
@@ -600,9 +608,6 @@ public class PlayService extends Service {
         if (mCountdownUp && event.totalMillis == event.millisUntilFinished && (!mCloseAfterPlayComplete || !mPlayer.getPlayWhenReady())) {
             //结束播放服务
             resetPlayService();
-            for (PlayStateListener listener : mPlayStateListeners) {
-                listener.onPause();
-            }
         }
     }
 
