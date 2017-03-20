@@ -114,7 +114,8 @@
                 android:layout_gravity="end"
                 android:layout_marginLeft="4dp"
                 android:layout_marginRight="48dp"
-                android:layout_marginTop="10dp"/>
+                android:layout_marginTop="10dp"
+                android:visibility="gone"/>
 
             <android.support.v7.widget.AppCompatImageView
                 android:id="@+id/iv_favor"
@@ -201,17 +202,20 @@
 
     <ProgressBar
         android:id="@+id/pb_loading_big"
+        android:layout_width="58dp"
+        android:layout_height="58dp"
         android:layout_margin="11dp"
+        android:visibility="gone"
         app:layout_anchor="@id/fl_root"
         app:layout_anchorGravity="bottom|end"
-        android:layout_width="58dp"
-        android:layout_height="58dp"/>
+        tools:visibility="visible"/>
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fac_play_btn"
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_margin="16dp"
+        android:visibility="gone"
         app:elevation="7dp"
         app:fabSize="mini"
         app:layout_anchor="@id/fl_root"

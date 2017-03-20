@@ -1,52 +1,22 @@
 package com.wosloveslife.fantasy.services;
 
-import android.app.Notification;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
-import android.media.AudioManager;
-import android.net.Uri;
 import android.os.Binder;
-import android.os.Environment;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
-import android.widget.RemoteViews;
 
-import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.ExoPlayerFactory;
-import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
-import com.google.android.exoplayer2.extractor.ExtractorsFactory;
-import com.google.android.exoplayer2.source.ExtractorMediaSource;
-import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.trackselection.AdaptiveVideoTrackSelection;
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.trackselection.TrackSelection;
-import com.google.android.exoplayer2.trackselection.TrackSelector;
-import com.google.android.exoplayer2.upstream.BandwidthMeter;
-import com.google.android.exoplayer2.upstream.DataSource;
-import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
-import com.google.android.exoplayer2.upstream.cache.CacheDataSource;
-import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory;
-import com.google.android.exoplayer2.upstream.cache.NoOpCacheEvictor;
-import com.google.android.exoplayer2.upstream.cache.SimpleCache;
-import com.google.android.exoplayer2.util.Util;
 import com.google.gson.Gson;
-import com.orhanobut.logger.Logger;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.broadcast.AudioBroadcast;
 import com.wosloveslife.fantasy.broadcast.BroadcastManager;
 import com.wosloveslife.fantasy.helper.AudioHelper;
-import com.wosloveslife.fantasy.helper.FileDataSourceFactory;
 import com.wosloveslife.fantasy.helper.NotificationHelper;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.interfaces.IPlay;
@@ -59,9 +29,6 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
-import java.io.FileDescriptor;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Random;
 
 /**
@@ -83,9 +50,6 @@ public class PlayService extends Service {
 
     //=============ExoPlayer相关
     private SimpleExoPlayer mPlayer;
-    private DefaultBandwidthMeter mBandwidthMeter;
-    public DataSource.Factory mDataSourceFactory;
-    public ExtractorsFactory mExtractorsFactory;
 
     //============数据
     BMusic mCurrentMusic;
@@ -100,12 +64,9 @@ public class PlayService extends Service {
     long mCountdownTargetTimestamp;
     boolean mCloseAfterPlayComplete;
 
-    private AudioManager mAudioManager;
-    private Notification mNotification;
-    private RemoteViews mRemoteViews;
     private NotificationHelper mNotificationHelper;
     private AudioHelper mAudioHelper;
-    private CacheDataSourceFactory mCacheDataSourceFactory;
+    private PlayerEngine mPlayerEngine;
 
     public PlayService() {
     }
@@ -113,7 +74,6 @@ public class PlayService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        WLogger.w("onBind(Intent intent)");
         return new PlayBinder();
     }
 
@@ -230,7 +190,7 @@ public class PlayService extends Service {
             /* 这里有一个未知的Bug，调用过ExoPlayer.seekTo()方法后,跳转歌曲的一瞬间进度会闪烁一下,
              * 导致歌词控件同步也会迅速滚动歌词一下, 因此这里在播放一首歌之前先将之前的歌的进度归零 */
             mPlayer.seekTo(0);
-            if (prepare(music.path)) {
+            if (mPlayerEngine.prepare(music.path)) {
                 play();
                 MusicManager.getInstance().addRecent(music);
                 SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
@@ -263,7 +223,7 @@ public class PlayService extends Service {
             if (mEncounteredException != null) {
                 mEncounteredException = null;
                 long currentPosition = mPlayer.getCurrentPosition();
-                prepare(mCurrentMusic.path);
+                mPlayerEngine.prepare(mCurrentMusic.path);
                 mPlayer.seekTo(currentPosition);
             }
             mAudioHelper.registerAudioFocus();
@@ -395,11 +355,10 @@ public class PlayService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        WLogger.w("onCreate()");
-
         mContext = this;
 
-        initPlayer();
+        mPlayerEngine = new PlayerEngine(this);
+        mPlayer = mPlayerEngine.getPlayer();
 
         mAudioHelper = new AudioHelper(this);
 
@@ -432,7 +391,7 @@ public class PlayService extends Service {
         String currentMusic = SPHelper.getInstance().get("current_music", "");
         if (!TextUtils.isEmpty(currentMusic)) {
             mCurrentMusic = new Gson().fromJson(currentMusic, BMusic.class);
-            prepare(mCurrentMusic.path);
+            mPlayerEngine.prepare(mCurrentMusic.path);
         }
 
         EventBus.getDefault().register(this);
@@ -446,8 +405,6 @@ public class PlayService extends Service {
     /** 每次调用startService()启用该服务时都被调用 */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        WLogger.w("onStartCommand(Intent intent, int flags, int startId); startId = " + startId);
-
         switch (intent.getIntExtra("action", -1)) {
             case 0: // 上一曲
                 previous();
@@ -484,13 +441,11 @@ public class PlayService extends Service {
     @Override
     public void onTaskRemoved(Intent rootIntent) {
         super.onTaskRemoved(rootIntent);
-        WLogger.w("onTaskRemoved(Intent rootIntent)");
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        WLogger.w("onDestroy()");
         release();
     }
 
@@ -502,89 +457,6 @@ public class PlayService extends Service {
             mPlayer.release();
         }
         mAudioHelper.abandonAudioFocus();
-    }
-
-    //==================================播放逻辑-start==============================================
-
-    private void initPlayer() {
-        //==========step1初始操作
-        // 1. Create a default TrackSelector
-        Handler mainHandler = new Handler();
-        BandwidthMeter bandwidthMeter = new DefaultBandwidthMeter();
-        TrackSelection.Factory videoTrackSelectionFactory = new AdaptiveVideoTrackSelection.Factory(bandwidthMeter);
-        TrackSelector trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
-
-        // 2. Create a default LoadControl
-        LoadControl loadControl = new DefaultLoadControl();
-
-        // 3. Create the player
-        mPlayer = ExoPlayerFactory.newSimpleInstance(mContext, trackSelector, loadControl);
-
-        //=========step3准备播放
-        // Measures bandwidth during playback. Can be null if not required.
-        mBandwidthMeter = new DefaultBandwidthMeter();
-        // Produces DataSource instances through which media data is loaded.
-        mDataSourceFactory = new DefaultDataSourceFactory(mContext, Util.getUserAgent(mContext, "com.wosloveslife.fantasy"), mBandwidthMeter);
-        // Produces Extractor instances for parsing the media data.
-        mExtractorsFactory = new DefaultExtractorsFactory();
-
-        mCacheDataSourceFactory = generateCacheDataSourceFactory();
-    }
-
-    private boolean prepare(String path) {
-        if (TextUtils.isEmpty(path)) {
-            /* todo 没有播放地址,传递错误 */
-            Toaster.showShort(this, "找不到播放地址");
-            return false;
-        }
-
-        /* 将带缓存的source作为资源传入,构建普通多媒体播放资源 */
-        MediaSource source = new ExtractorMediaSource(
-                Uri.parse(path),
-                path.startsWith("http") ? mCacheDataSourceFactory : mDataSourceFactory,
-                mExtractorsFactory,
-                new Handler(getMainLooper()) {
-                    @Override
-                    public void handleMessage(Message msg) {
-                        super.handleMessage(msg);
-                    }
-                },
-                new ExtractorMediaSource.EventListener() {
-                    @Override
-                    public void onLoadError(IOException error) {
-                        // 缓存中断 网络错误 TODO HttpDataSource.HttpDataSourceException
-                        // 但触发该异常并不代表当前播放被影响. 可能目前还在部分之前缓存的部分.
-                        // 最终播放被迫暂停要在 ExoPlayerEventListener.onPlayerError()中回调
-                    }
-                });
-
-        mPlayer.prepare(source);
-        return true;
-    }
-
-    private CacheDataSourceFactory generateCacheDataSourceFactory() {
-        SimpleCache simpleCache = new SimpleCache(getExternalFilesDir(Environment.DIRECTORY_MUSIC), new NoOpCacheEvictor());
-        /* 这个文件大小指的是单个缓存文件的尺寸2MB, 例如一首歌10MB,则需要5个缓存文件
-         * 同时它也会影响到缓存的时机.
-         * Exo会一次性缓存一个缓存文件大小的数据,然后当播放进度接近缓存的末端时开启新的缓存文件
-         * 可以参考{@link FileDataSource#write(byte[] buffer, int offset, int length)}
-         * 方法和{@link FileDataSource#openNextOutputStream()}方法
-         * 当一个文件写满后会开启一个新的文件继续写入*/
-        long cacheFileSize = CacheDataSource.DEFAULT_MAX_CACHE_FILE_SIZE;
-
-        /* 构建带缓存的Source */
-        return new CacheDataSourceFactory(
-                simpleCache,
-                mDataSourceFactory,
-                new FileDataSourceFactory(mBandwidthMeter),
-                new com.wosloveslife.fantasy.helper.CacheDataSinkFactory(simpleCache, cacheFileSize, mBandwidthMeter),
-                1,
-                new CacheDataSource.EventListener() {
-                    @Override
-                    public void onCachedBytesRead(long cacheSizeBytes, long cachedBytesRead) {
-                        Logger.d("cacheSizeBytes = " + cacheSizeBytes + "; cachedBytesRead = " + cachedBytesRead);
-                    }
-                });
     }
 
     private void resetPlayService() {
@@ -633,43 +505,5 @@ public class PlayService extends Service {
         if (event.mMusic.equals(mCurrentMusic)) {
             mNotificationHelper.update(isPlaying(), mCurrentMusic);
         }
-    }
-
-    //==================================记录生命周期-忽略===========================================
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        WLogger.w("onConfigurationChanged(Configuration newConfig)");
-    }
-
-    @Override
-    public void onLowMemory() {
-        super.onLowMemory();
-        WLogger.w("onLowMemory()");
-    }
-
-    @Override
-    public void onTrimMemory(int level) {
-        super.onTrimMemory(level);
-        WLogger.w("onTrimMemory(int level); level = " + level);
-    }
-
-    @Override
-    public boolean onUnbind(Intent intent) {
-        WLogger.w("onUnbind(Intent intent)");
-        return super.onUnbind(intent);
-    }
-
-    @Override
-    public void onRebind(Intent intent) {
-        super.onRebind(intent);
-        WLogger.w("onRebind(Intent intent)");
-    }
-
-    @Override
-    protected void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
-        super.dump(fd, writer, args);
-        WLogger.w("dump(FileDescriptor fd, PrintWriter writer, String[] args)");
     }
 }

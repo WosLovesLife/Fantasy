@@ -977,13 +977,13 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             @Override
             public void onAnimationCancel(Animator animation) {
                 super.onAnimationCancel(animation);
-                mFabProgressGlue.showLoading();
+//                mFabProgressGlue.showLoading();
             }
 
             @Override
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
-                mFabProgressGlue.showLoading();
+//                mFabProgressGlue.showLoading();
             }
         });
     }
@@ -1134,7 +1134,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     toggleTextOffset(mIsExpanded);
                     toggleControlBtn(mIsExpanded);
                     if (mIsExpanded) {
-                        mFabProgressGlue.show(true);
+                        mFabProgressGlue.show(false);
                         toggleFacBtn(isPlaying());
                         mLrcView.setVisibility(VISIBLE);
                     } else {

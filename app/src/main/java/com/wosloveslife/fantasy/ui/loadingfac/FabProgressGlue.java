@@ -18,8 +18,8 @@ import static android.view.View.VISIBLE;
 
 public class FabProgressGlue {
     private final int mProgressSize;
-    FloatingActionButton mFacBtn;
-    ProgressBar mProgressBar;
+    private FloatingActionButton mFacBtn;
+    private ProgressBar mProgressBar;
 
     public FabProgressGlue(FloatingActionButton facBtn, ProgressBar progressBar) {
         mFacBtn = facBtn;
@@ -28,14 +28,22 @@ public class FabProgressGlue {
         syncProgressSize();
     }
 
-    public void show(boolean loading) {
-        mFacBtn.show(new FloatingActionButton.OnVisibilityChangedListener() {
-            @Override
-            public void onShown(FloatingActionButton fab) {
-                super.onShown(fab);
+    public void show(final boolean loading) {
+        if (mFacBtn.isShown()) {
+            if (loading) {
                 showLoading();
             }
-        });
+        } else {
+            mFacBtn.show(new FloatingActionButton.OnVisibilityChangedListener() {
+                @Override
+                public void onShown(FloatingActionButton fab) {
+                    super.onShown(fab);
+                    if (loading) {
+                        showLoading();
+                    }
+                }
+            });
+        }
     }
 
     public void hide() {
