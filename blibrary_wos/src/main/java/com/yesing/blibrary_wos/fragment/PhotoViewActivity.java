@@ -137,14 +137,14 @@ public class PhotoViewActivity extends AppCompatActivity {
     protected void updateData() {
         Intent intent = getIntent();
         if (intent == null) {
-            Toaster.showShort(this, "打开异常");
+            Toaster.showShort("打开异常");
             finish();
             return;
         }
 
         ArrayList<String> arrayList = intent.getStringArrayListExtra(ARG_PHOTO_URLS);
         if (arrayList == null || arrayList.size() < 1) {
-            Toaster.showShort(this, "打开异常");
+            Toaster.showShort("打开异常");
             finish();
             return;
         }
@@ -386,7 +386,7 @@ public class PhotoViewActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toaster.showShort(PhotoViewActivity.this, finalMsg);
+                        Toaster.showShort(finalMsg);
                     }
                 });
             }

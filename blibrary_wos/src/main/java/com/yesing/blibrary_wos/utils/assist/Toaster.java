@@ -15,6 +15,12 @@ public class Toaster {
         throw new UnsupportedOperationException("cannot be instantiated");
     }
 
+    private static Context sContext;
+
+    public static void init(Context context) {
+        sContext = context.getApplicationContext();
+    }
+
     public static boolean isShow = true;
 
     private static void dispose(Context context, CharSequence message, int time) {
@@ -31,42 +37,42 @@ public class Toaster {
     /**
      * 短时间显示Toast
      */
-    public static void showShort(Context context, CharSequence message) {
-        dispose(context, message, Toast.LENGTH_SHORT);
+    public static void showShort(CharSequence message) {
+        dispose(sContext, message, Toast.LENGTH_SHORT);
     }
 
     /**
      * 短时间显示Toast
      */
-    public static void showShort(Context context, int message) {
-        showShort(context, context.getResources().getString(message));
+    public static void showShort(int message) {
+        showShort(sContext.getResources().getString(message));
     }
 
     /**
      * 长时间显示Toast
      */
-    public static void showLong(Context context, CharSequence message) {
-        dispose(context, message, Toast.LENGTH_LONG);
+    public static void showLong(CharSequence message) {
+        dispose(sContext, message, Toast.LENGTH_LONG);
     }
 
     /**
      * 长时间显示Toast
      */
-    public static void showLong(Context context, int message) {
-        showLong(context, context.getResources().getString(message));
+    public static void showLong(int message) {
+        showLong(sContext.getResources().getString(message));
     }
 
     /**
      * 自定义显示Toast时间
      */
-    public static void show(Context context, CharSequence message, int duration) {
-        dispose(context, message, duration);
+    public static void show(CharSequence message, int duration) {
+        dispose(sContext, message, duration);
     }
 
     /**
      * 自定义显示Toast时间
      */
-    public static void show(Context context, int message, int duration) {
-        dispose(context, context.getResources().getString(message), duration);
+    public static void show(int message, int duration) {
+        dispose(sContext, sContext.getResources().getString(message), duration);
     }
 }  

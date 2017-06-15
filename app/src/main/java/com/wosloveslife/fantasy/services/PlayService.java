@@ -427,7 +427,7 @@ public class PlayService extends Service {
                 }
                 break;
             case 4: // 桌面歌词
-                Toaster.showShort(this, "歌词");
+                Toaster.showShort("歌词");
                 break;
         }
 

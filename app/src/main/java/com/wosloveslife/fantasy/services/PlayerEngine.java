@@ -90,7 +90,7 @@ public class PlayerEngine {
     public boolean prepare(String path) {
         if (TextUtils.isEmpty(path)) {
             /* todo 没有播放地址,传递错误 */
-            Toaster.showShort(mContext, "找不到播放地址");
+            Toaster.showShort("找不到播放地址");
             return false;
         }
 

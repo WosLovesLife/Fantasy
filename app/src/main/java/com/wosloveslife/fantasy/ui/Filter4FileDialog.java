@@ -58,10 +58,10 @@ public class Filter4FileDialog extends DialogFragment {
     private void init() {
         List<BFolder> filter = CustomConfiguration.getFolders();
         if (filter == null) {
-            Toaster.showShort(getActivity(), "请等待播放器初始化完毕");
+            Toaster.showShort("请等待播放器初始化完毕");
             getDialog().dismiss();
         } else if (filter.size() == 0) {
-            Toaster.showShort(getActivity(), "没有任何包含歌曲的文件夹");
+            Toaster.showShort("没有任何包含歌曲的文件夹");
             getDialog().dismiss();
         } else {
             mAdapter.setData(filter);

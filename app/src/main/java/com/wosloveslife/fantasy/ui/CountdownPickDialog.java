@@ -52,6 +52,31 @@ public class CountdownPickDialog extends DialogFragment {
     Button mBtnSubmit;
     private int mLastCustomTime;
 
+    public static CountdownPickDialog newInstance(OnChosenListener listener) {
+
+        Bundle args = new Bundle();
+
+        CountdownPickDialog fragment = new CountdownPickDialog();
+        fragment.setArguments(args);
+        fragment.setOnChosenListener(listener);
+        return fragment;
+    }
+
+    OnChosenListener mOnChosenListener;
+
+    interface OnChosenListener{
+        void onChosen(Result result);
+    }
+
+    static class Result{
+        public int duration;
+        public boolean closeAfterPlayComplete;
+    }
+
+    public void setOnChosenListener(OnChosenListener listener){
+        mOnChosenListener = listener;
+    }
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {

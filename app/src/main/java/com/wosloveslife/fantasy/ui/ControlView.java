@@ -518,7 +518,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                         super.onError(e);
                         updateLrc(null);
                         if (NetWorkUtil.isNetWorkAvailable(getContext())) {
-                            Toaster.showShort(getContext(), "错误 " + e.getMessage());
+                            Toaster.showShort("错误 " + e.getMessage());
                         }
                     }
 

@@ -32,7 +32,7 @@ public class SystemServiceUtils {
         clipboard.setPrimaryClip(clipData);
 
         if (!TextUtils.isEmpty(alertText)) {
-            Toaster.showShort(context, alertText);
+            Toaster.showShort(alertText);
         }
     }
 
