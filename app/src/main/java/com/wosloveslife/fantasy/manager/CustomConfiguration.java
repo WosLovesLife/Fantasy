@@ -1,13 +1,18 @@
 package com.wosloveslife.fantasy.manager;
 
 import android.content.Context;
+import android.support.annotation.AnyThread;
+import android.support.annotation.Nullable;
+import android.text.TextUtils;
 
-import com.wosloveslife.fantasy.bean.BFolder;
-import com.wosloveslife.fantasy.dao.DbHelper;
+import com.wosloveslife.fantasy.dao.bean.BFolder;
 import com.wosloveslife.fantasy.helper.SPHelper;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Created by zhangh on 2017/2/7.
@@ -20,6 +25,7 @@ public class CustomConfiguration {
     private static final String KEY_MIN_DURATION = "setting.KEY_MIN_DURATION";
     private static final String KEY_CHANGE_SHEET_WITH_PLAY_LIST = "setting.KEY_CHANGE_SHEET_WITH_PLAY_LIST";
     private static final String KEY_PLAY_ORDER = "setting.KEY_PLAY_ORDER";
+    private static final String KEY_ALL_FOLDERS = "setting.KEY_ALL_FOLDERS";
 
     public static final int PLAY_ORDER_SUCCESSIVE = 0;
     public static final int PLAY_ORDER_REPEAT_ONE = 1;
@@ -29,7 +35,7 @@ public class CustomConfiguration {
     private static boolean sIsCloseAfterPlayEnd; // 定时关闭是否在当前歌曲播放完后(或中途暂停)再执行
     private static boolean sIsPlayControllerAutoExpand; // 是否跟随滑动自动展开
     private static int sMinDuration; // 歌曲过滤最小时间 单位 秒
-    private static boolean sChangeSheetWithPlayList; //
+    //    private static boolean sChangeSheetWithPlayList; //
     private static int sPlayOrder; //
 
     private static Context sContext;
@@ -41,7 +47,7 @@ public class CustomConfiguration {
         sIsCloseAfterPlayEnd = SPHelper.getInstance().get(KEY_CLOSE_AFTER_PLAY_END, false);
         sIsPlayControllerAutoExpand = SPHelper.getInstance().get(KEY_PLAY_CONTROLLER_AUTO_EXPAND, false);
         sMinDuration = SPHelper.getInstance().get(KEY_MIN_DURATION, 30);
-        sChangeSheetWithPlayList = SPHelper.getInstance().get(KEY_CHANGE_SHEET_WITH_PLAY_LIST, false);
+//        sChangeSheetWithPlayList = SPHelper.getInstance().get(KEY_CHANGE_SHEET_WITH_PLAY_LIST, false);
         sPlayOrder = SPHelper.getInstance().get(KEY_PLAY_ORDER, PLAY_ORDER_SUCCESSIVE);
     }
 
@@ -96,32 +102,46 @@ public class CustomConfiguration {
      * 保存包含音乐文件的全部文件夹.
      */
     public static void saveFolders(List<BFolder> folders) {
-        DbHelper.getFolderHelper().clear();
-        DbHelper.getFolderHelper().insertOrReplace(folders);
+        if (folders != null) {
+            JSONArray jsonArray = new JSONArray();
+            for (BFolder folder : folders) {
+                jsonArray.put(folder.safeToJson());
+            }
+            SPHelper.getInstance().save(KEY_ALL_FOLDERS, jsonArray.toString());
+        }
     }
 
     /**
      * 获取包含音乐文件的全部文件夹. 文件夹有两个属性,路径及是否被过滤
      */
+    @Nullable
+    @AnyThread
     public static List<BFolder> getFolders() {
-        return DbHelper.getFolderHelper().loadEntities();
+        String all = SPHelper.getInstance().get(KEY_ALL_FOLDERS, null);
+        if (!TextUtils.isEmpty(all)) {
+            List<BFolder> folders = new ArrayList<>();
+            try {
+                JSONArray jsonArray = new JSONArray(all);
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    folders.add(new BFolder(jsonArray.getJSONObject(i)));
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return folders;
+        }
+        return null;
     }
 
-    /**
-     * 只获取被过滤的文件夹集合
-     */
-    public static Set<String> getFilteredFolders() {
-        return DbHelper.getFolderHelper().getFilteredFolder();
-    }
-
-    public static void saveChangeSheetWithPlayList(boolean changeSheetWithPlayList) {
-        sChangeSheetWithPlayList = changeSheetWithPlayList;
-        SPHelper.getInstance().save(KEY_CHANGE_SHEET_WITH_PLAY_LIST, changeSheetWithPlayList);
-    }
-
-    public static boolean isChangeSheetWithPlayList() {
-        return sChangeSheetWithPlayList;
-    }
+    // TODO: 17/6/18 暂时禁用这种跟随歌单变化播放列表的特性
+//    public static void saveChangeSheetWithPlayList(boolean changeSheetWithPlayList) {
+//        sChangeSheetWithPlayList = changeSheetWithPlayList;
+//        SPHelper.getInstance().save(KEY_CHANGE_SHEET_WITH_PLAY_LIST, changeSheetWithPlayList);
+//    }
+//
+//    public static boolean isChangeSheetWithPlayList() {
+//        return sChangeSheetWithPlayList;
+//    }
 
     public static void savePlayOrder(int playOrder) {
         sPlayOrder = playOrder;

@@ -2,57 +2,47 @@ package com.wosloveslife.fantasy.manager;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.support.annotation.AnyThread;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
 
-import com.github.promeg.pinyinhelper.Pinyin;
+import com.wosloveslife.dao.Audio;
+import com.wosloveslife.dao.Sheet;
+import com.wosloveslife.dao.SheetIds;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.baidu.BaiduMusicInfo;
 import com.wosloveslife.fantasy.baidu.BaiduSearch;
-import com.wosloveslife.fantasy.bean.BMusic;
-import com.wosloveslife.fantasy.dao.DbHelper;
-import com.wosloveslife.fantasy.helper.SPHelper;
+import com.wosloveslife.fantasy.dao.engine.MusicProvider;
 import com.wosloveslife.fantasy.lrc.BLyric;
 
 import org.greenrobot.eventbus.EventBus;
 
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Set;
 
+import io.realm.RealmList;
 import rx.Observable;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by zhangh on 2017/1/2.
  */
 public class MusicManager {
-    private static final String KEY_LAST_SHEET = "fantasy.manager.MusicManager.KEY_LAST_SHEET";
     private static MusicManager sMusicManager;
 
+    //=============
     Context mContext;
 
     //=============Var
-    boolean mScanning;
 
     //=============Data
-    @Deprecated
-    List<String> mPinyinIndex;
-    List<BMusic> mMusicList;
-    private Set<String> mFavoredSheet;
-    BMusic mCurrentMusic;
-    private String mCurrentSheetOrdinal;
+    private MusicConfig mMusicConfig;
     private MusicInfoEngine mMusicInfoEngine;
 
-    private MusicManager() {
-        mPinyinIndex = new ArrayList<>();
-        mMusicList = new ArrayList<>();
-    }
 
-    public void init(Context context) {
-        mContext = context.getApplicationContext();
-        mMusicInfoEngine = new MusicInfoEngine(context);
-        dispose();
+    private MusicManager() {
     }
 
     public static MusicManager getInstance() {
@@ -66,282 +56,181 @@ public class MusicManager {
         return sMusicManager;
     }
 
+    @AnyThread
+    public void init(Context context) {
+        mMusicConfig = new MusicConfig();
+        mContext = context.getApplicationContext();
+        mMusicInfoEngine = new MusicInfoEngine(context);
+        Observable.just(context)
+                .map(new Func1<Object, Object>() {
+                    @Override
+                    public Object call(Object object) {
+                        dispose();
+                        return object;
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .subscribe();
+    }
+
+    @WorkerThread
     private void dispose() {
         loadLastSheet();
-
-        mFavoredSheet = DbHelper.getMusicHelper().loadFavored("1");
     }
 
     /**
      * 获取上一次关闭前停留的歌单
      */
+    @WorkerThread
     private void loadLastSheet() {
-        changeSheet(SPHelper.getInstance().get(KEY_LAST_SHEET, "0"));
-        if (mMusicList.size() == 0 && TextUtils.equals(mCurrentSheetOrdinal, "0")) {
+        String sheetId = mMusicConfig.mCurrentSheetId;
+        if (TextUtils.isEmpty(sheetId)) {
+            mMusicConfig.saveLastSheetId(SheetIds.LOCAL);
             scan();
+        } else {
+            changeSheet(sheetId);
+            if (checkNeedScan()) {
+                scan();
+            }
         }
     }
 
-    public void saveCurrentSheetOrdinal(String ordinal) {
-        mCurrentSheetOrdinal = ordinal;
-        SPHelper.getInstance().save(KEY_LAST_SHEET, ordinal);
+    private boolean checkNeedScan() {
+        return mMusicConfig.mMusicList.size() == 0 && TextUtils.equals(mMusicConfig.mCurrentSheetId, SheetIds.LOCAL);
     }
 
-    public String getCurrentSheetOrdinal() {
-        return mCurrentSheetOrdinal;
-    }
-
+    // TODO: 17/6/17  remove
+    @AnyThread
     private void scan() {
-        if (mScanning) return;
-        mScanning = true;
-        ScanResourceEngine.getMusicFromSystemDao(mContext).subscribe(new SubscriberAdapter<List<BMusic>>() {
-            @Override
-            public void onError(Throwable e) {
-                super.onError(e);
-                if (TextUtils.equals(mCurrentSheetOrdinal, "0")) {
-                    onGotData(null);
-                }
-                mScanning = false;
-            }
+        MusicProvider.scanSysDB(mContext)
+                .map(new Func1<List<Audio>, List<Audio>>() {
+                    @Override
+                    public List<Audio> call(List<Audio> audios) {
+                        MusicProvider.clearSheetEntities(SheetIds.LOCAL).toBlocking().first();
+                        MusicProvider.insertMusics(SheetIds.LOCAL, audios).toBlocking().first();
+                        return audios;
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .subscribe(new SubscriberAdapter<List<Audio>>() {
+                    @Override
+                    public void onError(Throwable e) {
+                        super.onError(e);
+                        if (TextUtils.equals(mMusicConfig.mCurrentSheetId, SheetIds.LOCAL)) {
+                            onGotData(null);
+                        }
+                    }
 
-            @Override
-            public void onNext(List<BMusic> bMusics) {
-                super.onNext(bMusics);
-                if (TextUtils.equals(mCurrentSheetOrdinal, "0")) {
-                    onGotData(bMusics);
-                }
-                mScanning = false;
-
-                DbHelper.getMusicHelper().remove("0");
-                if (bMusics != null && bMusics.size() > 0) {
-                    DbHelper.getMusicHelper().insertOrReplace(bMusics);
-                }
-            }
-        });
+                    @Override
+                    public void onNext(List<Audio> bMusics) {
+                        super.onNext(bMusics);
+                        if (TextUtils.equals(mMusicConfig.mCurrentSheetId, SheetIds.LOCAL)) {
+                            onGotData(bMusics);
+                        }
+                    }
+                });
     }
 
-    private void onGotData(List<BMusic> bMusics) {
-        if (bMusics != mMusicList) {
-            mPinyinIndex.clear();
-            mMusicList.clear();
+    @AnyThread
+    private void onGotData(List<Audio> bMusics) {
+        if (bMusics != mMusicConfig.mMusicList) {
+            mMusicConfig.mMusicList.clear();
 
             if (bMusics != null && bMusics.size() > 0) {
-                for (BMusic music : bMusics) {
-                    mPinyinIndex.add(Pinyin.toPinyin(music.title, ""));
-                }
-                mMusicList.addAll(bMusics);
+                mMusicConfig.mMusicList.addAll(bMusics);
             }
         }
 
-        if (mScanning) {
-            EventBus.getDefault().post(new OnScannedMusicEvent(mPinyinIndex, mMusicList));
-        } else {
-            EventBus.getDefault().post(new OnGotMusicEvent(mPinyinIndex, mMusicList));
-        }
+        EventBus.getDefault().post(new OnScannedMusicEvent(mMusicConfig.mMusicList));
+        EventBus.getDefault().post(new OnGotMusicEvent(mMusicConfig.mMusicList));
     }
 
-    //==============================================================================================
-    @Deprecated
-    public List<String> getPinyinIndex() {
-        return mPinyinIndex;
-    }
-
-    public List<BMusic> getMusicList() {
-        return mMusicList;
-    }
-
-    //==============================================================================================
-    public int getIndex(BMusic music) {
-        return mMusicList.indexOf(music);
-    }
-
-    public int getMusicCount() {
-        return mMusicList.size();
-    }
-
-    @Nullable
-    public BMusic getMusic(int position) {
-        if (position >= 0 && position < mMusicList.size()) {
-            return mMusicList.get(position);
-        }
-        return null;
-    }
-
-    @Nullable
-    public BMusic getMusic(String pinyin) {
-        if (!TextUtils.isEmpty(pinyin)) {
-            int index = mPinyinIndex.indexOf(pinyin);
-            return getMusic(index);
-        }
-        return null;
-    }
-
-    public BMusic getFirst() {
-        return getMusic(0);
-    }
-
-    public BMusic getLast() {
-        return getMusic(getMusicCount() - 1);
-    }
-
-    @Nullable
-    public BMusic getNext(BMusic music) {
-        if (music != null) {
-            int index = mMusicList.indexOf(music) + 1;
-            if (index < mMusicList.size()) {
-                return getMusic(index);
-            }
-            return getNext(music.titlePinyin);
-        }
-        return null;
-    }
-
-    @Nullable
-    public BMusic getNext(String pinyin) {
-        if (!TextUtils.isEmpty(pinyin)) {
-            int index = mPinyinIndex.indexOf(pinyin);
-            return getMusic(index + 1);
-        }
-        return null;
-    }
-
-    @Nullable
-    public BMusic getPrevious(BMusic music) {
-        if (music != null) {
-            int index = mMusicList.indexOf(music) - 1;
-            if (index >= 0) {
-                return getMusic(index);
-            }
-            return getPrevious(music.titlePinyin);
-        }
-        return null;
-    }
-
-    @Nullable
-    public BMusic getPrevious(String pinyin) {
-        if (!TextUtils.isEmpty(pinyin)) {
-            int index = mPinyinIndex.indexOf(pinyin);
-            return getMusic(index - 1);
-        }
-        return null;
-    }
-
+    //=======================================获取音乐-start===========================================
+    @AnyThread
     public void scanMusic() {
         scan();
     }
 
-    public List<BMusic> searchMusic(String title) {
-        return searchMusic(title, null);
+    @AnyThread
+    public Observable<List<Audio>> searchMusic(String query, @Nullable String sheetId) {
+        if (TextUtils.isEmpty(query)) {
+            return Observable.empty();
+        }
+        return MusicProvider.search(query, sheetId);
     }
 
-    public List<BMusic> searchMusic(String title, String belongTo) {
-        if (TextUtils.isEmpty(title)) {
-            return null;
-        }
-        if (TextUtils.isEmpty(belongTo)) {
-            return DbHelper.getMusicHelper().search(title);
-        } else {
-            return DbHelper.getMusicHelper().search(title, belongTo);
-        }
+    /** 获取歌曲/歌单的Holder */
+    @AnyThread
+    @NonNull
+    public MusicConfig getMusicConfig() {
+        return mMusicConfig;
     }
 
     //=========================================歌单操作=============================================
 
     /**
      * 变更当前的播放列表, 通常是用户在一个列表上播放了一首歌才会造成播放列表的切换<br/>
-     * 如果只是变更歌曲列表的内容, 应该使用{@link MusicManager#getMusicSheet(String)}方法
+     * 如果只是变更歌曲列表的内容, 应该使用{@link MusicProvider#loadMusicBySheet(String)}方法
      *
-     * @param ordinal 歌单序列号
+     * @param sheetId 歌单序列号
      */
-    public void changeSheet(String ordinal) {
-        saveCurrentSheetOrdinal(ordinal);
-        onGotData(getMusicSheet(ordinal));
+    @AnyThread
+    public Observable<List<Audio>> changeSheet(String sheetId) {
+        return MusicProvider.loadMusicBySheet(sheetId).map(new Func1<List<Audio>, List<Audio>>() {
+            @Override
+            public List<Audio> call(List<Audio> audios) {
+                onGotData(audios);
+                return audios;
+            }
+        });
     }
 
     //==============我的收藏
-    public void addFavor(BMusic bMusic) {
-        if (bMusic == null) return;
-        if (!mFavoredSheet.contains(bMusic.title)) {
-            mFavoredSheet.add(bMusic.title);
-            EventBus.getDefault().post(new OnAddMusic(bMusic, "1"));
-
-            BMusic favorMusic = new BMusic(bMusic);
-            favorMusic.joinTimestamp = new Date();
-            addMusicBelongTo(favorMusic, "1");
-        }
+    public Observable<Boolean> addFavor(Audio audio) {
+        return MusicProvider.addMusic2Sheet(audio, mMusicConfig.mSheets.get(SheetIds.FAVORED));
     }
 
-    public void removeFavor(BMusic bMusic) {
-        if (bMusic == null) return;
-        if (mFavoredSheet.contains(bMusic.title)) {
-            mFavoredSheet.remove(bMusic.title);
-            EventBus.getDefault().post(new OnRemoveMusic(bMusic, "1"));
-            removeMusicBelongFrom(bMusic, "1");
-        }
+    @AnyThread
+    public Observable<Boolean> removeFavor(Audio audio) {
+        return MusicProvider.removeMusicFromSheet(audio, mMusicConfig.mSheets.get(SheetIds.FAVORED));
     }
 
-    public List<BMusic> getFavored() {
-        return getMusicSheet("1");
+    @AnyThread
+    public Observable<List<Audio>> getFavored() {
+        return MusicProvider.loadMusicBySheet(SheetIds.FAVORED);
     }
 
     //==============播放记录
-    public void addRecent(BMusic bMusic) {
-        if (bMusic == null) return;
-        BMusic newRecent = new BMusic(bMusic);
-        newRecent.joinTimestamp = new Date();
-        EventBus.getDefault().post(new OnMusicChanged(newRecent, "2"));
-        addMusicBelongTo(newRecent, "2");
+
+    @AnyThread
+    public void addRecent(Audio audio) {
+        if (audio == null) return;
+        Audio newRecent = new Audio(audio);
+        newRecent.joinTimestamp = System.currentTimeMillis();
+        EventBus.getDefault().post(new OnMusicChanged(newRecent, SheetIds.RECENT));
+        MusicProvider.addMusic2Sheet(newRecent, mMusicConfig.mSheets.get(SheetIds.FAVORED));
     }
 
-    public void removeRecent(BMusic bMusic) {
-        if (bMusic == null) return;
-        removeMusicBelongFrom(bMusic, "2");
+    @AnyThread
+    public void removeRecent(Audio audio) {
+        if (audio == null) return;
+        MusicProvider.removeMusicFromSheet(audio, mMusicConfig.mSheets.get(SheetIds.FAVORED));
     }
 
-    public List<BMusic> getRecentMusic() {
-        return getMusicSheet("2");
+    @AnyThread
+    public Observable<List<Audio>> getRecentMusic() {
+        return MusicProvider.loadMusicBySheet(SheetIds.RECENT);
     }
 
     //==============通用
-    public boolean isFavored(BMusic music) {
-        return music != null && mFavoredSheet.contains(music.title);
-    }
-
-    public void removeMusicFromCurrentSheet(BMusic bMusic, boolean withImmediate) {
-        if (bMusic == null) return;
-        DbHelper.getMusicHelper().remove(bMusic);
-        if (withImmediate) {
-            mMusicList.remove(bMusic);
-            /* TODO 通知页面刷新 */
+    @AnyThread
+    public boolean isFavored(Audio audio) {
+        Sheet sheet = mMusicConfig.mSheets.get(SheetIds.FAVORED);
+        if (sheet == null){
+            return false;
         }
-    }
-
-    //==============封装
-    private void addMusicBelongTo(BMusic bMusic, String belong) {
-        if (bMusic == null) return;
-        BMusic newMusic = new BMusic(bMusic);
-        newMusic.setBelongTo(belong);
-        DbHelper.getMusicHelper().insertOrReplace(newMusic);
-    }
-
-    private void removeMusicBelongFrom(BMusic bMusic, String belong) {
-        if (TextUtils.isEmpty(bMusic.songId) || TextUtils.isEmpty(belong)) return;
-        DbHelper.getMusicHelper().removeById(bMusic.songId, belong);
-//        /* TODO 临时办法,如果一首歌曲的路径包含该关键字说明是网络歌曲,则其path路径是随机的,因此通过模糊方法将含有该songId的歌曲删掉 */
-//        if (bMusic.path.contains(".mp3?")) {
-//            String substring = bMusic.path.substring(0, bMusic.path.indexOf(".mp3?xcode"));
-//            DbHelper.getMusicHelper().removeVague(substring, belong);
-//        }
-    }
-
-    /**
-     * 根据歌单序号获取歌曲列表
-     *
-     * @param belong 歌单序号
-     * @return 歌曲列表
-     */
-    public List<BMusic> getMusicSheet(String belong) {
-        return DbHelper.getMusicHelper().loadSheet(belong);
+        RealmList<Audio> songs = sheet.songs;
+        return audio != null && songs != null && songs.contains(audio);
     }
 
     //=======================================获取歌曲信息===========================================
@@ -352,11 +241,11 @@ public class MusicManager {
      * @param music      歌曲对象
      * @param bitmapSize 压缩后的大小,提高速度,避免OOM
      */
-    public Observable<Bitmap> getAlbum(final BMusic music, final int bitmapSize) {
+    public Observable<Bitmap> getAlbum(final Audio music, final int bitmapSize) {
         return mMusicInfoEngine.getAlbum(music, bitmapSize);
     }
 
-    public Observable<BLyric> getLrc(final BMusic bMusic) {
+    public Observable<BLyric> getLrc(final Audio bMusic) {
         return mMusicInfoEngine.getLrc(bMusic);
     }
 
@@ -371,48 +260,46 @@ public class MusicManager {
     //========================================事件==================================================
 
     public static class OnGotMusicEvent {
-        public List<String> mPinyinIndex;
-        public List<BMusic> mBMusicList;
+        public List<Audio> mBMusicList;
 
-        public OnGotMusicEvent(List<String> pinyinIndex, List<BMusic> bMusics) {
-            mPinyinIndex = pinyinIndex;
+        public OnGotMusicEvent(List<Audio> bMusics) {
             mBMusicList = bMusics;
         }
     }
 
     public static class OnScannedMusicEvent extends OnGotMusicEvent {
-        public OnScannedMusicEvent(List<String> pinyinIndex, List<BMusic> bMusics) {
-            super(pinyinIndex, bMusics);
+        public OnScannedMusicEvent(List<Audio> bMusics) {
+            super(bMusics);
         }
     }
 
     public static class OnRemoveMusic {
-        public BMusic mMusic;
+        public Audio mMusic;
         public String mBelongTo;
 
-        public OnRemoveMusic(BMusic music, String belongTo) {
+        public OnRemoveMusic(Audio music, String belongTo) {
             mMusic = music;
             mBelongTo = belongTo;
         }
     }
 
     public static class OnAddMusic {
-        public BMusic mMusic;
-        public String mBelongTo;
+        public Audio mMusic;
+        public String mSheetId;
 
-        public OnAddMusic(BMusic music, String belongTo) {
+        public OnAddMusic(Audio music, String sheetId) {
             mMusic = music;
-            mBelongTo = belongTo;
+            mSheetId = sheetId;
         }
     }
 
     public static class OnMusicChanged {
-        public BMusic mMusic;
-        public String mBelongTo;
+        public Audio mMusic;
+        public String mSheetId;
 
-        public OnMusicChanged(BMusic music, String belongTo) {
+        public OnMusicChanged(Audio music, String sheetId) {
             mMusic = music;
-            mBelongTo = belongTo;
+            mSheetId = sheetId;
         }
     }
 }

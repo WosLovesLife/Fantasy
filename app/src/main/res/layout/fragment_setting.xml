@@ -110,12 +110,14 @@
         android:gravity="center_vertical"
         android:text="高级"/>
 
+    <!--暂时禁用跟随歌单变换播放列表-->
     <FrameLayout
         android:id="@+id/fl_changeSheetWithPlayList"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="@drawable/ripple_btn"
         android:paddingLeft="16dp"
+        android:visibility="gone"
         android:paddingRight="16dp">
 
         <TextView

@@ -6,8 +6,8 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.wosloveslife.dao.Audio;
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.bean.BMusic;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.viewHolder.BaseRecyclerViewHolder;
 
@@ -18,13 +18,13 @@ import butterknife.OnClick;
 /**
  * Created by zhangh on 2017/1/2.
  */
-public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
+public class MusicListAdapter extends BaseRecyclerViewAdapter<Audio> {
 
-    BMusic mPlayingItem;
+    Audio mPlayingItem;
     boolean mPlaying;
 
     @Override
-    protected BaseRecyclerViewHolder<BMusic> onCreateItemViewHolder(ViewGroup parent, int viewType) {
+    protected BaseRecyclerViewHolder<Audio> onCreateItemViewHolder(ViewGroup parent, int viewType) {
         return new Holder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_music, parent, false));
     }
 
@@ -80,7 +80,7 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
         }
     }
 
-    class Holder extends BaseRecyclerViewHolder<BMusic> {
+    class Holder extends BaseRecyclerViewHolder<Audio> {
         @BindView(R.id.tv_id)
         TextView mTvId;
         @BindView(R.id.tv_title)
@@ -94,7 +94,7 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
 
         //=================
         private int mPosition;
-        private BMusic mMusic;
+        private Audio mMusic;
 
         public Holder(View itemView) {
             super(itemView);
@@ -108,7 +108,7 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
         }
 
         @Override
-        public void onBind(BMusic music, int position) {
+        public void onBind(Audio music, int position) {
             mMusic = music;
             mPosition = position;
 
@@ -127,7 +127,7 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<BMusic> {
                 mIvState.setVisibility(View.GONE);
             }
 
-            if (music.mIsOnline) {
+            if (music.isOnline()) {
                 mIvSource.setVisibility(View.VISIBLE);
             } else {
                 mIvSource.setVisibility(View.GONE);

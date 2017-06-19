@@ -17,6 +17,7 @@
     <color name="gray_holy_light">#F7F4F4</color>
     <color name="gray_light">#E5E5E5</color>
     <color name="gray_text">#AACACACA</color>
+    <color name="gray_bg_translucent">#5f000000</color>
     <color name="gray_press">#cccccc</color>
     <color name="gray_portrait">#B9BAB9</color>
     <color name="gray_disable">#B2B2B2</color>

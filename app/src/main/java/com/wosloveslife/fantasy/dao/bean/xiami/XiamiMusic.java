@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy.bean.xiami;
+package com.wosloveslife.fantasy.dao.bean.xiami;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;

@@ -9,7 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.bean.NavigationItem;
+import com.wosloveslife.fantasy.dao.bean.NavigationItem;
 import com.wosloveslife.fantasy.utils.FormatUtils;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.viewHolder.BaseRecyclerViewHolder;

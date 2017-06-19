@@ -12,8 +12,8 @@ import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.gson.Gson;
+import com.wosloveslife.dao.Audio;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
-import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.broadcast.AudioBroadcast;
 import com.wosloveslife.fantasy.broadcast.BroadcastManager;
 import com.wosloveslife.fantasy.helper.AudioHelper;
@@ -52,7 +52,7 @@ public class PlayService extends Service {
     private SimpleExoPlayer mPlayer;
 
     //============数据
-    BMusic mCurrentMusic;
+    Audio mCurrentMusic;
 
     //============变量
     public int mPlayOrder;
@@ -79,8 +79,8 @@ public class PlayService extends Service {
 
     public class PlayBinder extends Binder implements IPlay {
         //========================================播放相关-start====================================
-        public void play(BMusic music) {
-            PlayService.this.play(music);
+        public void play(Audio audio) {
+            PlayService.this.play(audio);
         }
 
         public void togglePlayOrPause() {
@@ -121,7 +121,7 @@ public class PlayService extends Service {
             return PlayService.this.getExoPlayer();
         }
 
-        public BMusic getCurrentMusic() {
+        public Audio getCurrentMusic() {
             return PlayService.this.getCurrentMusic();
         }
 
@@ -182,17 +182,17 @@ public class PlayService extends Service {
      * 将歌曲资源序列化存储本地<br/>
      * 如果资源为null,尝试暂停现有播放<br/>
      *
-     * @param music 要播放的歌曲资源
+     * @param audio 要播放的歌曲资源
      */
-    public void play(BMusic music) {
-        mCurrentMusic = music;
+    public void play(Audio audio) {
+        mCurrentMusic = audio;
         if (mCurrentMusic != null) {
             /* 这里有一个未知的Bug，调用过ExoPlayer.seekTo()方法后,跳转歌曲的一瞬间进度会闪烁一下,
              * 导致歌词控件同步也会迅速滚动歌词一下, 因此这里在播放一首歌之前先将之前的歌的进度归零 */
             mPlayer.seekTo(0);
-            if (mPlayerEngine.prepare(music.path)) {
+            if (mPlayerEngine.prepare(audio.path)) {
                 play();
-                MusicManager.getInstance().addRecent(music);
+                MusicManager.getInstance().addRecent(audio);
                 SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
             } else {
                 pause();
@@ -251,21 +251,21 @@ public class PlayService extends Service {
      * 如果第一首歌也没有了,则抛出异常
      */
     public void next() {
-        BMusic next = null;
+        Audio next = null;
         switch (CustomConfiguration.getPlayOrder()) {
             case CustomConfiguration.PLAY_ORDER_SUCCESSIVE:
-                next = MusicManager.getInstance().getNext(mCurrentMusic);
+                next = MusicManager.getInstance().getMusicConfig().getNext(mCurrentMusic);
                 if (next == null) {
-                    next = MusicManager.getInstance().getFirst();
+                    next = MusicManager.getInstance().getMusicConfig().getFirst();
                 }
                 break;
             case CustomConfiguration.PLAY_ORDER_REPEAT_ONE:
                 next = mCurrentMusic;
                 break;
             case CustomConfiguration.PLAY_ORDER_RANDOM:
-                int nextInt = new Random().nextInt(MusicManager.getInstance().getMusicCount());
+                int nextInt = new Random().nextInt(MusicManager.getInstance().getMusicConfig().getMusicCount());
                 WLogger.d("next : nextIndex = " + nextInt);
-                next = MusicManager.getInstance().getMusic(nextInt);
+                next = MusicManager.getInstance().getMusicConfig().getMusic(nextInt);
                 break;
         }
 
@@ -283,10 +283,10 @@ public class PlayService extends Service {
      * 如果最后一首歌也没有了,则抛出异常
      */
     public void previous() {
-        BMusic previous = MusicManager.getInstance().getPrevious(mCurrentMusic);
+        Audio previous = MusicManager.getInstance().getMusicConfig().getPrevious(mCurrentMusic);
         /* 如果下一首没有了,则获取第1首歌曲 */
         if (previous == null) {
-            previous = MusicManager.getInstance().getLast();
+            previous = MusicManager.getInstance().getMusicConfig().getLast();
         }
 
         /* 如果第一首歌也没有了,则说明发生了异常状况 */
@@ -313,7 +313,7 @@ public class PlayService extends Service {
         return mPlayer;
     }
 
-    public BMusic getCurrentMusic() {
+    public Audio getCurrentMusic() {
         return mCurrentMusic;
     }
 
@@ -390,7 +390,7 @@ public class PlayService extends Service {
 
         String currentMusic = SPHelper.getInstance().get("current_music", "");
         if (!TextUtils.isEmpty(currentMusic)) {
-            mCurrentMusic = new Gson().fromJson(currentMusic, BMusic.class);
+            mCurrentMusic = new Gson().fromJson(currentMusic, Audio.class);
             mPlayerEngine.prepare(mCurrentMusic.path);
         }
 

@@ -11,12 +11,12 @@ import com.bumptech.glide.request.target.SimpleTarget;
 import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.Mp3File;
 import com.orhanobut.logger.Logger;
+import com.wosloveslife.dao.Audio;
+import com.wosloveslife.dao.store.AudioStore;
 import com.wosloveslife.fantasy.album.AlbumFile;
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
 import com.wosloveslife.fantasy.baidu.BaiduMusicInfo;
 import com.wosloveslife.fantasy.baidu.BaiduSearch;
-import com.wosloveslife.fantasy.bean.BMusic;
-import com.wosloveslife.fantasy.dao.DbHelper;
 import com.wosloveslife.fantasy.lrc.BLyric;
 import com.wosloveslife.fantasy.lrc.LrcFile;
 import com.wosloveslife.fantasy.lrc.LrcParser;
@@ -41,7 +41,7 @@ public class MusicInfoEngine {
     private final Context mContext;
 
     public MusicInfoEngine(Context context) {
-        mContext = context;
+        mContext = context.getApplicationContext();
         mPresenter = new MusicPresenter(mContext);
     }
 
@@ -53,7 +53,7 @@ public class MusicInfoEngine {
      * @param music      歌曲对象
      * @param bitmapSize 压缩后的大小,提高速度,避免OOM
      */
-    public Observable<Bitmap> getAlbum(final BMusic music, final int bitmapSize) {
+    public Observable<Bitmap> getAlbum(final Audio music, final int bitmapSize) {
         final Observable<Bitmap> fileOb = Observable.create(new Observable.OnSubscribe<Bitmap>() {
             @Override
             public void call(Subscriber<? super Bitmap> subscriber) {
@@ -105,7 +105,7 @@ public class MusicInfoEngine {
 
                         if (TextUtils.equals(music.album, albumTitle)) {
                             music.album = albumTitle;
-                            DbHelper.getMusicHelper().insertOrReplace(music);
+                            AudioStore.insertOrReplace(music).toBlocking().first();
                         }
                         return getAlbumByAddress(albumAddress, music.album, bitmapSize);
                     }
@@ -133,7 +133,7 @@ public class MusicInfoEngine {
                     })
                     .concatMap(info2BitmapOb);
         } else {
-            netOb = mPresenter.getMusicInfo(music.songId).concatMap(info2BitmapOb);
+            netOb = mPresenter.getMusicInfo(music.id).concatMap(info2BitmapOb);
         }
 
         return fileOb
@@ -182,11 +182,11 @@ public class MusicInfoEngine {
         return bitmap;
     }
 
-    public Observable<BLyric> getLrc(final BMusic bMusic) {
+    public Observable<BLyric> getLrc(final Audio audio) {
         Observable<BLyric> fileOb = Observable.create(new Observable.OnSubscribe<BLyric>() {
             @Override
             public void call(Subscriber<? super BLyric> subscriber) {
-                String lrc = LrcFile.getLrc(mContext, bMusic.title);
+                String lrc = LrcFile.getLrc(mContext, audio.title);
                 if (!TextUtils.isEmpty(lrc)) {
                     BLyric bLyric = LrcParser.parseLrc(lrc);
                     if (bLyric != null) {
@@ -198,18 +198,18 @@ public class MusicInfoEngine {
             }
         });
 
-        String query = bMusic.title + (TextUtils.equals(bMusic.artist, "<unknown>") ? " " : " " + bMusic.artist);
+        String query = audio.title + (TextUtils.equals(audio.artist, "<unknown>") ? " " : " " + audio.artist);
         Observable<BLyric> id3v2Ob = Observable.create(new Observable.OnSubscribe<BLyric>() {
             @Override
             public void call(Subscriber<? super BLyric> subscriber) {
                 try {
-                    Mp3File mp3file = new Mp3File(bMusic.path);
+                    Mp3File mp3file = new Mp3File(audio.path);
                     if (mp3file.hasId3v2Tag()) {
                         String lyrics = mp3file.getId3v2Tag().getLyrics();
                         if (!TextUtils.isEmpty(lyrics)) {
                             BLyric bLyric = LrcParser.parseLrc(lyrics);
                             if (bLyric != null) {
-                                LrcFile.saveLrc(mContext, bMusic.title, lyrics);
+                                LrcFile.saveLrc(mContext, audio.title, lyrics);
                                 subscriber.onNext(bLyric);
                             }
                         }
@@ -228,7 +228,7 @@ public class MusicInfoEngine {
                 if (baiduLrc != null) {
                     String lrc = baiduLrc.getLrcContent();
                     if (!TextUtils.isEmpty(lrc)) {
-                        LrcFile.saveLrc(mContext, bMusic.title, lrc);
+                        LrcFile.saveLrc(mContext, audio.title, lrc);
                         bLyric = LrcParser.parseLrc(lrc);
                     }
                 }

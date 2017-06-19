@@ -11,9 +11,9 @@ import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.widget.RemoteViews;
 
+import com.wosloveslife.dao.Audio;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
-import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.services.PlayService;
 import com.wosloveslife.fantasy.ui.MusicListActivity;
@@ -33,7 +33,7 @@ public class NotificationHelper {
     private final int mAlbumSize;
     private Notification mNotification;
     private RemoteViews mRemoteViews;
-    private BMusic mCurrentMusic;
+    private Audio mCurrentMusic;
 
     private boolean mIsShown;
 
@@ -100,7 +100,7 @@ public class NotificationHelper {
         }
     }
 
-    public void update(final boolean isPlaying, final BMusic music) {
+    public void update(final boolean isPlaying, final Audio music) {
         Observable.create(new Observable.OnSubscribe<Object>() {
             @Override
             public void call(Subscriber<? super Object> subscriber) {

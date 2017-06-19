@@ -36,15 +36,19 @@ public class Migration implements RealmMigration {
                     .addField(Audio.JOIN_TIMESTAMP, long.class);
 
             // 文件夹
-            schema.create("SongList")
-                    .addField(SongList.ID, long.class, FieldAttribute.PRIMARY_KEY)
-                    .addField(SongList.TITLE, String.class)
-                    .addField(SongList.AUTHOR, String.class)
-                    .addField(SongList.TITLE_PINYIN, String.class)
-                    .addField(SongList.AUTHOR_PINYIN, String.class)
-                    .addRealmListField(SongList.SONGS, schema.get("RealmUser"))
-                    .addField(SongList.CREATE_TIMESTAMP, long.class)
-                    .addField(SongList.MODIFY_TIMESTAMP, long.class);
+            schema.create("Sheet")
+                    .addField(Sheet.ID, long.class, FieldAttribute.PRIMARY_KEY)
+                    .addField(Sheet.TITLE, String.class)
+                    .addField(Sheet.AUTHOR, String.class)
+                    .addField(Sheet.TITLE_PINYIN, String.class)
+                    .addField(Sheet.AUTHOR_PINYIN, String.class)
+                    .addRealmListField(Sheet.SONGS, schema.get("Audio"))
+                    .addField(Sheet.CREATE_TIMESTAMP, long.class)
+                    .addField(Sheet.MODIFY_TIMESTAMP, long.class);
+
+            //
+            schema.get("Audio")
+                    .addRealmListField(Audio.SONG_LIST, schema.get("Sheet"));
 
             oldVersion++;
         }

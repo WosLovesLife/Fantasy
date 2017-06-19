@@ -58,11 +58,11 @@ import com.google.android.exoplayer2.Timeline;
 import com.makeramen.roundedimageview.RoundedImageView;
 import com.mpatric.mp3agic.ID3v2;
 import com.orhanobut.logger.Logger;
+import com.wosloveslife.dao.Audio;
 import com.wosloveslife.fantasy.App;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
-import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.lrc.BLyric;
 import com.wosloveslife.fantasy.lrc.LrcView;
@@ -148,7 +148,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     LrcView mLrcView;
 
     //==============
-    private BMusic mCurrentMusic;
+    private Audio mCurrentMusic;
     private boolean mIsOnline;
 
     //=============
@@ -458,7 +458,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
      * @param music
      */
     @UiThread
-    public void syncPlayView(BMusic music) {
+    public void syncPlayView(Audio music) {
         if (music == null || mPlayer == null) return;
 
         if (isPlaying()) {

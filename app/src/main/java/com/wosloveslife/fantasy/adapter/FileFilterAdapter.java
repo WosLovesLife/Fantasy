@@ -8,7 +8,7 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.bean.BFolder;
+import com.wosloveslife.fantasy.dao.bean.BFolder;
 import com.wosloveslife.fantasy.utils.FormatUtils;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.viewHolder.BaseRecyclerViewHolder;
@@ -45,12 +45,12 @@ public class FileFilterAdapter extends BaseRecyclerViewAdapter<BFolder> {
 
         @Override
         public void onBind(final BFolder folder, int position) {
-            mTvFilePath.setText(FormatUtils.trimEnvironmentPath(folder.getFilePath()));
-            mCheckbox.setChecked(folder.getIsFiltered());
+            mTvFilePath.setText(FormatUtils.trimEnvironmentPath(folder.filePath));
+            mCheckbox.setChecked(folder.isFiltered);
             mCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                    folder.setIsFiltered(isChecked);
+                    folder.isFiltered = isChecked;
                 }
             });
         }

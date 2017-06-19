@@ -17,7 +17,15 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".ui.SettingActivity"/>
+            android:name=".ui.MusicListActivity"
+            android:launchMode="singleTask"
+            android:theme="@style/AppTheme.Translucent.Splash">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
 
         <service
             android:name=".services.PlayService"

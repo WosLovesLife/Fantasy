@@ -12,8 +12,8 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.wosloveslife.dao.Audio;
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.bean.BMusic;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.viewHolder.BaseRecyclerViewHolder;
@@ -28,7 +28,7 @@ import rx.android.schedulers.AndroidSchedulers;
  * Created by zhangh on 2017/2/21.
  */
 
-public class SearchResultAdapter extends BaseRecyclerViewAdapter<BMusic> {
+public class SearchResultAdapter extends BaseRecyclerViewAdapter<Audio> {
 
     private int mAlbumSize;
     private ForegroundColorSpan mForegroundColorSpan;
@@ -38,7 +38,7 @@ public class SearchResultAdapter extends BaseRecyclerViewAdapter<BMusic> {
     }
 
     @Override
-    protected BaseRecyclerViewHolder<BMusic> onCreateItemViewHolder(ViewGroup parent, int viewType) {
+    protected BaseRecyclerViewHolder<Audio> onCreateItemViewHolder(ViewGroup parent, int viewType) {
         if (mForegroundColorSpan == null) {
             mAlbumSize = Dp2Px.toPX(parent.getContext(), 40);
             mForegroundColorSpan = new ForegroundColorSpan(parent.getContext().getResources().getColor(R.color.blue_a700));
@@ -46,7 +46,7 @@ public class SearchResultAdapter extends BaseRecyclerViewAdapter<BMusic> {
         return new Holder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_search_result, parent, false));
     }
 
-    class Holder extends BaseRecyclerViewHolder<BMusic> {
+    class Holder extends BaseRecyclerViewHolder<Audio> {
         @BindView(R.id.iv_album)
         ImageView mIvAlbum;
         @BindView(R.id.iv_more_btn)
@@ -73,9 +73,9 @@ public class SearchResultAdapter extends BaseRecyclerViewAdapter<BMusic> {
         }
 
         @Override
-        public void onBind(final BMusic bMusic, final int position) {
-            mTvTitle.setText(hasKeyWord(bMusic.getTitle()));
-            mTvArtist.setText(hasKeyWord(bMusic.getArtist()));
+        public void onBind(final Audio bMusic, final int position) {
+            mTvTitle.setText(hasKeyWord(bMusic.title));
+            mTvArtist.setText(hasKeyWord(bMusic.artist));
 
             mIvAlbum.setVisibility(View.INVISIBLE);
             MusicManager.getInstance()

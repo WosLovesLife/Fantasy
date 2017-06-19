@@ -13,7 +13,7 @@ import android.view.View;
 
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.FileFilterAdapter;
-import com.wosloveslife.fantasy.bean.BFolder;
+import com.wosloveslife.fantasy.dao.bean.BFolder;
 import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 

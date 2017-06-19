@@ -6,7 +6,6 @@ import android.content.Intent;
 
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.dao.Migration;
-import com.wosloveslife.fantasy.dao.DbHelper;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.wosloveslife.fantasy.manager.MusicManager;
@@ -58,7 +57,6 @@ public class App extends Application {
     }
 
     private void initManager() {
-        DbHelper.init(this);
         SPHelper.getInstance().init(this);
         CustomConfiguration.init(this);
         MusicManager.getInstance().init(this);

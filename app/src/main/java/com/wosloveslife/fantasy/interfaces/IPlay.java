@@ -3,7 +3,7 @@ package com.wosloveslife.fantasy.interfaces;
 import android.support.annotation.IntDef;
 
 import com.google.android.exoplayer2.ExoPlayer;
-import com.wosloveslife.fantasy.bean.BMusic;
+import com.wosloveslife.dao.Audio;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -22,7 +22,7 @@ public interface IPlay {
     @interface PlayState {
     }
 
-    void play(BMusic music);
+    void play(Audio audio);
 
     void play();
 

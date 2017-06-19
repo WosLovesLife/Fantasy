@@ -1,53 +1,37 @@
 package com.wosloveslife.dao;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
+import io.realm.RealmList;
 import io.realm.RealmObject;
 
 /**
  * Created by zhangh on 2017/6/14.
  */
 
-public class Audio extends RealmObject{
-    public static final String ID = "id";
-
-    public static final String TITLE = "title";
-    public static final String ARTIST = "artist";
-    public static final String ALBUM = "album";
-    public static final String TITLE_PINYIN = "titlePinyin";
-    public static final String ARTIST_PINYIN = "artistPinyin";
-    public static final String ALBUM_PINYIN = "albumPinyin";
-
-    public static final String PATH = "path";
-    public static final String DURATION = "duration";
-    public static final String SIZE = "size";
-    /** 年份 int */
-    public static final String YEAR = "year";
-    /** 音轨 int */
-    public static final String TRACK = "track";
-    /** 光盘编号 int */
-    public static final String DISC_ID = "discId";
-
-    /** 音频文件是音乐 */
-    public static final String IS_MUSIC = "isMusic";
-    public static final String IS_ALARM = "isAlarm";
-    public static final String IS_RINGTONE = "isRingtone";
-    public static final String IS_PODCAST = "isPodcast";
-    public static final String IS_NOTIFICATION = "isNotification";
-    public static final String JOIN_TIMESTAMP = "joinTimestamp";
-
+public class Audio extends RealmObject implements AudioProperties {
     /** 用来判断一首歌的唯一值 */
+    @NonNull
     public String id;
 
     /** 资源名(歌曲名) */
+    @Nullable
     public String title;
     /** 艺术家(歌手) */
+    @Nullable
     public String artist;
     /** 专辑名 */
+    @Nullable
     public String album;
     /** 资源名的拼音形式, 用于排序 */
+    @Nullable
     public String titlePinyin;
     /** 艺术家的拼音形式, 用于排序 */
+    @Nullable
     public String artistPinyin;
     /** 专辑的拼音形式, 用于排序 */
+    @Nullable
     public String albumPinyin;
 
     /** url路径,一般是本地文件路径, 如果是在线资源则对应网络url */
@@ -74,6 +58,9 @@ public class Audio extends RealmObject{
     public boolean isNotification;
     /** 是否是播客电台,对应系统的数据0为false */
     public boolean isPodcast;
+    /** 所属歌单 */
+    @Nullable
+    public RealmList<Sheet> songList;
 
     /**
      * 这首歌所在的音乐列表, 这个字段很关键, 它需要和歌单列表数据表所对应上.<br/>
@@ -88,4 +75,55 @@ public class Audio extends RealmObject{
      */
 //    private String belongTo;
     public long joinTimestamp;
+
+    public Audio() {
+    }
+
+    public Audio(Audio audio) {
+        id = audio.id;
+        title = audio.title;
+        artist = audio.artist;
+        album = audio.album;
+        titlePinyin = audio.titlePinyin;
+        artistPinyin = audio.artistPinyin;
+        albumPinyin = audio.albumPinyin;
+        path = audio.path;
+        duration = audio.duration;
+        size = audio.size;
+        year = audio.year;
+        track = audio.track;
+        discId = audio.discId;
+        isMusic = audio.isMusic;
+        isRingtone = audio.isRingtone;
+        isAlarm = audio.isAlarm;
+        isNotification = audio.isNotification;
+        isPodcast = audio.isPodcast;
+        songList = audio.songList;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) return true;
+        if (object == null || getClass() != object.getClass()) return false;
+
+        Audio audio = (Audio) object;
+
+        return id != null ? id.equals(audio.id) : audio.id == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : 0;
+    }
+
+    public boolean isOnline() {
+        return path.startsWith("http");
+    }
+
+    @Deprecated // 未完成
+    public boolean exist(){
+        // TODO: 17/6/18 检查如果是本地文件查看文件是否存在,如果是网络文件查看是否存在本地缓存以及本地缓存是否完整.
+        return false;
+    }
 }

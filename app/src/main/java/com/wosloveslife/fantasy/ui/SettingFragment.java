@@ -62,13 +62,13 @@ public class SettingFragment extends BaseFragment {
             }
         });
 
-        mSwitchChangeSheetWithPlayList.setChecked(CustomConfiguration.isChangeSheetWithPlayList());
-        mSwitchChangeSheetWithPlayList.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                CustomConfiguration.saveChangeSheetWithPlayList(isChecked);
-            }
-        });
+//        mSwitchChangeSheetWithPlayList.setChecked(CustomConfiguration.isChangeSheetWithPlayList());
+//        mSwitchChangeSheetWithPlayList.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+//            @Override
+//            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+//                CustomConfiguration.saveChangeSheetWithPlayList(isChecked);
+//            }
+//        });
 
         setMinDurationContent(CustomConfiguration.getMinDuration());
     }

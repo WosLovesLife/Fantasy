@@ -1,7 +1,7 @@
 package com.wosloveslife.fantasy.net;
 
 import com.wosloveslife.fantasy.baidu.BaiduLrc;
-import com.wosloveslife.fantasy.bean.xiami.XiamiMusic;
+import com.wosloveslife.fantasy.dao.bean.xiami.XiamiMusic;
 
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;

@@ -55,7 +55,7 @@ public class SPHelper {
     }
 
 
-    public String get(@NonNull String key, @NonNull String def) {
+    public String get(@NonNull String key, @Nullable String def) {
         return mPreferences.getString(key, def);
     }
 
