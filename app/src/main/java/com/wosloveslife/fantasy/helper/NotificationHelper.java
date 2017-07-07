@@ -16,7 +16,7 @@ import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.services.PlayService;
-import com.wosloveslife.fantasy.ui.MusicListActivity;
+import com.wosloveslife.fantasy.ui.MainActivity;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import rx.Observable;
@@ -53,7 +53,7 @@ public class NotificationHelper {
         mRemoteViews = new RemoteViews(mService.getPackageName(), R.layout.remote_view);
         mRemoteViews.setImageViewResource(R.id.iv_previous_btn, R.drawable.ic_skip_previous_black);
         mRemoteViews.setImageViewResource(R.id.iv_next_btn, R.drawable.ic_skip_next_black);
-        Intent intent = new Intent(mService, MusicListActivity.class);
+        Intent intent = new Intent(mService, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(mService, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         mRemoteViews.setOnClickPendingIntent(R.id.remote_view_open, pendingIntent);
 

@@ -1,7 +1,7 @@
 package com.wosloveslife.fantasy;
 
 import com.orhanobut.logger.Logger;
-import com.wosloveslife.fantasy.lrc.BLyric;
+import com.wosloveslife.fantasy.feature.lrc.BLyric;
 
 import org.junit.Test;
 

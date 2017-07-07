@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy.album;
+package com.wosloveslife.fantasy.feature.album;
 
 import android.content.Context;
 import android.graphics.Bitmap;

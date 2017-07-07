@@ -1,4 +1,4 @@
-package com.wosloveslife.fantasy.lrc;
+package com.wosloveslife.fantasy.feature.lrc;
 
 import android.content.Context;
 import android.graphics.Canvas;

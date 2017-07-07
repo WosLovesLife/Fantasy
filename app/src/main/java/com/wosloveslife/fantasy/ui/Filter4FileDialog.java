@@ -11,10 +11,10 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 
+import com.wosloveslife.dao.Sheet;
+import com.wosloveslife.dao.store.SheetStore;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.FileFilterAdapter;
-import com.wosloveslife.fantasy.dao.bean.BFolder;
-import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 
 import java.util.List;
@@ -56,7 +56,7 @@ public class Filter4FileDialog extends DialogFragment {
     }
 
     private void init() {
-        List<BFolder> filter = CustomConfiguration.getFolders();
+        List<Sheet> filter = SheetStore.loadByType(Sheet.TYPE_DIR).toBlocking().first();
         if (filter == null) {
             Toaster.showShort("请等待播放器初始化完毕");
             getDialog().dismiss();
@@ -75,7 +75,7 @@ public class Filter4FileDialog extends DialogFragment {
                 getDialog().dismiss();
                 break;
             case R.id.btn_submit:
-                CustomConfiguration.saveFolders(mAdapter.getNormalDataList());
+                SheetStore.insertOrReplace(mAdapter.getNormalDataList()).subscribe();
                 getDialog().dismiss();
                 break;
         }

@@ -1,5 +1,7 @@
 package com.wosloveslife.fantasy.adapter;
 
+import android.util.Log;
+
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 
 import rx.Subscriber;
@@ -16,7 +18,7 @@ public class SubscriberAdapter<T> extends Subscriber<T> {
 
     @Override
     public void onError(Throwable e) {
-        WLogger.w("SubscriberAdapter onError : " + e);
+        Log.w("Leonard", "onError: ", e);
     }
 
     @Override

@@ -44,7 +44,10 @@ public class Migration implements RealmMigration {
                     .addField(Sheet.AUTHOR_PINYIN, String.class)
                     .addRealmListField(Sheet.SONGS, schema.get("Audio"))
                     .addField(Sheet.CREATE_TIMESTAMP, long.class)
-                    .addField(Sheet.MODIFY_TIMESTAMP, long.class);
+                    .addField(Sheet.MODIFY_TIMESTAMP, long.class)
+                    .addField(Sheet.TYPE, int.class)
+                    .addField(Sheet.STATE, int.class)
+                    .addField(Sheet.PATH, String.class);
 
             //
             schema.get("Audio")

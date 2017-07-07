@@ -3,6 +3,8 @@ package com.wosloveslife.fantasy.ui.swapablenavigation;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 
+import com.wosloveslife.fantasy.ui.swapablenavigation.navi_holders.BaseNaviItemHolder;
+import com.wosloveslife.fantasy.ui.swapablenavigation.navi_item.BaseNaviItem;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 
 /**
@@ -31,9 +33,12 @@ public class VerticalSwapItemTouchHelperCallBack extends ItemTouchHelper.Callbac
     @Override
     public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
         int flag = 0;
-        if (viewHolder instanceof SwapNavigationAdapter.Holder && ((SwapNavigationAdapter.Holder) viewHolder).mType == 1) {
-            int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN;
-            flag = makeMovementFlags(dragFlags, 0);
+        if (viewHolder instanceof BaseNaviItemHolder) {
+            BaseNaviItem item = ((BaseNaviItemHolder) viewHolder).mItem;
+            if (item != null && item.mGroup > 0) {
+                int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN;
+                flag = makeMovementFlags(dragFlags, 0);
+            }
         }
         return flag;
     }
@@ -48,11 +53,13 @@ public class VerticalSwapItemTouchHelperCallBack extends ItemTouchHelper.Callbac
      */
     @Override
     public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
-        if (viewHolder instanceof SwapNavigationAdapter.Holder && target instanceof SwapNavigationAdapter.Holder
-                && ((SwapNavigationAdapter.Holder) target).mType == 1) {
-            int group = ((SwapNavigationAdapter.Holder) viewHolder).mGroup;
-            int tGroup = ((SwapNavigationAdapter.Holder) target).mGroup;
-            if (group == tGroup) {
+        if (viewHolder instanceof BaseNaviItemHolder && target instanceof BaseNaviItemHolder) {
+            BaseNaviItem item = ((BaseNaviItemHolder) viewHolder).mItem;
+            BaseNaviItem item2 = ((BaseNaviItemHolder) target).mItem;
+            if (item == null || item2 == null) {
+                return false;
+            }
+            if (item.mGroup == item2.mGroup) {
                 mAdapter.onItemMove(viewHolder.getAdapterPosition(), target.getAdapterPosition());
                 return true;
             }

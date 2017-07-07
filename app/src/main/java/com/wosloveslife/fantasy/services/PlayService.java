@@ -20,7 +20,7 @@ import com.wosloveslife.fantasy.helper.AudioHelper;
 import com.wosloveslife.fantasy.helper.NotificationHelper;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.interfaces.IPlay;
-import com.wosloveslife.fantasy.manager.CustomConfiguration;
+import com.wosloveslife.fantasy.manager.SettingConfig;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
@@ -51,22 +51,10 @@ public class PlayService extends Service {
     //=============ExoPlayer相关
     private SimpleExoPlayer mPlayer;
 
-    //============数据
-    Audio mCurrentMusic;
-
-    //============变量
-    public int mPlayOrder;
-    private boolean mSaveCache;
-
-    //============定时自动关闭服务
-    boolean mCountdownUp;
-    boolean mStopPlay;
-    long mCountdownTargetTimestamp;
-    boolean mCloseAfterPlayComplete;
-
     private NotificationHelper mNotificationHelper;
     private AudioHelper mAudioHelper;
     private PlayerEngine mPlayerEngine;
+    private MusicManager mMusicManager;
 
     public PlayService() {
     }
@@ -80,16 +68,15 @@ public class PlayService extends Service {
     public class PlayBinder extends Binder implements IPlay {
         //========================================播放相关-start====================================
         public void play(Audio audio) {
-            PlayService.this.play(audio);
+            if (audio == null) {
+                PlayService.this.play();
+            } else {
+                PlayService.this.play(audio);
+            }
         }
 
         public void togglePlayOrPause() {
             PlayService.this.togglePlayOrPause();
-        }
-
-        @Override
-        public void play() {
-            PlayService.this.play();
         }
 
         @Override
@@ -116,14 +103,6 @@ public class PlayService extends Service {
         }
 
         //========================================播放相关-end======================================
-
-        public SimpleExoPlayer getExoPlayer() {
-            return PlayService.this.getExoPlayer();
-        }
-
-        public Audio getCurrentMusic() {
-            return PlayService.this.getCurrentMusic();
-        }
 
         public boolean isPlaying() {
             return PlayService.this.isPlaying();
@@ -154,21 +133,6 @@ public class PlayService extends Service {
         public int getPlaybackState() {
             return PlayService.this.getPlaybackState();
         }
-
-        public void setCountdown(long pickDate, boolean closeAfterPlayComplete) {
-            mCountdownUp = pickDate > 0;
-            mCountdownTargetTimestamp = System.currentTimeMillis() + pickDate;
-            mCloseAfterPlayComplete = closeAfterPlayComplete;
-        }
-
-        /** 如果没有开启计时器或者计时器未完成,则返回false. */
-        public boolean isCountdown() {
-            return mCountdownUp;
-        }
-
-        public boolean isCloseAfterPlayComplete() {
-            return mCloseAfterPlayComplete;
-        }
     }
 
     //==============================================================================================
@@ -185,15 +149,15 @@ public class PlayService extends Service {
      * @param audio 要播放的歌曲资源
      */
     public void play(Audio audio) {
-        mCurrentMusic = audio;
-        if (mCurrentMusic != null) {
+        mMusicManager.getMusicConfig().mCurrentMusic = audio;
+        if (audio != null) {
             /* 这里有一个未知的Bug，调用过ExoPlayer.seekTo()方法后,跳转歌曲的一瞬间进度会闪烁一下,
              * 导致歌词控件同步也会迅速滚动歌词一下, 因此这里在播放一首歌之前先将之前的歌的进度归零 */
             mPlayer.seekTo(0);
             if (mPlayerEngine.prepare(audio.path)) {
                 play();
-                MusicManager.getInstance().addRecent(audio);
-                SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
+                mMusicManager.addRecent(audio);
+                SPHelper.getInstance().save("current_music", new Gson().toJson(audio));
             } else {
                 pause();
             }
@@ -217,13 +181,12 @@ public class PlayService extends Service {
      * 开始播放
      */
     public void play() {
-        mStopPlay = false;
-        if (mCurrentMusic != null) {
+        if (mMusicManager.getMusicConfig().mCurrentMusic != null) {
             /* 如果有未处理的异常,则重置播放并将进度保持一致*/
             if (mEncounteredException != null) {
                 mEncounteredException = null;
                 long currentPosition = mPlayer.getCurrentPosition();
-                mPlayerEngine.prepare(mCurrentMusic.path);
+                mPlayerEngine.prepare(mMusicManager.getMusicConfig().mCurrentMusic.path);
                 mPlayer.seekTo(currentPosition);
             }
             mAudioHelper.registerAudioFocus();
@@ -238,7 +201,7 @@ public class PlayService extends Service {
      * 暂停播放
      */
     public void pause() {
-        if (mCurrentMusic != null) {
+        if (mMusicManager.getMusicConfig().mCurrentMusic != null) {
             mAudioHelper.abandonAudioFocus();
             mPlayer.setPlayWhenReady(false);
             notifyNotification();
@@ -252,20 +215,20 @@ public class PlayService extends Service {
      */
     public void next() {
         Audio next = null;
-        switch (CustomConfiguration.getPlayOrder()) {
-            case CustomConfiguration.PLAY_ORDER_SUCCESSIVE:
-                next = MusicManager.getInstance().getMusicConfig().getNext(mCurrentMusic);
+        switch (SettingConfig.getPlayOrder()) {
+            case SettingConfig.PlayOrder.SUCCESSIVE:
+                next = mMusicManager.getMusicConfig().getNext(mMusicManager.getMusicConfig().mCurrentMusic);
                 if (next == null) {
-                    next = MusicManager.getInstance().getMusicConfig().getFirst();
+                    next = mMusicManager.getMusicConfig().getFirst();
                 }
                 break;
-            case CustomConfiguration.PLAY_ORDER_REPEAT_ONE:
-                next = mCurrentMusic;
+            case SettingConfig.PlayOrder.ONE:
+                next = mMusicManager.getMusicConfig().mCurrentMusic;
                 break;
-            case CustomConfiguration.PLAY_ORDER_RANDOM:
-                int nextInt = new Random().nextInt(MusicManager.getInstance().getMusicConfig().getMusicCount());
+            case SettingConfig.PlayOrder.RANDOM:
+                int nextInt = new Random().nextInt(mMusicManager.getMusicConfig().getMusicCount());
                 WLogger.d("next : nextIndex = " + nextInt);
-                next = MusicManager.getInstance().getMusicConfig().getMusic(nextInt);
+                next = mMusicManager.getMusicConfig().getMusic(nextInt);
                 break;
         }
 
@@ -283,10 +246,10 @@ public class PlayService extends Service {
      * 如果最后一首歌也没有了,则抛出异常
      */
     public void previous() {
-        Audio previous = MusicManager.getInstance().getMusicConfig().getPrevious(mCurrentMusic);
+        Audio previous = mMusicManager.getMusicConfig().getPrevious(mMusicManager.getMusicConfig().mCurrentMusic);
         /* 如果下一首没有了,则获取第1首歌曲 */
         if (previous == null) {
-            previous = MusicManager.getInstance().getMusicConfig().getLast();
+            previous = mMusicManager.getMusicConfig().getLast();
         }
 
         /* 如果第一首歌也没有了,则说明发生了异常状况 */
@@ -308,14 +271,6 @@ public class PlayService extends Service {
     }
 
     //========================================播放相关-end======================================
-
-    public SimpleExoPlayer getExoPlayer() {
-        return mPlayer;
-    }
-
-    public Audio getCurrentMusic() {
-        return mCurrentMusic;
-    }
 
     public boolean isPlaying() {
         return mPlayer.getPlayWhenReady();
@@ -357,6 +312,8 @@ public class PlayService extends Service {
         super.onCreate();
         mContext = this;
 
+        mMusicManager = MusicManager.getInstance();
+
         mPlayerEngine = new PlayerEngine(this);
         mPlayer = mPlayerEngine.getPlayer();
 
@@ -377,12 +334,10 @@ public class PlayService extends Service {
 
             @Override
             public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-                if (mCountdownUp
-                        && (playbackState == ExoPlayer.STATE_ENDED || !playWhenReady)
-                        && System.currentTimeMillis() >= mCountdownTargetTimestamp) {
-                    mStopPlay = true;
-                    resetPlayService();
-                } else if (!mStopPlay && playbackState == ExoPlayer.STATE_ENDED) {
+                if ((playbackState == ExoPlayer.STATE_ENDED || !playWhenReady) && SettingConfig.isCountdown()) {
+                    pause();
+                    SettingConfig.saveCountdownTime(0);
+                } else if (playbackState == ExoPlayer.STATE_ENDED) {
                     next();
                 }
             }
@@ -390,8 +345,9 @@ public class PlayService extends Service {
 
         String currentMusic = SPHelper.getInstance().get("current_music", "");
         if (!TextUtils.isEmpty(currentMusic)) {
-            mCurrentMusic = new Gson().fromJson(currentMusic, Audio.class);
-            mPlayerEngine.prepare(mCurrentMusic.path);
+            Audio audio = new Gson().fromJson(currentMusic, Audio.class);
+            mMusicManager.getMusicConfig().mCurrentMusic = audio;
+            mPlayerEngine.prepare(audio.path);
         }
 
         EventBus.getDefault().register(this);
@@ -399,7 +355,7 @@ public class PlayService extends Service {
     }
 
     private void notifyNotification() {
-        mNotificationHelper.update(isPlaying(), mCurrentMusic);
+        mNotificationHelper.update(isPlaying(), mMusicManager.getMusicConfig().mCurrentMusic);
     }
 
     /** 每次调用startService()启用该服务时都被调用 */
@@ -420,15 +376,20 @@ public class PlayService extends Service {
                 next();
                 break;
             case 3: // 收藏
-                if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
-                    MusicManager.getInstance().removeFavor(mCurrentMusic);
+                if (mMusicManager.isFavored(mMusicManager.getMusicConfig().mCurrentMusic)) {
+                    mMusicManager.removeFavor(mMusicManager.getMusicConfig().mCurrentMusic);
                 } else {
-                    MusicManager.getInstance().addFavor(mCurrentMusic);
+                    mMusicManager.addFavor(mMusicManager.getMusicConfig().mCurrentMusic);
                 }
                 break;
             case 4: // 桌面歌词
                 Toaster.showShort("歌词");
                 break;
+        }
+
+        // 如果设定了定时并且定时到点 就关闭倒计时
+        if (SettingConfig.getCountdownTime() > 0 && SettingConfig.isCountdown() && (!SettingConfig.isCloseAfterPlayEnd() || !mPlayer.getPlayWhenReady())) {
+            SettingConfig.saveCountdownTime(0);
         }
 
         return super.onStartCommand(intent, flags, startId);
@@ -453,16 +414,10 @@ public class PlayService extends Service {
         EventBus.getDefault().unregister(this);
         BroadcastManager.getInstance().unregisterAllBroadcasts();
         if (mPlayer != null) {
-            resetPlayService();
+            pause();
             mPlayer.release();
         }
         mAudioHelper.abandonAudioFocus();
-    }
-
-    private void resetPlayService() {
-        mCountdownUp = false;
-        mCloseAfterPlayComplete = false;
-        pause();
     }
 
     //==========================================事件处理============================================
@@ -473,37 +428,32 @@ public class PlayService extends Service {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onCountDownTimerTick(CountdownTimerService.CountDownEvent event) {
-        if (event == null) return;
-
-        /** 当前启用了定时器并且定时器进度结束并且没有设定播放完当前歌曲后结束或者当前为暂停状态则立即暂停播放并通知客户 */
-        if (mCountdownUp && event.totalMillis == event.millisUntilFinished && (!mCloseAfterPlayComplete || !mPlayer.getPlayWhenReady())) {
-            //结束播放服务
-            resetPlayService();
-        }
+    // TODO: 2017/7/1 如果到了定时时间,就关闭播放
+    public void onStopEvent() {
+        pause();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onAddMusic(MusicManager.OnAddMusic event) {
         if (event == null || event.mMusic == null || !mNotificationHelper.isShown()) return;
-        if (event.mMusic.equals(mCurrentMusic)) {
-            mNotificationHelper.update(isPlaying(), mCurrentMusic);
+        if (event.mMusic.equals(mMusicManager.getMusicConfig().mCurrentMusic)) {
+            mNotificationHelper.update(isPlaying(), mMusicManager.getMusicConfig().mCurrentMusic);
         }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onRemoveMusic(MusicManager.OnRemoveMusic event) {
         if (event == null || event.mMusic == null || !mNotificationHelper.isShown()) return;
-        if (event.mMusic.equals(mCurrentMusic)) {
-            mNotificationHelper.update(isPlaying(), mCurrentMusic);
+        if (event.mMusic.equals(mMusicManager.getMusicConfig().mCurrentMusic)) {
+            mNotificationHelper.update(isPlaying(), mMusicManager.getMusicConfig().mCurrentMusic);
         }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMusicChanged(MusicManager.OnMusicChanged event) {
         if (event == null || event.mMusic == null || !mNotificationHelper.isShown()) return;
-        if (event.mMusic.equals(mCurrentMusic)) {
-            mNotificationHelper.update(isPlaying(), mCurrentMusic);
+        if (event.mMusic.equals(mMusicManager.getMusicConfig().mCurrentMusic)) {
+            mNotificationHelper.update(isPlaying(), mMusicManager.getMusicConfig().mCurrentMusic);
         }
     }
 }

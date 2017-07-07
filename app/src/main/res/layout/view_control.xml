@@ -28,7 +28,7 @@
             android:layout_height="56dp"
             android:layout_marginTop="@dimen/statusBar_height">
 
-            <com.wosloveslife.fantasy.lrc.LrcView
+            <com.wosloveslife.fantasy.feature.lrc.LrcView
                 android:id="@+id/lrc_view"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"

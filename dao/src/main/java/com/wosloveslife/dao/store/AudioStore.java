@@ -39,16 +39,17 @@ public class AudioStore {
         });
     }
 
-    public static Observable<List<Audio>> loadBySheetId(final String sheetId) {
-        return getRealm().map(new Func1<Realm, List<Audio>>() {
-            @Override
-            public List<Audio> call(Realm realm) {
-                return realm.where(Audio.class)
-                        .equalTo(Sheet.class.getName() + "." + Sheet.ID, sheetId)
-                        .findAllSorted(Audio.JOIN_TIMESTAMP, Sort.DESCENDING);
-            }
-        });
-    }
+//    public static Observable<List<Audio>> loadBySheetId(final String sheetId) {
+//        return getRealm().map(new Func1<Realm, List<Audio>>() {
+//            @Override
+//            public List<Audio> call(Realm realm) {
+//                Log.w("Leonard", "call: Sheet.class.getName() = "+Sheet.class.getSimpleName());
+//                return realm.where(Audio.class)
+//                        .equalTo(Audio.SONG_LIST + "." + Sheet.ID, sheetId)
+//                        .findAllSorted(Audio.JOIN_TIMESTAMP, Sort.DESCENDING);
+//            }
+//        });
+//    }
 
     public static Observable<Boolean> clear() {
         return getRealm().map(new Func1<Realm, Boolean>() {

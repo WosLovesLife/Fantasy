@@ -9,12 +9,15 @@ import com.github.promeg.pinyinhelper.Pinyin;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.dao.Audio;
 import com.wosloveslife.dao.Sheet;
-import com.wosloveslife.fantasy.dao.bean.BFolder;
-import com.wosloveslife.fantasy.manager.CustomConfiguration;
+import com.wosloveslife.dao.SheetIds;
+import com.wosloveslife.dao.store.SheetStore;
+import com.wosloveslife.fantasy.manager.SettingConfig;
+import com.yesing.blibrary_wos.utils.secure.MD5Utils;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import io.realm.RealmList;
@@ -27,43 +30,43 @@ public class ScanResourceEngine {
 
     @WorkerThread
     public static List<Audio> getMusicFromSystemDao(final Context context) {
-        List<Audio> musicList = new ArrayList<>();
         Cursor cursor = context.getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
-        if (cursor == null) return musicList;
+        if (cursor == null) return new ArrayList<>();
 
         try {
             if (cursor.moveToFirst()) {
-                long minDuration = CustomConfiguration.getMinDuration() * 1000;
+                long minDuration = SettingConfig.getMinDuration() * 1000;
 
-                Set<String> fileFilter = null;
-                List<BFolder> bFolders = CustomConfiguration.getFolders();
-                if (bFolders != null) {
-                    for (BFolder folder : bFolders) {
-                        if (folder.isFiltered) {
-                            if (fileFilter == null) {
-                                fileFilter = new HashSet<>();
-                            }
-                            fileFilter.add(folder.filePath);
-                        }
-                    }
+                Set<String> fileFilter = SettingConfig.getFilteredFolders().toBlocking().first();
+                Map<String, Sheet> sheets = new HashMap<>();
+
+                List<Sheet> first = SheetStore.loadByType(Sheet.TYPE_DIR).toBlocking().first();
+                for (Sheet dir : first) {
+                    sheets.put(dir.path, dir);
                 }
-                Set<BFolder> folders = new HashSet<>();
 
                 // TODO: 17/6/18 先从数据库获取歌单
-                RealmList<Sheet> songLists = new RealmList<>();
-                Sheet songList = new Sheet();
-                songLists.add(songList);
-                int offset = 0;
+                Sheet localSheet = SheetStore.loadById(SheetIds.LOCAL).toBlocking().first();
+                if (localSheet == null) {
+                    localSheet = new Sheet(SheetIds.LOCAL, "本地音乐", "Def", "bendiyinyue", "def", null, System.currentTimeMillis(), System.currentTimeMillis(), Sheet.TYPE_DEF, Sheet.STATE_NORMAL, null);
+                    SheetStore.insertOrReplace(localSheet).toBlocking().first();
+                }
+                if (localSheet.songs == null) {
+                    localSheet.songs = new RealmList<>();
+                } else {
+                    localSheet.songs.clear();
+                }
+
+                sheets.put(localSheet.id, localSheet);
+
+                int offset = 0; // 这个是避免歌曲的加入时间相同
                 do {
                     String path = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
-                    String folder = path.substring(0, path.lastIndexOf("/"));
-                            /* 将所有包含音乐的文件夹都记录下来 */
-                    BFolder bFolder = new BFolder(null, folder, false);
-                    folders.add(bFolder);
+                    /* 将所有包含音乐的文件夹都记录下来 */
+                    path = path.substring(0, path.lastIndexOf("/"));
 
                     // 按照过滤配置过滤文件夹 这个判断要放在时间前面
-                    if (fileFilter != null && fileFilter.contains(folder)) {
-                        bFolder.isFiltered = true;
+                    if (fileFilter != null && fileFilter.contains(path)) {
                         continue;
                     }
 
@@ -116,16 +119,53 @@ public class ScanResourceEngine {
                     bMusic.isPodcast = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_PODCAST)) != 0;
 
                     //加入的歌单, 这里都加入本地歌单
-                    bMusic.songList = songLists;
+//                    bMusic.songList = songLists;
                     //加入歌单的时间
                     bMusic.joinTimestamp = System.currentTimeMillis() + (++offset);
 
-                    musicList.add(bMusic);
+                    /* 将没被过滤掉的文件夹存起来稍候插入数据库 */
+                    if (!sheets.containsKey(path)) {
+                        Sheet sheet = new Sheet(MD5Utils.getMd5value(path), System.currentTimeMillis(), Sheet.TYPE_DIR, Sheet.STATE_NORMAL, path);
+                        sheets.put(sheet.path, sheet);
+                    }
+                    Sheet sheet = sheets.get(path);
+                    if (sheet.songs == null) {
+                        sheet.songs = new RealmList<>();
+                    }
+                    sheet.songs.add(bMusic);
+
+                    if (localSheet.songs == null) {
+                        localSheet.songs = new RealmList<>();
+                    }
+                    localSheet.songs.add(bMusic);
+
+//                    musicList.add(bMusic);
+//                    sheet.songs.add(bMusic);
                 } while (cursor.moveToNext());
 
-                List<BFolder> folderList = new ArrayList<>();
-                folderList.addAll(folders);
-                CustomConfiguration.saveFolders(folderList);
+                SheetStore.insertOrReplace(sheets.values()).toBlocking().first();
+
+//                Observable.just(dirs)
+//                        .map(new Func1<Set<String>, List<Sheet>>() {
+//                            @Override
+//                            public List<Sheet> call(Set<String> strings) {
+//                                List<Sheet> sheets = new ArrayList<>();
+//                                for (String string : strings) {
+//                                    sheets.add(new Sheet(MD5Utils.getMd5value(string), System.currentTimeMillis(), Sheet.TYPE_DIR, Sheet.STATE_NORMAL, string));
+//                                }
+//                                return sheets;
+//                            }
+//                        })
+//                        .flatMap(new Func1<List<Sheet>, Observable<?>>() {
+//                            @Override
+//                            public Observable<?> call(List<Sheet> sheets) {
+//                                return SheetStore.insertOrReplace(sheets);
+//                            }
+//                        })
+//                        .toBlocking()
+//                        .first();
+
+                return localSheet.songs;
             }
         } catch (Throwable e) {
             Logger.e(e, "从系统数据库读取音乐失败");
@@ -133,6 +173,6 @@ public class ScanResourceEngine {
             cursor.close();
         }
 
-        return musicList;
+        return new ArrayList<>();
     }
 }

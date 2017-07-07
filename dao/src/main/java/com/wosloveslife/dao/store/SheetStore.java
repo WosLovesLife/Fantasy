@@ -5,6 +5,7 @@ import android.text.TextUtils;
 
 import com.wosloveslife.dao.Sheet;
 
+import java.util.Collection;
 import java.util.List;
 
 import io.realm.Realm;
@@ -13,13 +14,11 @@ import io.realm.RealmResults;
 import rx.Observable;
 import rx.functions.Func1;
 
-import static com.wosloveslife.dao.store.BaseStore.getRealm;
-
 /**
  * Created by leonard on 17/6/17.
  */
 
-public class SheetStore {
+public class SheetStore extends BaseStore {
     public static Observable<List<Sheet>> loadAll() {
         return getRealm().map(new Func1<Realm, List<Sheet>>() {
             @Override
@@ -29,11 +28,11 @@ public class SheetStore {
         });
     }
 
-    public static Observable<List<Sheet>> loadById(final String id) {
-        return getRealm().map(new Func1<Realm, List<Sheet>>() {
+    public static Observable<Sheet> loadById(final String id) {
+        return getRealmTx().map(new Func1<Realm, Sheet>() {
             @Override
-            public List<Sheet> call(Realm realm) {
-                return realm.where(Sheet.class).equalTo(Sheet.ID, id).findAll();
+            public Sheet call(Realm realm) {
+                return realm.where(Sheet.class).equalTo(Sheet.ID, id).findFirst();
             }
         });
     }
@@ -43,6 +42,24 @@ public class SheetStore {
             @Override
             public List<Sheet> call(Realm realm) {
                 return realm.where(Sheet.class).equalTo(Sheet.TITLE, title).findAll();
+            }
+        });
+    }
+
+    public static Observable<List<Sheet>> loadByType(@Sheet.Type final int type) {
+        return getRealm().map(new Func1<Realm, List<Sheet>>() {
+            @Override
+            public List<Sheet> call(Realm realm) {
+                return realm.where(Sheet.class).equalTo(Sheet.TYPE, type).findAll();
+            }
+        });
+    }
+
+    public static Observable<List<Sheet>> loadByTypeAndState(@Sheet.Type final int type, @Sheet.State final int state) {
+        return getRealm().map(new Func1<Realm, List<Sheet>>() {
+            @Override
+            public List<Sheet> call(Realm realm) {
+                return realm.where(Sheet.class).equalTo(Sheet.TYPE, type).equalTo(Sheet.STATE, state).findAll();
             }
         });
     }
@@ -57,7 +74,7 @@ public class SheetStore {
         });
     }
 
-    public static Observable<Boolean> insertOrReplace(final List<Sheet> entities) {
+    public static Observable<Boolean> insertOrReplace(final Collection<Sheet> entities) {
         return getRealm().map(new Func1<Realm, Boolean>() {
             @Override
             public Boolean call(Realm realm) {

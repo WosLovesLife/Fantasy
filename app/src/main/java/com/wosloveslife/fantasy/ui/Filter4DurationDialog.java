@@ -14,7 +14,7 @@ import android.view.View;
 import android.widget.NumberPicker;
 
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.manager.CustomConfiguration;
+import com.wosloveslife.fantasy.manager.SettingConfig;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -55,7 +55,7 @@ public class Filter4DurationDialog extends DialogFragment {
         mNumberPickerSecond.setMaxValue(59);
         mNumberPickerSecond.setMinValue(0);
 
-        int minDuration = CustomConfiguration.getMinDuration();
+        int minDuration = SettingConfig.getMinDuration();
         if (minDuration > 0) {
             int minute = minDuration / 60;
             int second = minDuration % 60;
@@ -76,7 +76,7 @@ public class Filter4DurationDialog extends DialogFragment {
                 int minute = mNumberPickerMinute.getValue();
                 int second = mNumberPickerSecond.getValue();
                 int time = minute * 60 + second;
-                CustomConfiguration.saveMinDuration(time);
+                SettingConfig.saveMinDuration(time);
                 onChosen(time);
                 getDialog().dismiss();
                 break;

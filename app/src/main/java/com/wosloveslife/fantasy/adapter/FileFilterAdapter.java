@@ -7,8 +7,8 @@ import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.TextView;
 
+import com.wosloveslife.dao.Sheet;
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.dao.bean.BFolder;
 import com.wosloveslife.fantasy.utils.FormatUtils;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.adapter.BaseRecyclerViewAdapter;
 import com.yesing.blibrary_wos.baserecyclerviewadapter.viewHolder.BaseRecyclerViewHolder;
@@ -20,14 +20,14 @@ import butterknife.ButterKnife;
  * Created by zhangh on 2017/2/9.
  */
 
-public class FileFilterAdapter extends BaseRecyclerViewAdapter<BFolder> {
+public class FileFilterAdapter extends BaseRecyclerViewAdapter<Sheet> {
 
     @Override
-    protected BaseRecyclerViewHolder<BFolder> onCreateItemViewHolder(ViewGroup parent, int viewType) {
+    protected BaseRecyclerViewHolder<Sheet> onCreateItemViewHolder(ViewGroup parent, int viewType) {
         return new Holder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_file_filter, parent, false));
     }
 
-    class Holder extends BaseRecyclerViewHolder<BFolder> {
+    class Holder extends BaseRecyclerViewHolder<Sheet> {
         @BindView(R.id.tv_file_path)
         TextView mTvFilePath;
         @BindView(R.id.checkbox)
@@ -44,13 +44,13 @@ public class FileFilterAdapter extends BaseRecyclerViewAdapter<BFolder> {
         }
 
         @Override
-        public void onBind(final BFolder folder, int position) {
-            mTvFilePath.setText(FormatUtils.trimEnvironmentPath(folder.filePath));
-            mCheckbox.setChecked(folder.isFiltered);
+        public void onBind(final Sheet sheet, int position) {
+            mTvFilePath.setText(FormatUtils.trimEnvironmentPath(sheet.path));
+            mCheckbox.setChecked(sheet.state == Sheet.STATE_FILTERED);
             mCheckbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                    folder.isFiltered = isChecked;
+                    sheet.state = isChecked ? Sheet.STATE_FILTERED : Sheet.STATE_NORMAL;
                 }
             });
         }

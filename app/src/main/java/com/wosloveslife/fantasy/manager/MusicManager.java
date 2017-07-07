@@ -7,22 +7,26 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.wosloveslife.dao.Audio;
 import com.wosloveslife.dao.Sheet;
 import com.wosloveslife.dao.SheetIds;
+import com.wosloveslife.dao.store.SheetStore;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.baidu.BaiduMusicInfo;
 import com.wosloveslife.fantasy.baidu.BaiduSearch;
 import com.wosloveslife.fantasy.dao.engine.MusicProvider;
-import com.wosloveslife.fantasy.lrc.BLyric;
+import com.wosloveslife.fantasy.feature.lrc.BLyric;
 
 import org.greenrobot.eventbus.EventBus;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.realm.RealmList;
 import rx.Observable;
+import rx.Subscriber;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
@@ -75,7 +79,27 @@ public class MusicManager {
 
     @WorkerThread
     private void dispose() {
+        checkIfHasNoDefSheet();
+
         loadLastSheet();
+    }
+
+    @WorkerThread
+    private void checkIfHasNoDefSheet() {
+        boolean needCreate = SheetStore.loadById(SheetIds.LOCAL).toBlocking().first() == null;
+        needCreate = needCreate || SheetStore.loadById(SheetIds.FAVORED).toBlocking().first() == null;
+        needCreate = needCreate || SheetStore.loadById(SheetIds.RECENT).toBlocking().first() == null;
+        if (!needCreate) return;
+
+        long timestamp = System.currentTimeMillis();
+        Sheet localSheet = new Sheet(SheetIds.LOCAL, "本地音乐", "Def", "Local", "def", null, timestamp, timestamp, Sheet.TYPE_DEF, Sheet.STATE_NORMAL, null);
+        Sheet favoriteSheet = new Sheet(SheetIds.FAVORED, "我的收藏", "Def", "My favorite", "def", null, timestamp + 1, timestamp + 1, Sheet.TYPE_DEF, Sheet.STATE_NORMAL, null);
+        Sheet recentSheet = new Sheet(SheetIds.RECENT, "最近播放", "Def", "Recent", "def", null, timestamp + 2, timestamp + 2, Sheet.TYPE_DEF, Sheet.STATE_NORMAL, null);
+        List<Sheet> sheets = new ArrayList<>();
+        sheets.add(localSheet);
+        sheets.add(favoriteSheet);
+        sheets.add(recentSheet);
+        SheetStore.insertOrReplace(sheets).toBlocking().first();
     }
 
     /**
@@ -83,54 +107,51 @@ public class MusicManager {
      */
     @WorkerThread
     private void loadLastSheet() {
+        Log.w("Leonard", "loadLastSheet: " + System.currentTimeMillis());
+
         String sheetId = mMusicConfig.mCurrentSheetId;
         if (TextUtils.isEmpty(sheetId)) {
             mMusicConfig.saveLastSheetId(SheetIds.LOCAL);
             scan();
         } else {
             changeSheet(sheetId);
-            if (checkNeedScan()) {
-                scan();
-            }
         }
     }
 
+    @AnyThread
     private boolean checkNeedScan() {
         return mMusicConfig.mMusicList.size() == 0 && TextUtils.equals(mMusicConfig.mCurrentSheetId, SheetIds.LOCAL);
     }
 
+    private boolean mAutoScanned;
+
     // TODO: 17/6/17  remove
-    @AnyThread
+    @WorkerThread
     private void scan() {
+        if (mAutoScanned) {
+            return;
+        }
+        mAutoScanned = true;
         MusicProvider.scanSysDB(mContext)
-                .map(new Func1<List<Audio>, List<Audio>>() {
+                .onErrorResumeNext(new Func1<Throwable, Observable<? extends List<Audio>>>() {
                     @Override
-                    public List<Audio> call(List<Audio> audios) {
-                        MusicProvider.clearSheetEntities(SheetIds.LOCAL).toBlocking().first();
-                        MusicProvider.insertMusics(SheetIds.LOCAL, audios).toBlocking().first();
-                        return audios;
+                    public Observable<? extends List<Audio>> call(Throwable throwable) {
+                        return Observable.just(null);
                     }
                 })
-                .subscribeOn(Schedulers.io())
                 .subscribe(new SubscriberAdapter<List<Audio>>() {
-                    @Override
-                    public void onError(Throwable e) {
-                        super.onError(e);
-                        if (TextUtils.equals(mMusicConfig.mCurrentSheetId, SheetIds.LOCAL)) {
-                            onGotData(null);
-                        }
-                    }
-
                     @Override
                     public void onNext(List<Audio> bMusics) {
                         super.onNext(bMusics);
                         if (TextUtils.equals(mMusicConfig.mCurrentSheetId, SheetIds.LOCAL)) {
                             onGotData(bMusics);
+                            EventBus.getDefault().post(new OnScannedMusicEvent(mMusicConfig.mMusicList));
                         }
                     }
                 });
     }
 
+    // TODO: 2017/6/24 歌曲列表的组织形式需要改变
     @AnyThread
     private void onGotData(List<Audio> bMusics) {
         if (bMusics != mMusicConfig.mMusicList) {
@@ -140,15 +161,16 @@ public class MusicManager {
                 mMusicConfig.mMusicList.addAll(bMusics);
             }
         }
-
-        EventBus.getDefault().post(new OnScannedMusicEvent(mMusicConfig.mMusicList));
-        EventBus.getDefault().post(new OnGotMusicEvent(mMusicConfig.mMusicList));
     }
 
     //=======================================获取音乐-start===========================================
     @AnyThread
     public void scanMusic() {
-        scan();
+        Observable.create(new Observable.OnSubscribe<Object>() {
+            @Override
+            public void call(Subscriber<? super Object> subscriber) {
+            }
+        }).subscribeOn(Schedulers.io()).subscribe();
     }
 
     @AnyThread
@@ -175,14 +197,22 @@ public class MusicManager {
      * @param sheetId 歌单序列号
      */
     @AnyThread
-    public Observable<List<Audio>> changeSheet(String sheetId) {
-        return MusicProvider.loadMusicBySheet(sheetId).map(new Func1<List<Audio>, List<Audio>>() {
-            @Override
-            public List<Audio> call(List<Audio> audios) {
-                onGotData(audios);
-                return audios;
-            }
-        });
+    public void changeSheet(final String sheetId) {
+        mMusicConfig.mCurrentSheetId = sheetId;
+        MusicProvider.loadMusicBySheet(sheetId)
+                .subscribeOn(Schedulers.io())
+                .subscribe(new SubscriberAdapter<List<Audio>>() {
+                    @Override
+                    public void onNext(List<Audio> audios) {
+                        super.onNext(audios);
+                        if (!mAutoScanned && TextUtils.equals(sheetId, SheetIds.LOCAL) && (audios == null || audios.size() == 0)) {
+                            scan();
+                        } else {
+                            onGotData(audios);
+                            EventBus.getDefault().post(new OnGotMusicEvent(mMusicConfig.mMusicList));
+                        }
+                    }
+                });
     }
 
     //==============我的收藏
@@ -226,7 +256,7 @@ public class MusicManager {
     @AnyThread
     public boolean isFavored(Audio audio) {
         Sheet sheet = mMusicConfig.mSheets.get(SheetIds.FAVORED);
-        if (sheet == null){
+        if (sheet == null) {
             return false;
         }
         RealmList<Audio> songs = sheet.songs;

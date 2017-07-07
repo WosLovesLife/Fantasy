@@ -2,6 +2,8 @@ package com.wosloveslife.fantasy.ui.funcs;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.AttrRes;
@@ -21,7 +23,8 @@ import android.widget.NumberPicker;
 import android.widget.TextView;
 
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.manager.CustomConfiguration;
+import com.wosloveslife.fantasy.manager.SettingConfig;
+import com.wosloveslife.fantasy.services.PlayService;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import butterknife.BindView;
@@ -128,7 +131,7 @@ public class CountdownPickDialog extends FrameLayout {
             }
         });
 
-        mLastCustomTime = CustomConfiguration.getCustomCountdown();
+        mLastCustomTime = SettingConfig.getCustomCountdown();
         if (mLastCustomTime > 0) {
             int hour = mLastCustomTime / 60;
             int minute = mLastCustomTime % 60;
@@ -143,7 +146,7 @@ public class CountdownPickDialog extends FrameLayout {
             mTvCustom.setText("自定义 (" + time + "后) ");
         }
 
-        mCheckBox.setChecked(CustomConfiguration.isCloseAfterPlayEnd());
+        mCheckBox.setChecked(SettingConfig.isCloseAfterPlayEnd());
 
         checkSubmitBenEnable();
 
@@ -194,7 +197,7 @@ public class CountdownPickDialog extends FrameLayout {
                 int hour = mNumberPickerHour.getValue();
                 int minute = mNumberPickerMinute.getValue();
                 int time = hour * 60 + minute;
-                CustomConfiguration.saveCustomCountdown(time);
+                SettingConfig.saveCustomCountdown(time);
                 onChosen(time);
                 break;
         }
@@ -263,7 +266,15 @@ public class CountdownPickDialog extends FrameLayout {
     }
 
     private void onChosen(int minute) {
-        CustomConfiguration.saveCloseAfterPlayEnd(mCheckBox.isChecked());
+        SettingConfig.saveCloseAfterPlayEnd(mCheckBox.isChecked());
+        SettingConfig.saveCountdownTime(System.currentTimeMillis() + minute * 60 * 1000L);
+
+        Intent intent = new Intent(getContext(), PlayService.class);
+        PendingIntent pendingIntent = PendingIntent.getService(getContext(), 1, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
+        alarmManager.cancel(pendingIntent);
+        alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + minute * 60 * 1000L, pendingIntent);
+
         if (mOnChosenListener != null) {
             mOnChosenListener.onChosen(new Result(minute * 60 * 1000L, mCheckBox.isChecked()));
         }

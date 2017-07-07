@@ -10,6 +10,7 @@ import com.wosloveslife.dao.Sheet;
 import com.wosloveslife.dao.store.AudioStore;
 import com.wosloveslife.dao.store.SheetStore;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.realm.RealmList;
@@ -41,7 +42,12 @@ public class MusicProvider {
      */
     @AnyThread
     public static Observable<List<Audio>> loadMusicBySheet(final String sheetId) {
-        return AudioStore.loadBySheetId(sheetId);
+        return SheetStore.loadById(sheetId).map(new Func1<Sheet, List<Audio>>() {
+            @Override
+            public List<Audio> call(Sheet sheet) {
+                return sheet == null ? new ArrayList<Audio>() : sheet.songs;
+            }
+        });
     }
 
     @AnyThread
@@ -56,11 +62,11 @@ public class MusicProvider {
 
     public static Observable<Sheet> insertMusics(final String sheetId, final List<Audio> audios) {
         return SheetStore.loadById(sheetId)
-                .map(new Func1<List<Sheet>, Sheet>() {
+                .map(new Func1<Sheet, Sheet>() {
+                    @Nullable
                     @Override
-                    public Sheet call(List<Sheet> sheets) {
-                        if (sheets != null && sheets.size() > 0) {
-                            Sheet sheet = sheets.get(0);
+                    public Sheet call(Sheet sheet) {
+                        if (sheet != null) {
                             sheet.songs = new RealmList<>();
                             sheet.songs.addAll(audios);
                             Boolean success = SheetStore.insertOrReplace(sheet).toBlocking().first();
@@ -78,7 +84,7 @@ public class MusicProvider {
         if (audio == null || sheet == null) return Observable.just(false);
         if (sheet.songs == null) {
             sheet.songs = new RealmList<>();
-        }else if (sheet.songs.contains(audio)){
+        } else if (sheet.songs.contains(audio)) {
             return Observable.just(false);
         }
 
@@ -88,11 +94,10 @@ public class MusicProvider {
 
     public static Observable<Boolean> addMusic2Sheet(final Audio audio, final String sheetId) {
         return SheetStore.loadById(sheetId)
-                .flatMap(new Func1<List<Sheet>, Observable<Boolean>>() {
+                .flatMap(new Func1<Sheet, Observable<Boolean>>() {
                     @Override
-                    public Observable<Boolean> call(List<Sheet> sheets) {
-                        if (sheets != null && sheets.size() > 0) {
-                            Sheet sheet = sheets.get(0);
+                    public Observable<Boolean> call(Sheet sheet) {
+                        if (sheet != null) {
                             RealmList<Audio> songs = sheet.songs;
                             if (songs != null) {
                                 for (Audio song : songs) {

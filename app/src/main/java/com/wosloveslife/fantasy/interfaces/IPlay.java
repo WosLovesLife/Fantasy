@@ -1,6 +1,7 @@
 package com.wosloveslife.fantasy.interfaces;
 
 import android.support.annotation.IntDef;
+import android.support.annotation.Nullable;
 
 import com.google.android.exoplayer2.ExoPlayer;
 import com.wosloveslife.dao.Audio;
@@ -22,9 +23,7 @@ public interface IPlay {
     @interface PlayState {
     }
 
-    void play(Audio audio);
-
-    void play();
+    void play(@Nullable Audio audio);
 
     void pause();
 

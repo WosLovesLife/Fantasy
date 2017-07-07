@@ -27,4 +27,14 @@ public class BaseStore {
             }
         });
     }
+
+    public static Observable<Realm> getRealmTx() {
+        return Observable.create(new Observable.OnSubscribe<Realm>() {
+            @Override
+            public void call(Subscriber<? super Realm> subscriber) {
+                subscriber.onNext(Realm.getDefaultInstance());
+                subscriber.onCompleted();
+            }
+        });
+    }
 }
