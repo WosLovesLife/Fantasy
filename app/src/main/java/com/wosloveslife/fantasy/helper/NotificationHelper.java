@@ -83,7 +83,7 @@ public class NotificationHelper {
         mRemoteViews.setOnClickPendingIntent(R.id.tv_lrc, lrcPendingIntent);
 
         mNotification = new NotificationCompat.Builder(mService)
-                .setTicker(mCurrentMusic != null ? "正在播放: " + mCurrentMusic.title : "Fantasy已启动")
+                .setTicker(mCurrentMusic != null ? "正在播放: " + mCurrentMusic.getTitle() : "Fantasy已启动")
                 .setOngoing(true)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setWhen(System.currentTimeMillis())
@@ -106,7 +106,7 @@ public class NotificationHelper {
             public void call(Subscriber<? super Object> subscriber) {
                 boolean needAlbum = mCurrentMusic != music;
                 if (mCurrentMusic != null && music != null) {
-                    needAlbum = !TextUtils.equals(mCurrentMusic.album, music.album);
+                    needAlbum = !TextUtils.equals(mCurrentMusic.getAlbum(), music.getAlbum());
                 }
                 mCurrentMusic = music;
                 if (mNotification == null) {
@@ -114,9 +114,10 @@ public class NotificationHelper {
                     needAlbum = true;
                 }
 
-                if (needAlbum) {
+                if (false) {
                     if (music != null) {
-                        MusicManager.getInstance().getAlbum(music, mAlbumSize)
+                        MusicManager.getInstance().getAlbum(music.getId(), mAlbumSize)
+                                .subscribeOn(Schedulers.io())
                                 .observeOn(AndroidSchedulers.mainThread())
                                 .subscribe(new SubscriberAdapter<Bitmap>() {
                                     @Override
@@ -134,8 +135,8 @@ public class NotificationHelper {
                         mRemoteViews.setImageViewResource(R.id.iv_album, R.drawable.ic_portrait_chicken_174);
                     }
                 }
-                mRemoteViews.setTextViewText(R.id.tv_title, music != null ? music.title : "暂无播放歌曲");
-                mRemoteViews.setTextViewText(R.id.tv_artist, music != null ? music.artist : "");
+                mRemoteViews.setTextViewText(R.id.tv_title, music != null ? music.getTitle() : "暂无播放歌曲");
+                mRemoteViews.setTextViewText(R.id.tv_artist, music != null ? music.getArtist() : "");
                 mRemoteViews.setImageViewResource(R.id.iv_play_btn, isPlaying ? R.drawable.ic_pause_black : R.drawable.ic_play_arrow_black);
                 mRemoteViews.setImageViewResource(R.id.iv_favor, MusicManager.getInstance().isFavored(music) ? R.drawable.ic_favored : R.drawable.ic_favorite_border_matt);
 

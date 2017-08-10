@@ -121,6 +121,7 @@ public abstract class BaseRecyclerViewAdapter<T> extends RecyclerView.Adapter<Ba
 
     /**
      * 在该方法中对不同的条目类型进行区分, 并算出每种类型对应的数据数据position
+     * @param position holder的原始position, 如果要普通条目的position,需要自行减去headers的数量
      */
     @Override
     public void onBindViewHolder(BaseRecyclerViewHolder<T> holder, int position) {

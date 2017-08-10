@@ -59,15 +59,14 @@ import com.makeramen.roundedimageview.RoundedImageView;
 import com.mpatric.mp3agic.ID3v2;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.dao.Audio;
-import com.wosloveslife.fantasy.App;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.lrc.BLyric;
 import com.wosloveslife.fantasy.lrc.LrcView;
-import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.wosloveslife.fantasy.manager.MusicManager;
+import com.wosloveslife.fantasy.manager.SettingConfig;
 import com.wosloveslife.fantasy.ui.loadingfac.FabProgressGlue;
 import com.wosloveslife.fantasy.utils.FormatUtils;
 import com.wosloveslife.fantasy.utils.NetWorkUtil;
@@ -478,20 +477,20 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         if (music.equals(mCurrentMusic)) return;
 
-        String currentAlbum = mCurrentMusic != null ? mCurrentMusic.album : null;
+        String currentAlbum = mCurrentMusic != null ? mCurrentMusic.getAlbum() : null;
         mCurrentMusic = music;
-        mIsOnline = mCurrentMusic.path.startsWith("http");
+        mIsOnline = mCurrentMusic.getPath().startsWith("http");
 
-        mTvTitle.setText(TextUtils.isEmpty(music.title) ? "未知" : music.title);
-        mTvArtist.setText(TextUtils.isEmpty(music.artist) ? "未知" : music.artist);
+        mTvTitle.setText(TextUtils.isEmpty(music.getTitle()) ? "未知" : music.getTitle());
+        mTvArtist.setText(TextUtils.isEmpty(music.getArtist()) ? "未知" : music.getArtist());
         mTvProgress.setText("00:00");
-        mTvDuration.setText(DateFormat.format("mm:ss", music.duration).toString());
+        mTvDuration.setText(DateFormat.format("mm:ss", music.getDuration()).toString());
 
         if (mCurrentMusic == null) return;
 
-        if (!TextUtils.equals(currentAlbum, music.album)) {
-            MusicManager.getInstance().getAlbum(mCurrentMusic, mAlbumSize)
-                    .observeOn(Schedulers.computation())
+        if (!TextUtils.equals(currentAlbum, music.getAlbum())) {
+            MusicManager.getInstance().getAlbum(mCurrentMusic.getId(), mAlbumSize)
+                    .subscribeOn(Schedulers.io())
                     .subscribe(new SubscriberAdapter<Bitmap>() {
                         @Override
                         public void onNext(Bitmap bitmap) {
@@ -510,7 +509,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         updateProgress();
 
         MusicManager.getInstance()
-                .getLrc(mCurrentMusic)
+                .getLrc(mCurrentMusic.getId())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SubscriberAdapter<BLyric>() {
                     @Override
@@ -560,9 +559,15 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
 
         Logger.d("准备设置封面 时间 = " + System.currentTimeMillis());
-        App.executeOnMainThread(new SubscriberAdapter<Object>() {
+//        App.executeOnMainThread(new SubscriberAdapter<Object>() {
+//            @Override
+//            public void onCompleted() {
+//
+//            }
+//        });
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
-            public void onCompleted() {
+            public void run() {
                 Logger.d("准备设置封面2 时间 = " + System.currentTimeMillis());
                 mIvAlbum.setImageDrawable(mAlbum);
                 if (ViewCompat.isAttachedToWindow(mIvBg) && !mIsExpanded && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
@@ -713,21 +718,21 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
                 /* 通过等待歌曲同步来改变收藏状态 */
                 if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
-                    MusicManager.getInstance().removeFavor(mCurrentMusic);
+                    MusicManager.getInstance().removeFavor(mCurrentMusic.getId());
                 } else {
-                    MusicManager.getInstance().addFavor(mCurrentMusic);
+                    MusicManager.getInstance().addFavor(mCurrentMusic.getId()).toBlocking().first();
                 }
                 break;
             case R.id.iv_playOrder:
-                switch (CustomConfiguration.getPlayOrder()) {
-                    case CustomConfiguration.PLAY_ORDER_SUCCESSIVE: // 列表循环
-                        CustomConfiguration.savePlayOrder(CustomConfiguration.PLAY_ORDER_RANDOM);
+                switch (SettingConfig.getPlayOrder()) {
+                    case SettingConfig.PlayOrder.SUCCESSIVE: // 列表循环
+                        SettingConfig.savePlayOrder(SettingConfig.PlayOrder.RANDOM);
                         break;
-                    case CustomConfiguration.PLAY_ORDER_REPEAT_ONE: // 单曲循环
-                        CustomConfiguration.savePlayOrder(CustomConfiguration.PLAY_ORDER_SUCCESSIVE);
+                    case SettingConfig.PlayOrder.ONE: // 单曲循环
+                        SettingConfig.savePlayOrder(SettingConfig.PlayOrder.SUCCESSIVE);
                         break;
-                    case CustomConfiguration.PLAY_ORDER_RANDOM: // 随机播放
-                        CustomConfiguration.savePlayOrder(CustomConfiguration.PLAY_ORDER_REPEAT_ONE);
+                    case SettingConfig.PlayOrder.RANDOM: // 随机播放
+                        SettingConfig.savePlayOrder(SettingConfig.PlayOrder.ONE);
                         break;
                 }
                 syncPlayOrderVisual();
@@ -736,22 +741,22 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     }
 
     private void syncPlayOrderVisual() {
-        switch (CustomConfiguration.getPlayOrder()) {
-            case CustomConfiguration.PLAY_ORDER_SUCCESSIVE: // 列表循环
+        switch (SettingConfig.getPlayOrder()) {
+            case SettingConfig.PlayOrder.SUCCESSIVE: // 列表循环
                 AnimatedVectorDrawableCompat vectorDrawableCompat = AnimatedVectorDrawableCompat.create(getContext(), R.drawable.animated_vector_order_dismiss);
                 mIvPlayOrder.setImageDrawable(vectorDrawableCompat);
                 if (vectorDrawableCompat != null) {
                     vectorDrawableCompat.start();
                 }
                 break;
-            case CustomConfiguration.PLAY_ORDER_REPEAT_ONE: // 单曲循环
+            case SettingConfig.PlayOrder.ONE: // 单曲循环
                 AnimatedVectorDrawableCompat vectorDrawableCompat1 = AnimatedVectorDrawableCompat.create(getContext(), R.drawable.animated_vector_order_show);
                 mIvPlayOrder.setImageDrawable(vectorDrawableCompat1);
                 if (vectorDrawableCompat1 != null) {
                     vectorDrawableCompat1.start();
                 }
                 break;
-            case CustomConfiguration.PLAY_ORDER_RANDOM: // 随机播放
+            case SettingConfig.PlayOrder.RANDOM: // 随机播放
                 mIvPlayOrder.setImageResource(R.drawable.ic_order_random);
                 break;
         }
@@ -997,7 +1002,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
      */
     @Override
     public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
-        return CustomConfiguration.isPlayControllerAutoExpand();
+        return SettingConfig.isPlayControllerAutoExpand();
     }
 
     @Override

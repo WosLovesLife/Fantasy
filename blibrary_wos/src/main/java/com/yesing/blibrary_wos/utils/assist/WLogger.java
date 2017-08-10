@@ -34,6 +34,12 @@ public class WLogger {
         }
     }
 
+    public static void w(String message, Throwable e) {
+        if (sIsDebug) {
+            Log.w(TAG, "WLogger w: ", e);
+        }
+    }
+
     public static void e(String message) {
         if (sIsDebug) {
             Log.e(TAG, "WLogger e: " + message);

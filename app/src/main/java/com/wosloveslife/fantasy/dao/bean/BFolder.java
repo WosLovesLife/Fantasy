@@ -8,6 +8,7 @@ import org.json.JSONObject;
 /**
  * Entity mapped to table "BFOLDER".
  */
+@Deprecated // TODO: 2017/7/27 Remove it
 public class BFolder {
 
     public final String _id;

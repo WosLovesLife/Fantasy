@@ -20,7 +20,7 @@ import com.wosloveslife.fantasy.helper.AudioHelper;
 import com.wosloveslife.fantasy.helper.NotificationHelper;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.interfaces.IPlay;
-import com.wosloveslife.fantasy.manager.CustomConfiguration;
+import com.wosloveslife.fantasy.manager.SettingConfig;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
@@ -190,10 +190,10 @@ public class PlayService extends Service {
             /* 这里有一个未知的Bug，调用过ExoPlayer.seekTo()方法后,跳转歌曲的一瞬间进度会闪烁一下,
              * 导致歌词控件同步也会迅速滚动歌词一下, 因此这里在播放一首歌之前先将之前的歌的进度归零 */
             mPlayer.seekTo(0);
-            if (mPlayerEngine.prepare(audio.path)) {
+            if (mPlayerEngine.prepare(audio.getPath())) {
                 play();
                 MusicManager.getInstance().addRecent(audio);
-                SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
+//                SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
             } else {
                 pause();
             }
@@ -223,7 +223,7 @@ public class PlayService extends Service {
             if (mEncounteredException != null) {
                 mEncounteredException = null;
                 long currentPosition = mPlayer.getCurrentPosition();
-                mPlayerEngine.prepare(mCurrentMusic.path);
+                mPlayerEngine.prepare(mCurrentMusic.getPath());
                 mPlayer.seekTo(currentPosition);
             }
             mAudioHelper.registerAudioFocus();
@@ -252,17 +252,17 @@ public class PlayService extends Service {
      */
     public void next() {
         Audio next = null;
-        switch (CustomConfiguration.getPlayOrder()) {
-            case CustomConfiguration.PLAY_ORDER_SUCCESSIVE:
+        switch (SettingConfig.getPlayOrder()) {
+            case SettingConfig.PlayOrder.SUCCESSIVE:
                 next = MusicManager.getInstance().getMusicConfig().getNext(mCurrentMusic);
                 if (next == null) {
                     next = MusicManager.getInstance().getMusicConfig().getFirst();
                 }
                 break;
-            case CustomConfiguration.PLAY_ORDER_REPEAT_ONE:
+            case SettingConfig.PlayOrder.ONE:
                 next = mCurrentMusic;
                 break;
-            case CustomConfiguration.PLAY_ORDER_RANDOM:
+            case SettingConfig.PlayOrder.RANDOM:
                 int nextInt = new Random().nextInt(MusicManager.getInstance().getMusicConfig().getMusicCount());
                 WLogger.d("next : nextIndex = " + nextInt);
                 next = MusicManager.getInstance().getMusicConfig().getMusic(nextInt);
@@ -391,7 +391,7 @@ public class PlayService extends Service {
         String currentMusic = SPHelper.getInstance().get("current_music", "");
         if (!TextUtils.isEmpty(currentMusic)) {
             mCurrentMusic = new Gson().fromJson(currentMusic, Audio.class);
-            mPlayerEngine.prepare(mCurrentMusic.path);
+            mPlayerEngine.prepare(mCurrentMusic.getPath());
         }
 
         EventBus.getDefault().register(this);
@@ -399,7 +399,7 @@ public class PlayService extends Service {
     }
 
     private void notifyNotification() {
-        mNotificationHelper.update(isPlaying(), mCurrentMusic);
+//        mNotificationHelper.update(isPlaying(), mCurrentMusic);
     }
 
     /** 每次调用startService()启用该服务时都被调用 */
@@ -421,9 +421,9 @@ public class PlayService extends Service {
                 break;
             case 3: // 收藏
                 if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
-                    MusicManager.getInstance().removeFavor(mCurrentMusic);
+                    MusicManager.getInstance().removeFavor(mCurrentMusic.getId());
                 } else {
-                    MusicManager.getInstance().addFavor(mCurrentMusic);
+                    MusicManager.getInstance().addFavor(mCurrentMusic.getId()).toBlocking().first();
                 }
                 break;
             case 4: // 桌面歌词

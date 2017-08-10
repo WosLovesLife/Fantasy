@@ -22,6 +22,7 @@ import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
 
 /**
@@ -74,12 +75,13 @@ public class SearchResultAdapter extends BaseRecyclerViewAdapter<Audio> {
 
         @Override
         public void onBind(final Audio bMusic, final int position) {
-            mTvTitle.setText(hasKeyWord(bMusic.title));
-            mTvArtist.setText(hasKeyWord(bMusic.artist));
+            mTvTitle.setText(hasKeyWord(bMusic.getTitle()));
+            mTvArtist.setText(hasKeyWord(bMusic.getArtist()));
 
             mIvAlbum.setVisibility(View.INVISIBLE);
             MusicManager.getInstance()
-                    .getAlbum(bMusic, mAlbumSize)
+                    .getAlbum(bMusic.getId(), mAlbumSize)
+                    .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(new SubscriberAdapter<Bitmap>() {
                         @Override

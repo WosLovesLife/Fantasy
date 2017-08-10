@@ -15,7 +15,7 @@ public class Migration implements RealmMigration {
         if (oldVersion == 0) {
             // 声音文件
             schema.create("Audio")
-                    .addField(Audio.ID, long.class, FieldAttribute.PRIMARY_KEY)
+                    .addField(Audio.ID, String.class, FieldAttribute.PRIMARY_KEY)
                     .addField(Audio.TITLE, String.class)
                     .addField(Audio.ARTIST, String.class)
                     .addField(Audio.ALBUM, String.class)
@@ -37,14 +37,17 @@ public class Migration implements RealmMigration {
 
             // 文件夹
             schema.create("Sheet")
-                    .addField(Sheet.ID, long.class, FieldAttribute.PRIMARY_KEY)
+                    .addField(Sheet.ID, String.class, FieldAttribute.PRIMARY_KEY)
                     .addField(Sheet.TITLE, String.class)
                     .addField(Sheet.AUTHOR, String.class)
                     .addField(Sheet.TITLE_PINYIN, String.class)
                     .addField(Sheet.AUTHOR_PINYIN, String.class)
                     .addRealmListField(Sheet.SONGS, schema.get("Audio"))
                     .addField(Sheet.CREATE_TIMESTAMP, long.class)
-                    .addField(Sheet.MODIFY_TIMESTAMP, long.class);
+                    .addField(Sheet.MODIFY_TIMESTAMP, long.class)
+                    .addField(Sheet.TYPE, int.class)
+                    .addField(Sheet.STATE, int.class)
+                    .addField(Sheet.PATH, String.class);
 
             //
             schema.get("Audio")

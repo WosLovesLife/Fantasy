@@ -17,12 +17,24 @@ public class BaseStore {
                 try {
                     realm.beginTransaction();
                     subscriber.onNext(realm);
-                    realm.commitTransaction();
+                    if (realm.isInTransaction()) {
+                        realm.commitTransaction();
+                    }
                 } finally {
                     if (realm.isInTransaction()) {
                         realm.cancelTransaction();
                     }
                 }
+                subscriber.onCompleted();
+            }
+        });
+    }
+
+    public static Observable<Realm> getRealmTx() {
+        return Observable.create(new Observable.OnSubscribe<Realm>() {
+            @Override
+            public void call(Subscriber<? super Realm> subscriber) {
+                subscriber.onNext(Realm.getDefaultInstance());
                 subscriber.onCompleted();
             }
         });

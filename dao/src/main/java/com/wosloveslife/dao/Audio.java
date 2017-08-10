@@ -13,54 +13,54 @@ import io.realm.RealmObject;
 public class Audio extends RealmObject implements AudioProperties {
     /** 用来判断一首歌的唯一值 */
     @NonNull
-    public String id;
+    private String id;
 
     /** 资源名(歌曲名) */
     @Nullable
-    public String title;
+    private String title;
     /** 艺术家(歌手) */
     @Nullable
-    public String artist;
+    private String artist;
     /** 专辑名 */
     @Nullable
-    public String album;
+    private String album;
     /** 资源名的拼音形式, 用于排序 */
     @Nullable
-    public String titlePinyin;
+    private String titlePinyin;
     /** 艺术家的拼音形式, 用于排序 */
     @Nullable
-    public String artistPinyin;
+    private String artistPinyin;
     /** 专辑的拼音形式, 用于排序 */
     @Nullable
-    public String albumPinyin;
+    private String albumPinyin;
 
     /** url路径,一般是本地文件路径, 如果是在线资源则对应网络url */
-    public String path;
+    private String path;
     /** 持续时间 */
-    public long duration;
+    private long duration;
     /** 文件大小,如果是在线资源,该值需要根据Api返回的数据调整 */
-    public long size;
+    private long size;
 
     /** 年份 */
-    public int year;
+    private int year;
     /** 音轨 */
-    public int track;
+    private int track;
     /** 光盘编号, 系统数据库貌似没有这个字段 */
-    public int discId;
+    private int discId;
 
     /** 是否是乐曲,对应系统的数据0为false */
-    public boolean isMusic;
+    private boolean isMusic;
     /** 是否是铃声,对应系统的数据0为false */
-    public boolean isRingtone;
+    private boolean isRingtone;
     /** 是否是提示音,对应系统的数据0为false */
-    public boolean isAlarm;
+    private boolean isAlarm;
     /** 是否是通知音,对应系统的数据0为false */
-    public boolean isNotification;
+    private boolean isNotification;
     /** 是否是播客电台,对应系统的数据0为false */
-    public boolean isPodcast;
+    private boolean isPodcast;
     /** 所属歌单 */
-    @Nullable
-    public RealmList<Sheet> songList;
+    @NonNull
+    private RealmList<Sheet> songList;
 
     /**
      * 这首歌所在的音乐列表, 这个字段很关键, 它需要和歌单列表数据表所对应上.<br/>
@@ -74,31 +74,203 @@ public class Audio extends RealmObject implements AudioProperties {
      * 预占用0-9的范围, 其中0是本地列表,1是收藏列表, 2是最近播放, 3是下载管理
      */
 //    private String belongTo;
-    public long joinTimestamp;
+    private long joinTimestamp;
 
     public Audio() {
+        songList = new RealmList<>();
     }
 
-    public Audio(Audio audio) {
-        id = audio.id;
-        title = audio.title;
-        artist = audio.artist;
-        album = audio.album;
-        titlePinyin = audio.titlePinyin;
-        artistPinyin = audio.artistPinyin;
-        albumPinyin = audio.albumPinyin;
-        path = audio.path;
-        duration = audio.duration;
-        size = audio.size;
-        year = audio.year;
-        track = audio.track;
-        discId = audio.discId;
-        isMusic = audio.isMusic;
-        isRingtone = audio.isRingtone;
-        isAlarm = audio.isAlarm;
-        isNotification = audio.isNotification;
-        isPodcast = audio.isPodcast;
-        songList = audio.songList;
+    @Override
+    public Audio clone() {
+        Audio audio = new Audio();
+        audio.id = id;
+        audio.title = title;
+        audio.artist = artist;
+        audio.album = album;
+        audio.titlePinyin = titlePinyin;
+        audio.artistPinyin = artistPinyin;
+        audio.albumPinyin = albumPinyin;
+        audio.path = path;
+        audio.duration = duration;
+        audio.size = size;
+        audio.year = year;
+        audio.track = track;
+        audio.discId = discId;
+        audio.isMusic = isMusic;
+        audio.isRingtone = isRingtone;
+        audio.isAlarm = isAlarm;
+        audio.isNotification = isNotification;
+        audio.isPodcast = isPodcast;
+        audio.songList = songList;
+        return audio;
+    }
+
+    @NonNull
+    public String getId() {
+        return id;
+    }
+
+    public void setId(@NonNull String id) {
+        this.id = id;
+    }
+
+    @Nullable
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(@Nullable String title) {
+        this.title = title;
+    }
+
+    @Nullable
+    public String getArtist() {
+        return artist;
+    }
+
+    public void setArtist(@Nullable String artist) {
+        this.artist = artist;
+    }
+
+    @Nullable
+    public String  getAlbum() {
+        return album;
+    }
+
+    public void setAlbum(@Nullable String album) {
+        this.album = album;
+    }
+
+    @Nullable
+    public String getTitlePinyin() {
+        return titlePinyin;
+    }
+
+    public void setTitlePinyin(@Nullable String titlePinyin) {
+        this.titlePinyin = titlePinyin;
+    }
+
+    @Nullable
+    public String getArtistPinyin() {
+        return artistPinyin;
+    }
+
+    public void setArtistPinyin(@Nullable String artistPinyin) {
+        this.artistPinyin = artistPinyin;
+    }
+
+    @Nullable
+    public String getAlbumPinyin() {
+        return albumPinyin;
+    }
+
+    public void setAlbumPinyin(@Nullable String albumPinyin) {
+        this.albumPinyin = albumPinyin;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    public long getDuration() {
+        return duration;
+    }
+
+    public void setDuration(long duration) {
+        this.duration = duration;
+    }
+
+    public long getSize() {
+        return size;
+    }
+
+    public void setSize(long size) {
+        this.size = size;
+    }
+
+    public int getYear() {
+        return year;
+    }
+
+    public void setYear(int year) {
+        this.year = year;
+    }
+
+    public int getTrack() {
+        return track;
+    }
+
+    public void setTrack(int track) {
+        this.track = track;
+    }
+
+    public int getDiscId() {
+        return discId;
+    }
+
+    public void setDiscId(int discId) {
+        this.discId = discId;
+    }
+
+    public boolean isMusic() {
+        return isMusic;
+    }
+
+    public void setMusic(boolean music) {
+        isMusic = music;
+    }
+
+    public boolean isRingtone() {
+        return isRingtone;
+    }
+
+    public void setRingtone(boolean ringtone) {
+        isRingtone = ringtone;
+    }
+
+    public boolean isAlarm() {
+        return isAlarm;
+    }
+
+    public void setAlarm(boolean alarm) {
+        isAlarm = alarm;
+    }
+
+    public boolean isNotification() {
+        return isNotification;
+    }
+
+    public void setNotification(boolean notification) {
+        isNotification = notification;
+    }
+
+    public boolean isPodcast() {
+        return isPodcast;
+    }
+
+    public void setPodcast(boolean podcast) {
+        isPodcast = podcast;
+    }
+
+    @NonNull
+    public RealmList<Sheet> getSongList() {
+        return songList;
+    }
+
+    public void setSongList(@NonNull RealmList<Sheet> songList) {
+        this.songList = songList;
+    }
+
+    public long getJoinTimestamp() {
+        return joinTimestamp;
+    }
+
+    public void setJoinTimestamp(long joinTimestamp) {
+        this.joinTimestamp = joinTimestamp;
     }
 
     @Override
@@ -122,7 +294,7 @@ public class Audio extends RealmObject implements AudioProperties {
     }
 
     @Deprecated // 未完成
-    public boolean exist(){
+    public boolean exist() {
         // TODO: 17/6/18 检查如果是本地文件查看文件是否存在,如果是网络文件查看是否存在本地缓存以及本地缓存是否完整.
         return false;
     }

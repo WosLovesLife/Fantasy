@@ -113,8 +113,8 @@ public class MusicListAdapter extends BaseRecyclerViewAdapter<Audio> {
             mPosition = position;
 
             mTvId.setText(String.valueOf(mPosition + 1));
-            mTvTitle.setText(music.title);
-            mTvArtist.setText(music.artist);
+            mTvTitle.setText(music.getTitle());
+            mTvArtist.setText(music.getArtist());
 
             if (mPlayingItem != null && mPlayingItem.equals(music)) {
                 mIvState.setVisibility(View.VISIBLE);

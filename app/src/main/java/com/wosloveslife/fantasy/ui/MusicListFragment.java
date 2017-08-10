@@ -1,8 +1,5 @@
 package com.wosloveslife.fantasy.ui;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -30,10 +27,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
-import android.widget.FrameLayout;
 
-import com.makeramen.roundedimageview.RoundedImageView;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.dao.Audio;
 import com.wosloveslife.dao.SheetIds;
@@ -44,6 +38,8 @@ import com.wosloveslife.fantasy.dao.bean.NavigationItem;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.services.CountdownTimerService;
 import com.wosloveslife.fantasy.services.PlayService;
+import com.wosloveslife.fantasy.ui.funcs.CountdownAnimView;
+import com.wosloveslife.fantasy.ui.funcs.CountdownPickDialog;
 import com.wosloveslife.fantasy.ui.swapablenavigation.SwapNavigationAdapter;
 import com.wosloveslife.fantasy.ui.swapablenavigation.VerticalSwapItemTouchHelperCallBack;
 import com.wosloveslife.fantasy.utils.DividerDecoration;
@@ -94,7 +90,6 @@ public class MusicListFragment extends BaseFragment {
     Audio mCurrentMusic;
 
     boolean mIsCountdown;
-    private String mCurrentSheetOrdinal;
     // TODO: 17/6/18 暂时禁用搜索页面
 //    private SearchSuggestLayout mSuggestLayout;
 
@@ -155,12 +150,9 @@ public class MusicListFragment extends BaseFragment {
         mAdapter = new MusicListAdapter();
         mAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<Audio>() {
             @Override
-            public void onItemClick(final Audio music, View v, int position) {
-                if (!TextUtils.equals(MusicManager.getInstance().getMusicConfig().mCurrentSheetId, mCurrentSheetOrdinal) || TextUtils.equals(mCurrentSheetOrdinal, "2")) {
-                    MusicManager.getInstance().changeSheet(mCurrentSheetOrdinal);
-                }
-                if (mCurrentMusic == null || !mCurrentMusic.equals(music)) {
-                    mCurrentMusic = music;
+            public void onItemClick(Audio music, View v, int position) {
+                Audio currentMusic = MusicManager.getInstance().getMusicConfig().mCurrentMusic;
+                if (currentMusic == null || !currentMusic.equals(music)) {
                     mPlayBinder.play(music);
                 } else {
                     /* 播放,暂停当前曲目 */
@@ -173,7 +165,7 @@ public class MusicListFragment extends BaseFragment {
 
         initToolbar();
 
-        /** 监听控制面板中的事件 */
+        /* 监听控制面板中的事件 */
         mControlView.setControlListener(new ControlView.ControlListener() {
             @Override
             public void previous() {
@@ -198,6 +190,12 @@ public class MusicListFragment extends BaseFragment {
                 mPlayBinder.pause();
             }
         });
+    }
+
+    @Override
+    protected void updateData() {
+        super.updateData();
+        setData(MusicManager.getInstance().getMusicConfig().mMusicList);
     }
 
     private void initToolbar() {
@@ -240,46 +238,23 @@ public class MusicListFragment extends BaseFragment {
                         break;
                     case "定时停止播放":
                         final ViewGroup viewGroup = (ViewGroup) getActivity().getWindow().getDecorView().findViewById(android.R.id.content);
-                        com.wosloveslife.fantasy.ui.funcs.CountdownPickDialog.newInstance(getActivity(), new com.wosloveslife.fantasy.ui.funcs.CountdownPickDialog.OnChosenListener() {
+                        final CountdownPickDialog countdownPickDialog = CountdownPickDialog.newInstance(getActivity(), new com.wosloveslife.fantasy.ui.funcs.CountdownPickDialog.OnChosenListener() {
                             @Override
                             public void onChosen(com.wosloveslife.fantasy.ui.funcs.CountdownPickDialog.Result result) {
-                                mIsCountdown = result.duration > 0;
-                                if (mIsCountdown) {
-                                    Intent intent = CountdownTimerService.createIntent(getActivity(), result.duration);
-                                    getActivity().startService(intent);
-                                    mPlayBinder.setCountdown(result.duration, result.closeAfterPlayComplete);
-                                } else if (SystemServiceUtils.isServiceRunning(getActivity(), CountdownTimerService.class.getName())) {
-                                    Intent intent = CountdownTimerService.stopService(getActivity());
-                                    getActivity().startService(intent);
-                                    mPlayBinder.setCountdown(result.duration, false);
+                                if (result.duration > 0) {
+                                    CountdownAnimView view = new CountdownAnimView(getContext());
+                                    view.show(viewGroup, result.duration);
                                 }
-                                updateNvCountdown(result.duration, 0);
-
-                                final RoundedImageView view = new RoundedImageView(getActivity());
-                                view.setImageResource(R.drawable.ic_portrait_chicken_174);
-                                viewGroup.addView(view, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
-                                view.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-                                    @Override
-                                    public void onGlobalLayout() {
-                                        view.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-
-                                        ObjectAnimator animator = ObjectAnimator.ofFloat(view, "alpha", 0.5f, 1f, 0.5f, 1f, 0.5f, 1f, 0);
-                                        animator.setDuration(3000);
-                                        animator.addListener(new AnimatorListenerAdapter() {
-                                            @Override
-                                            public void onAnimationEnd(Animator animation) {
-                                                super.onAnimationEnd(animation);
-                                                animation.removeAllListeners();
-                                                view.clearAnimation();
-                                                viewGroup.removeView(view);
-                                            }
-                                        });
-                                        animator.start();
-                                    }
-                                });
+                                updateNvCountdown();
                             }
-                        }).show(viewGroup);
-                        mDrawerLayout.closeDrawer(Gravity.LEFT);
+                        });
+                        countdownPickDialog.show(viewGroup);
+                        mDrawerLayout.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                mDrawerLayout.closeDrawer(Gravity.START);
+                            }
+                        }, 200);
                         break;
                     case "设置":
                         // TODO: 17/6/19 跳转SettingPage
@@ -304,33 +279,29 @@ public class MusicListFragment extends BaseFragment {
         if (TextUtils.isEmpty(sheetId)) {
             sheetId = SheetIds.LOCAL;
         }
+        if (TextUtils.equals(MusicManager.getInstance().getMusicConfig().mCurrentSheetId, sheetId)) {
+            return;
+        }
         switch (sheetId) {
             case "0":
-                if (!TextUtils.equals(mCurrentSheetOrdinal, "0")) {
-                    mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount());
-                    mToolbar.setTitle("本地音乐");
-                    MusicManager.getInstance().changeSheet("0");
-                }
+                mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount());
+                mToolbar.setTitle("本地音乐");
+                MusicManager.getInstance().changeSheet("0");
                 break;
             case "1":
-                if (!TextUtils.equals(mCurrentSheetOrdinal, "1")) {
-                    mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 1);
-                    mToolbar.setTitle("我的收藏");
-                    MusicManager.getInstance().changeSheet("1");
-                }
+                mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 1);
+                mToolbar.setTitle("我的收藏");
+                MusicManager.getInstance().changeSheet("1");
                 break;
             case "2":
-                if (!TextUtils.equals(mCurrentSheetOrdinal, "2")) {
-                    mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 2);
-                    mToolbar.setTitle("最近播放");
-                    MusicManager.getInstance().changeSheet("2");
-                }
+                mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 2);
+                mToolbar.setTitle("最近播放");
+                MusicManager.getInstance().changeSheet("2");
                 break;
             case "3":
                 mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 3);
                 break;
         }
-        mCurrentSheetOrdinal = sheetId;
         // TODO: 17/6/18 暂时禁用搜索
 //        if (mSuggestLayout != null) {
 //            mSuggestLayout.setSheet(mCurrentSheetOrdinal);
@@ -355,7 +326,7 @@ public class MusicListFragment extends BaseFragment {
                     getActivity().startService(intent);
                     mPlayBinder.setCountdown(pickDate, false);
                 }
-                updateNvCountdown(pickDate, 0);
+                updateNvCountdown();
                 break;
         }
     }
@@ -400,7 +371,7 @@ public class MusicListFragment extends BaseFragment {
                         mAdapter.togglePlay(false);
                         if (mIsCountdown && !mPlayBinder.isCountdown()) {
                             mIsCountdown = false;
-                            updateNvCountdown(0, 0);
+                            updateNvCountdown();
                         }
                     }
                 }
@@ -409,7 +380,7 @@ public class MusicListFragment extends BaseFragment {
             mControlView.setPlayer(mPlayBinder.getExoPlayer());
             syncVisual(mPlayBinder.getCurrentMusic());
             mIsCountdown = mPlayBinder.isCountdown();
-            updateNvCountdown(0, 0);
+            updateNvCountdown();
         }
 
         /** 和服务断开连接后回调(比如unbindService()方法执行后) */
@@ -428,14 +399,16 @@ public class MusicListFragment extends BaseFragment {
         mAdapter.setChosenItem(position, mPlayBinder.isPlaying());
     }
 
-    private void updateNvCountdown(long totalMillis, long millisUntilFinished) {
-        if (totalMillis == millisUntilFinished) {
-            mNavigationAdapter.updateCountDownTimer(mNavigationAdapter.getHeadersCount() + 5, -1,
-                    mPlayBinder != null && mPlayBinder.isCloseAfterPlayComplete());
-        } else {
-            mNavigationAdapter.updateCountDownTimer(mNavigationAdapter.getHeadersCount() + 5, millisUntilFinished,
-                    mPlayBinder != null && mPlayBinder.isCloseAfterPlayComplete());
+    private void updateNvCountdown() {
+        int index = 0;
+        for (int i = 0; i < mNavigationAdapter.getRealItemCount(); i++) {
+            NavigationItem normalData = mNavigationAdapter.getNormalData(i);
+            if (normalData.mTitle.equals("定时停止播放")) {
+                index = i;
+                break;
+            }
         }
+        mNavigationAdapter.notifyItemChanged(index + mNavigationAdapter.getHeadersCount());
     }
 
     //=======================================UI和逻辑的同步-end=====================================
@@ -510,7 +483,7 @@ public class MusicListFragment extends BaseFragment {
     public void onAddMusic(MusicManager.OnAddMusic event) {
         if (event == null || event.mMusic == null) return;
         Audio music = event.mMusic;
-        if (TextUtils.equals(mCurrentSheetOrdinal, event.mSheetId)) {
+        if (TextUtils.equals(MusicManager.getInstance().getMusicConfig().mCurrentSheetId, event.mSheetId)) {
             mAdapter.addItem(music, 0);
         }
         if (music.equals(mCurrentMusic)) {
@@ -522,7 +495,7 @@ public class MusicListFragment extends BaseFragment {
     public void onRemoveMusic(MusicManager.OnRemoveMusic event) {
         if (event == null || event.mMusic == null) return;
         Audio music = event.mMusic;
-        if (TextUtils.equals(mCurrentSheetOrdinal, event.mBelongTo)) {
+        if (TextUtils.equals(MusicManager.getInstance().getMusicConfig().mCurrentSheetId, event.mBelongTo)) {
             int startPosition = mAdapter.getNormalPosition(music);
             mAdapter.removeItem(music);
             mAdapter.notifyItemRangeChanged(startPosition, mAdapter.getRealItemCount() - startPosition);
@@ -536,7 +509,7 @@ public class MusicListFragment extends BaseFragment {
     public void onMusicChanged(MusicManager.OnMusicChanged event) {
         if (event == null || event.mMusic == null) return;
         Audio music = event.mMusic;
-        if (TextUtils.equals(mCurrentSheetOrdinal, event.mSheetId) && TextUtils.equals(mCurrentSheetOrdinal, "2")) {
+        if (TextUtils.equals(MusicManager.getInstance().getMusicConfig().mCurrentSheetId, event.mSheetId) && TextUtils.equals(MusicManager.getInstance().getMusicConfig().mCurrentSheetId, "2")) {
             int oldPosition = mAdapter.getNormalPosition(event.mMusic);
             if (mRecyclerView.getItemAnimator().isRunning()) {
                 mRecyclerView.getItemAnimator().endAnimations();
@@ -553,7 +526,7 @@ public class MusicListFragment extends BaseFragment {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onCountDownTimerTick(CountdownTimerService.CountDownEvent event) {
         if (event == null) return;
-        updateNvCountdown(event.totalMillis, event.millisUntilFinished);
+        updateNvCountdown();
     }
 
     /**

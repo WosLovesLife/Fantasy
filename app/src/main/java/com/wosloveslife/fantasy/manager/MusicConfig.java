@@ -6,13 +6,10 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.wosloveslife.dao.Audio;
-import com.wosloveslife.dao.Sheet;
 import com.wosloveslife.fantasy.helper.SPHelper;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by leonard on 17/6/18.
@@ -23,8 +20,6 @@ public class MusicConfig {
 
     @NonNull
     public final List<Audio> mMusicList;
-    @NonNull
-    public final Map<String, Sheet> mSheets;
     @Nullable
     public Audio mCurrentMusic;
     @Nullable
@@ -32,7 +27,6 @@ public class MusicConfig {
 
     public MusicConfig() {
         mMusicList = new ArrayList<>();
-        mSheets = new HashMap<>();
 
         mCurrentSheetId = getLastSheetId();
     }
@@ -57,7 +51,7 @@ public class MusicConfig {
     public Audio getMusicByTitlePinYin(String pinyin) {
         if (!TextUtils.isEmpty(pinyin)) {
             for (Audio audio : mMusicList) {
-                if (TextUtils.equals(audio.titlePinyin, pinyin)) {
+                if (TextUtils.equals(audio.getTitlePinyin(), pinyin)) {
                     return audio;
                 }
             }
@@ -88,7 +82,7 @@ public class MusicConfig {
         }
         for (int i = 0; i < mMusicList.size(); i++) {
             Audio audio = mMusicList.get(i);
-            if (TextUtils.equals(audio.id, id)) {
+            if (TextUtils.equals(audio.getId(), id)) {
                 return getMusic(i + 1);
             }
         }
@@ -110,7 +104,7 @@ public class MusicConfig {
         }
         for (int i = 0; i < mMusicList.size(); i++) {
             Audio audio = mMusicList.get(i);
-            if (TextUtils.equals(audio.id, id)) {
+            if (TextUtils.equals(audio.getId(), id)) {
                 return getMusic(i - 1);
             }
         }

@@ -39,17 +39,6 @@ public class AudioStore {
         });
     }
 
-    public static Observable<List<Audio>> loadBySheetId(final String sheetId) {
-        return getRealm().map(new Func1<Realm, List<Audio>>() {
-            @Override
-            public List<Audio> call(Realm realm) {
-                return realm.where(Audio.class)
-                        .equalTo(Sheet.class.getName() + "." + Sheet.ID, sheetId)
-                        .findAllSorted(Audio.JOIN_TIMESTAMP, Sort.DESCENDING);
-            }
-        });
-    }
-
     public static Observable<Boolean> clear() {
         return getRealm().map(new Func1<Realm, Boolean>() {
             @Override

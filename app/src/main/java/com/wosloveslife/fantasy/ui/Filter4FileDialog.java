@@ -14,7 +14,7 @@ import android.view.View;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.FileFilterAdapter;
 import com.wosloveslife.fantasy.dao.bean.BFolder;
-import com.wosloveslife.fantasy.manager.CustomConfiguration;
+import com.wosloveslife.fantasy.manager.SettingConfig;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 
 import java.util.List;
@@ -56,7 +56,7 @@ public class Filter4FileDialog extends DialogFragment {
     }
 
     private void init() {
-        List<BFolder> filter = CustomConfiguration.getFolders();
+        List<BFolder> filter = SettingConfig.getFolders();
         if (filter == null) {
             Toaster.showShort("请等待播放器初始化完毕");
             getDialog().dismiss();
@@ -75,7 +75,7 @@ public class Filter4FileDialog extends DialogFragment {
                 getDialog().dismiss();
                 break;
             case R.id.btn_submit:
-                CustomConfiguration.saveFolders(mAdapter.getNormalDataList());
+                SettingConfig.saveFolders(mAdapter.getNormalDataList());
                 getDialog().dismiss();
                 break;
         }

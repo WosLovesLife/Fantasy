@@ -14,7 +14,7 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.manager.CustomConfiguration;
+import com.wosloveslife.fantasy.manager.SettingConfig;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 
@@ -54,23 +54,23 @@ public class SettingFragment extends BaseFragment {
     protected void initView() {
         super.initView();
 
-        mSwitchAutoExpand.setChecked(CustomConfiguration.isPlayControllerAutoExpand());
+        mSwitchAutoExpand.setChecked(SettingConfig.isPlayControllerAutoExpand());
         mSwitchAutoExpand.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                CustomConfiguration.savePlayControllerAutoExpand(isChecked);
+                SettingConfig.savePlayControllerAutoExpand(isChecked);
             }
         });
 
-//        mSwitchChangeSheetWithPlayList.setChecked(CustomConfiguration.isChangeSheetWithPlayList());
+//        mSwitchChangeSheetWithPlayList.setChecked(SettingConfig.isChangeSheetWithPlayList());
 //        mSwitchChangeSheetWithPlayList.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 //            @Override
 //            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-//                CustomConfiguration.saveChangeSheetWithPlayList(isChecked);
+//                SettingConfig.saveChangeSheetWithPlayList(isChecked);
 //            }
 //        });
 
-        setMinDurationContent(CustomConfiguration.getMinDuration());
+        setMinDurationContent(SettingConfig.getMinDuration());
     }
 
     @OnClick({R.id.tv_filterDuration, R.id.tv_fileFilter, R.id.tv_rescan,
