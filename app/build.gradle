@@ -53,12 +53,6 @@ dependencies {
     compile 'com.makeramen:roundedimageview:2.3.0'
     //============滑动返回
     compile 'com.jude:swipebackhelper:3.1.2'
-    //============greenDao
-    compile 'de.greenrobot:greendao:2.1.0'
     //============拼音转换
     compile 'com.github.promeg:tinypinyin:2.0.2'
-    //============带loading的FAB
-    compile 'com.github.jorgecastilloprz:fabprogresscircle:1.01@aar'
-    //============底部Bar
-    compile 'com.github.armcha:LuseenBottomNavigation:1.8.2'
 }
