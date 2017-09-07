@@ -10,6 +10,7 @@ import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.manager.SettingConfig;
 import com.wosloveslife.fantasy.services.PlayService;
+import com.wosloveslife.fantasy.v2.player.Controller;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 
@@ -42,6 +43,12 @@ public class App extends Application {
         startService(intent);
     }
 
+    @Override
+    public void onTerminate() {
+        super.onTerminate();
+        Controller.getInstance().onAppStop();
+    }
+
     private void initDB() {
         Realm.init(this);
         Realm.setDefaultConfiguration(new RealmConfiguration.Builder()
@@ -60,6 +67,7 @@ public class App extends Application {
         SPHelper.getInstance().init(this);
         SettingConfig.init(this);
         MusicManager.getInstance().init(this);
+        Controller.getInstance().init(this);
     }
 
     public static void executeOnComputationThread(Subscriber<? super Object> subscriber) {
@@ -81,7 +89,7 @@ public class App extends Application {
                 .subscribe(subscriber);
     }
 
-    public static Context getAppContent() {
+    public static Context getContext() {
         return sContext;
     }
 }

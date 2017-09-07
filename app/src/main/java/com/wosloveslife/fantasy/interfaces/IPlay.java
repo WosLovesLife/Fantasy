@@ -39,4 +39,6 @@ public interface IPlay {
     int getBufferState();
 
     void addListener(ExoPlayer.EventListener listener);
+
+    boolean removeListener(ExoPlayer.EventListener listener);
 }

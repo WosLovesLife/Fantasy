@@ -139,6 +139,12 @@ public class PlayService extends Service {
             PlayService.this.addListener(listener);
         }
 
+        @Override
+        public boolean removeListener(ExoPlayer.EventListener listener) {
+            PlayService.this.removeListener(listener);
+            return true;
+        }
+
         public long getCurrentPosition() {
             return PlayService.this.getCurrentPosition();
         }
@@ -327,6 +333,10 @@ public class PlayService extends Service {
 
     public void addListener(ExoPlayer.EventListener listener) {
         mPlayer.addListener(listener);
+    }
+
+    public void removeListener(ExoPlayer.EventListener listener) {
+        mPlayer.removeListener(listener);
     }
 
     private long getCurrentPosition() {

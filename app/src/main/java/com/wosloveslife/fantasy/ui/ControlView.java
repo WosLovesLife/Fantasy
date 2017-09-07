@@ -16,6 +16,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Parcelable;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.annotation.UiThread;
@@ -53,7 +54,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
 import com.makeramen.roundedimageview.RoundedImageView;
 import com.mpatric.mp3agic.ID3v2;
@@ -70,6 +70,8 @@ import com.wosloveslife.fantasy.manager.SettingConfig;
 import com.wosloveslife.fantasy.ui.loadingfac.FabProgressGlue;
 import com.wosloveslife.fantasy.utils.FormatUtils;
 import com.wosloveslife.fantasy.utils.NetWorkUtil;
+import com.wosloveslife.fantasy.v2.player.Controller;
+import com.wosloveslife.fantasy.v2.player.IPlayer;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
@@ -151,7 +153,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     private boolean mIsOnline;
 
     //=============
-    private SimpleExoPlayer mPlayer;
+    @NonNull
+    private IPlayer mPlayer;
 
     //=============Var
     /** 如果手正在拖动SeekBar,就不能让Progress自动跳转 */
@@ -271,6 +274,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         mVelocityTracker = VelocityTracker.obtain();
         mParentHelper = new NestedScrollingParentHelper(this);
+
+        mPlayer = Controller.getInstance();
     }
 
     @Override
@@ -399,12 +404,10 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
             public void onSeekingProgress(long progress) {
                 mLrcSeeking = true;
                 mLrcProgress = progress;
-                if (mPlayer != null) {
-                    if (progress > mPlayer.getCurrentPosition()) {
-                        mFacPlayBtn.setImageResource(R.drawable.ic_fast_forward);
-                    } else if (progress < mPlayer.getCurrentPosition()) {
-                        mFacPlayBtn.setImageResource(R.drawable.ic_fast_rewind);
-                    }
+                if (progress > mPlayer.getState().getCurrentPosition()) {
+                    mFacPlayBtn.setImageResource(R.drawable.ic_fast_forward);
+                } else if (progress < mPlayer.getState().getCurrentPosition()) {
+                    mFacPlayBtn.setImageResource(R.drawable.ic_fast_rewind);
                 }
             }
 
@@ -418,19 +421,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         syncPlayOrderVisual();
 
         addView(view);
-    }
 
-    float mHeadLastY;
-    float mHeadDownY;
-    boolean mHeadClick;
-
-    boolean mLrcSeeking;
-    long mLrcProgress;
-
-    public void setPlayer(SimpleExoPlayer player) {
-        mPlayer = player;
-
-        mPlayer.addListener(new ExoPlayerEventListenerAdapter() {
+        mPlayer.getState().addListener(new ExoPlayerEventListenerAdapter() {
 
             @Override
             public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
@@ -449,6 +441,13 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         });
     }
 
+    float mHeadLastY;
+    float mHeadDownY;
+    boolean mHeadClick;
+
+    boolean mLrcSeeking;
+    long mLrcProgress;
+
     //==========================================状态同步-start======================================
 
     /**
@@ -458,14 +457,16 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
      */
     @UiThread
     public void syncPlayView(Audio music) {
-        if (music == null || mPlayer == null) return;
-
+        if (music == null) {
+            // TODO: 2017/9/3 如果Music == null 则置为默认样式
+            return;
+        }
         if (isPlaying()) {
             mIvPlayBtn.setImageDrawable(mPauseDrawable);
         } else {
             mIvPlayBtn.setImageDrawable(mPlayDrawable);
         }
-        toggleFacBtn(mPlayer.getPlayWhenReady());
+        toggleFacBtn(mPlayer.getState().isPlaying());
 
         toggleLrcLoop();
 
@@ -604,8 +605,8 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
     @UiThread
     private void updateProgress() {
-        long duration = mPlayer == null ? 0 : mPlayer.getDuration();
-        long position = mPlayer == null ? 0 : mPlayer.getCurrentPosition();
+        long duration = mPlayer.getState().getDuration();
+        long position = mPlayer.getState().getCurrentPosition();
 
         if (duration >= 0) {
             if (mTvDuration != null) {
@@ -622,14 +623,14 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         /* 如果是网络资源(播放地址以http开头)则显示缓存进度 */
         if (mIsOnline) {
-            long bufferedPosition = mPlayer == null ? 0 : mPlayer.getBufferedPosition();
+            long bufferedPosition = mPlayer.getState().getBufferedPosition();
             mPbProgress.setSecondaryProgress((int) (bufferedPosition / 1000));
         }
 
         mHandler.removeCallbacksAndMessages(null);
 
         // Schedule an update if necessary.
-        int playbackState = mPlayer == null ? ExoPlayer.STATE_IDLE : mPlayer.getPlaybackState();
+        int playbackState = mPlayer.getState().getPlaybackState();
         if (isPlaying() && playbackState != ExoPlayer.STATE_IDLE && playbackState != ExoPlayer.STATE_ENDED) {
             long delayMs;
             if (playbackState == ExoPlayer.STATE_READY) {
@@ -653,7 +654,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     };
 
     private boolean isPlaying() {
-        return mPlayer != null && mPlayer.getPlayWhenReady();
+        return mPlayer != null && mPlayer.getState().isPlaying();
     }
 
     private void toggleFacBtn(boolean play) {
@@ -670,8 +671,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     }
 
     private void toggleLrcLoop() {
-        if (mPlayer == null) return;
-        long progress = mPlayer.getCurrentPosition();
+        long progress = mPlayer.getState().getCurrentPosition();
         WLogger.d("toggleLrcLoop : progress =  " + progress);
         if (isPlaying()) {
             mLrcView.setAutoSyncLrc(true, progress < 0 ? 0 : progress);
@@ -698,7 +698,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     break;
                 }
             case R.id.fac_play_btn:
-                if (mPlayer == null || mControlListener == null) break;
                 if (mLrcSeeking) {
                     mLrcSeeking = false;
                     mPlayer.seekTo(mLrcProgress);
@@ -708,9 +707,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 }
                 /* 判断是播放还是暂停, 回传 */
                 if (isPlaying()) {
-                    mControlListener.pause();
+                    mPlayer.pause();
                 } else {
-                    mControlListener.play();
+                    mPlayer.play(MusicManager.getInstance().getMusicConfig().mCurrentMusic);
                 }
                 break;
             case iv_favor:
@@ -771,21 +770,6 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     }
 
     //==============================================================================================
-    ControlListener mControlListener;
-
-    public void setControlListener(ControlListener listener) {
-        mControlListener = listener;
-    }
-
-    interface ControlListener {
-        void previous();
-
-        void next();
-
-        void play();
-
-        void pause();
-    }
 
     public Toolbar getToolbar() {
         return mToolbar;
@@ -951,7 +935,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                     });
         }
 
-        ValueAnimator animator = ValueAnimator.ofInt(mPbProgress.getProgress(), mPlayer != null ? (int) mPlayer.getCurrentPosition() / 1000 : 0);
+        ValueAnimator animator = ValueAnimator.ofInt(mPbProgress.getProgress(), mPlayer != null ? (int) mPlayer.getState().getCurrentPosition() / 1000 : 0);
         animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {

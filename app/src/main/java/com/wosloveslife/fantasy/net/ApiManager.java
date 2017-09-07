@@ -27,7 +27,7 @@ public class ApiManager {
         @Override
         public Response intercept(Chain chain) throws IOException {
             Request request = chain.request();
-            if (!NetWorkUtil.isNetWorkAvailable(App.getAppContent())) {
+            if (!NetWorkUtil.isNetWorkAvailable(App.getContext())) {
                 request = request.newBuilder()
                         .cacheControl(CacheControl.FORCE_CACHE)
                         .build();
@@ -36,7 +36,7 @@ public class ApiManager {
 
             Response originalResponse = chain.proceed(request);
 
-            if (NetWorkUtil.isNetWorkAvailable(App.getAppContent())) {
+            if (NetWorkUtil.isNetWorkAvailable(App.getContext())) {
                 int maxAge = 60; // 在线缓存在1分钟内可读取
                 return originalResponse.newBuilder()
                         .removeHeader("Pragma")
@@ -51,7 +51,7 @@ public class ApiManager {
             }
         }
     };
-    private static File httpCacheDirectory = new File(App.getAppContent().getCacheDir(), "OnlineRetailer");
+    private static File httpCacheDirectory = new File(App.getContext().getCacheDir(), "OnlineRetailer");
     private static long cacheSize = 100 * 1024 * 1024; // 100 MB
     private static Cache cache = new Cache(httpCacheDirectory, cacheSize);
     private OkHttpClient mOkHttpClient = new OkHttpClient.Builder()
