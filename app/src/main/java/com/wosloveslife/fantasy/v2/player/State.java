@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * 只负责状态变化的传达和当前状态的获取
  * Created by zhangh on 2017/9/3.
  */
 
@@ -14,7 +15,7 @@ public class State {
     private PlayService.PlayBinder mPlayBinder;
     private List<ExoPlayer.EventListener> mEventListenerBuffers;
 
-    public void setPlayBinder(PlayService.PlayBinder playBinder) {
+    void setPlayBinder(PlayService.PlayBinder playBinder) {
         mPlayBinder = playBinder;
         if (mPlayBinder != null) {
             executeAfterBind();
