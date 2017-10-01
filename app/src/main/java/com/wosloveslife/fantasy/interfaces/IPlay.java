@@ -2,7 +2,6 @@ package com.wosloveslife.fantasy.interfaces;
 
 import android.support.annotation.IntDef;
 
-import com.google.android.exoplayer2.ExoPlayer;
 import com.wosloveslife.dao.Audio;
 
 import java.lang.annotation.Retention;
@@ -31,17 +30,5 @@ public interface IPlay {
 
     void pause();
 
-    void next();
-
-    void previous();
-
     void seekTo(long progress);
-
-    boolean isPlaying();
-
-    int getBufferState();
-
-    void addListener(ExoPlayer.EventListener listener);
-
-    boolean removeListener(ExoPlayer.EventListener listener);
 }

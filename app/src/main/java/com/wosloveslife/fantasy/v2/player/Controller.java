@@ -40,6 +40,8 @@ public class Controller implements IPlayer {
     public void init(Context context) {
         mContext = context.getApplicationContext();
         if (!SystemServiceUtils.isServiceRunning(context, PlayService.class.getName())) {
+            Intent intent = new Intent(context, PlayService.class);
+            context.startService(intent);
             bindService();
         }
     }
@@ -86,9 +88,9 @@ public class Controller implements IPlayer {
         public void onServiceConnected(ComponentName name, IBinder service) {
             Logger.d("连接到播放服务");
             mPlayBinder = (PlayService.PlayBinder) service;
-            mState.setPlayBinder((PlayService.PlayBinder) service);
 
-            mPlayBinder.addListener(new ExoPlayerEventListenerAdapter() {
+            mState.setPlayBinder(mPlayBinder.getExoPlayer());
+            mState.addListener(new ExoPlayerEventListenerAdapter() {
                 @Override
                 public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
                     super.onPlayerStateChanged(playWhenReady, playbackState);
@@ -96,7 +98,7 @@ public class Controller implements IPlayer {
 
                     if (getState().isPlaying()) {
                         mPlayBinder.play(MusicManager.getInstance().getMusicConfig().mCurrentMusic);
-                    } else if (mPlayBinder.isPlaying()) {
+                    } else if (mState.isPlaying()) {
                         mPlayBinder.pause();
                     }
                 }

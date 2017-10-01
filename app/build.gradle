@@ -29,6 +29,7 @@ dependencies {
     compile 'com.android.support:design:25.+'
     compile 'com.android.support:cardview-v7:25.+'
     compile 'com.android.support:palette-v7:25.+'
+    compile 'com.android.support.constraint:constraint-layout:1.0.0-alpha8'
     //=============依赖的库
     compile project(':blibrary_wos')
     compile project(':dao')
@@ -36,8 +37,6 @@ dependencies {
     //=============ButterKnife
     compile 'com.jakewharton:butterknife:8.0.1'
     apt 'com.jakewharton:butterknife-compiler:8.0.1'
-    //============Event
-    compile 'org.greenrobot:eventbus:3.0.0'
     //============网络基础
     compile 'com.squareup.okhttp3:okhttp:3.4.1'
     //============Retrofit
@@ -55,4 +54,12 @@ dependencies {
     compile 'com.jude:swipebackhelper:3.1.2'
     //============拼音转换
     compile 'com.github.promeg:tinypinyin:2.0.2'
+
+    //============Litho
+    compile 'com.facebook.litho:litho-core:0.6.1'
+    compile 'com.facebook.litho:litho-widget:0.6.1'
+    provided 'com.facebook.litho:litho-annotations:0.6.1'
+    annotationProcessor 'com.facebook.litho:litho-processor:0.6.1'
+    // SoLoader
+    compile 'com.facebook.soloader:soloader:0.2.0'
 }

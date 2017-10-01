@@ -6,7 +6,6 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.wosloveslife.dao.Audio;
-import com.wosloveslife.fantasy.helper.SPHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,13 +21,12 @@ public class MusicConfig {
     public final List<Audio> mMusicList;
     @Nullable
     public Audio mCurrentMusic;
-    @Nullable
-    public String mCurrentSheetId;
+//    @Nullable
+//    public String mCurrentSheetId;
 
     public MusicConfig() {
         mMusicList = new ArrayList<>();
-
-        mCurrentSheetId = getLastSheetId();
+//        mCurrentSheetId = getLastSheetId();
     }
 
     public int getMusicCount() {
@@ -109,18 +107,5 @@ public class MusicConfig {
             }
         }
         return null;
-    }
-
-    public void saveLastSheetId(String sheetId) {
-        mCurrentSheetId = sheetId;
-        SPHelper.getInstance().save(KEY_LAST_SHEET_ID, sheetId);
-    }
-
-    @Nullable
-    public String getLastSheetId() {
-        if (!TextUtils.isEmpty(mCurrentSheetId)) {
-            return mCurrentSheetId;
-        }
-        return SPHelper.getInstance().get(KEY_LAST_SHEET_ID, null);
     }
 }

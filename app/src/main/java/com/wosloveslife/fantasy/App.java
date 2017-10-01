@@ -2,14 +2,14 @@ package com.wosloveslife.fantasy;
 
 import android.app.Application;
 import android.content.Context;
-import android.content.Intent;
 
+import com.facebook.soloader.SoLoader;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.dao.Migration;
+import com.wosloveslife.fantasy.broadcast.BroadcastManager;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.manager.SettingConfig;
-import com.wosloveslife.fantasy.services.PlayService;
 import com.wosloveslife.fantasy.v2.player.Controller;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
@@ -37,16 +37,16 @@ public class App extends Application {
 
         initKits();
 
-        initManager();
+        initLitho();
 
-        Intent intent = new Intent(this, PlayService.class);
-        startService(intent);
+        initManager();
     }
 
     @Override
     public void onTerminate() {
         super.onTerminate();
         Controller.getInstance().onAppStop();
+        BroadcastManager.getInstance().unregisterAllBroadcasts();
     }
 
     private void initDB() {
@@ -63,11 +63,16 @@ public class App extends Application {
         Toaster.init(this);
     }
 
+    private void initLitho() {
+        SoLoader.init(this, false);
+    }
+
     private void initManager() {
         SPHelper.getInstance().init(this);
         SettingConfig.init(this);
         MusicManager.getInstance().init(this);
         Controller.getInstance().init(this);
+        BroadcastManager.getInstance().init(this);
     }
 
     public static void executeOnComputationThread(Subscriber<? super Object> subscriber) {

@@ -4,19 +4,19 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by zhangh on 2016/8/7.
  */
 public class BroadcastManager {
 
-    public static BroadcastManager sBroadcastManager;
+    private static BroadcastManager sBroadcastManager;
     private Context mContext;
 
     /* 广播 */
-    List<BroadcastReceiver> mBroadcastReceivers;
+    private Map<String, BroadcastReceiver> mBroadcastReceivers;
 
     private BroadcastManager() {
     }
@@ -32,29 +32,23 @@ public class BroadcastManager {
         return sBroadcastManager;
     }
 
-    public void init(Context context){
+    public void init(Context context) {
         mContext = context;
-        mBroadcastReceivers = new ArrayList<>();
-        registerAllBroadcasts();
+        mBroadcastReceivers = new HashMap<>();
     }
 
-    /** 注册各类广播事件 */
-    public void registerAllBroadcasts() {
-        AudioBroadcast audioBroadcast = new AudioBroadcast();
-        registerAudioBroadcast(audioBroadcast);
-        mBroadcastReceivers.add(audioBroadcast);
+    public void register(BroadcastReceiver receiver, IntentFilter intentFilter) {
+        mContext.registerReceiver(receiver, intentFilter);
+    }
+
+    public void unregister(BroadcastReceiver receiver) {
+        mContext.unregisterReceiver(receiver);
     }
 
     /* 卸载广播 */
     public void unregisterAllBroadcasts() {
-        for (BroadcastReceiver broadcastReceiver : mBroadcastReceivers) {
+        for (BroadcastReceiver broadcastReceiver : mBroadcastReceivers.values()) {
             mContext.unregisterReceiver(broadcastReceiver);
         }
-    }
-
-    private void registerAudioBroadcast(AudioBroadcast audioBroadcast) {
-        if (audioBroadcast == null) return;
-        IntentFilter intentFilter = AudioBroadcast.getIntentFilter();
-        mContext.registerReceiver(audioBroadcast, intentFilter);
     }
 }
