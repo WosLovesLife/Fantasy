@@ -34,6 +34,7 @@ dependencies {
     compile project(':blibrary_wos')
     compile project(':dao')
     compile project(':mp3agic')
+    compile project(':player')
     //=============ButterKnife
     compile 'com.jakewharton:butterknife:8.0.1'
     apt 'com.jakewharton:butterknife-compiler:8.0.1'
