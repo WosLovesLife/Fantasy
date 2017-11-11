@@ -7,7 +7,7 @@ import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 
-import org.greenrobot.eventbus.EventBus;
+import com.wosloveslife.fantasy.event.RxBus;
 
 /**
  * Created by zhangh on 2017/2/7.
@@ -49,7 +49,7 @@ public class CountdownTimerService extends Service {
 
         long future = intent.getLongExtra("future", 0);
         if (future <= 0) {
-            EventBus.getDefault().post(new CountDownEvent(mFuture, mMillisUntilFinished));
+            RxBus.getDefault().post(new CountDownEvent(mFuture, mMillisUntilFinished));
             return super.onStartCommand(intent, flags, startId);
         }
 
@@ -63,12 +63,12 @@ public class CountdownTimerService extends Service {
             @Override
             public void onTick(long millisUntilFinished) {
                 mMillisUntilFinished = millisUntilFinished;
-                EventBus.getDefault().post(new CountDownEvent(mFuture, millisUntilFinished));
+                RxBus.getDefault().post(new CountDownEvent(mFuture, millisUntilFinished));
             }
 
             @Override
             public void onFinish() {
-                EventBus.getDefault().post(new CountDownEvent(mFuture, mFuture));
+                RxBus.getDefault().post(new CountDownEvent(mFuture, mFuture));
                 stopSelf();
             }
         };

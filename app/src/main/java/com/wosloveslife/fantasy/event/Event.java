@@ -8,7 +8,7 @@
 
 package com.wosloveslife.fantasy.event;
 
-public class Event {
+public class  Event {
     private static int totalEvents = 1;
 
     public static final int REFRESH = totalEvents++;

@@ -15,7 +15,6 @@ import com.wosloveslife.dao.Audio;
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.manager.MusicManager;
-import com.wosloveslife.fantasy.services.PlayService;
 import com.wosloveslife.fantasy.ui.MusicListActivity;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 

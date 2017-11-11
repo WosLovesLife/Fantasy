@@ -152,6 +152,10 @@ class PlayerEngine constructor(private val mContext: Context) {
         mPlayer.addListener(listener)
     }
 
+    fun removeListener(listener: ExoPlayer.EventListener) {
+        mPlayer.removeListener(listener)
+    }
+
     fun release() {
         pause()
         mPlayer.release()

@@ -29,11 +29,6 @@
 
         <activity android:name=".ui.SettingActivity"/>
 
-        <service
-            android:name=".services.PlayService"
-            android:enabled="true"
-            android:exported="true"/>
-
         <service android:name=".services.CountdownTimerService"/>
     </application>
 

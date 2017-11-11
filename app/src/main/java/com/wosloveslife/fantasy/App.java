@@ -10,7 +10,6 @@ import com.wosloveslife.fantasy.broadcast.BroadcastManager;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.manager.SettingConfig;
-import com.wosloveslife.fantasy.v2.player.Controller;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 

@@ -27,7 +27,9 @@ interface IPlay {
 
     fun seekTo(progress: Long)
 
-    fun isPlaying() : Boolean
+    fun isPlaying(): Boolean
 
     fun addListener(listener: ExoPlayer.EventListener)
+
+    fun removeListener(listener: ExoPlayer.EventListener)
 }

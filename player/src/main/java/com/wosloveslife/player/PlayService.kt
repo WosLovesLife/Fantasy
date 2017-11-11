@@ -40,6 +40,10 @@ class PlayService : Service() {
         override fun addListener(listener: ExoPlayer.EventListener) {
             mPlayerEngine?.addListener(listener)
         }
+
+        override fun removeListener(listener: ExoPlayer.EventListener) {
+            mPlayerEngine?.removeListener(listener)
+        }
     }
 
     override fun onCreate() { // 只在服务第一次创建时调用
