@@ -8,7 +8,7 @@ import com.google.android.exoplayer2.ExoPlayer
 /**
  * Created by zhangh on 2017/1/2.
  */
-interface IPlay {
+interface IPlayEngine {
 
     @IntDef(PLAY_STATE_IDLE, PLAY_STATE_PLAY, PLAY_STATE_PAUSE, PLAY_STATE_COMPLETE)
     @Retention(AnnotationRetention.SOURCE)
@@ -27,9 +27,17 @@ interface IPlay {
 
     fun seekTo(progress: Long)
 
+    fun release()
+
     fun isPlaying(): Boolean
 
     fun addListener(listener: ExoPlayer.EventListener)
 
     fun removeListener(listener: ExoPlayer.EventListener)
+
+    fun getDuration(): Long
+
+    fun getCurrentPosition(): Long
+
+    fun getBufferedPosition(): Long
 }

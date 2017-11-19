@@ -31,7 +31,7 @@ import com.google.android.exoplayer2.util.Util
  * The Engine for implement Play audio base on ExoPlayer
  * Created by zhangh on 2017/11/10.
  */
-class PlayerEngine constructor(private val mContext: Context) {
+class PlayerEngine constructor(private val mContext: Context) : IPlayEngine {
 
     //=============ExoPlayer相关
     private val mPlayer: SimpleExoPlayer
@@ -119,7 +119,7 @@ class PlayerEngine constructor(private val mContext: Context) {
         return true
     }
 
-    fun play(audio: AudioResource) {
+    override fun play(audio: AudioResource) {
         mAudio = audio
         /* 这里有一个未知的Bug，调用过ExoPlayer.seekTo()方法后,跳转歌曲的一瞬间进度会闪烁一下,
          * 导致歌词控件同步也会迅速滚动歌词一下, 因此这里在播放一首歌之前先将之前的歌的进度归零 */
@@ -132,31 +132,39 @@ class PlayerEngine constructor(private val mContext: Context) {
         }
     }
 
-    fun pause() {
+    override fun pause() {
         mPlayer.playWhenReady = false
     }
 
-    fun seekTo(progress: Long) {
+    override fun seekTo(progress: Long) {
         mPlayer.seekTo(progress)
     }
 
-    fun isPlaying(): Boolean {
+    override fun isPlaying(): Boolean {
         return mPlayer.playWhenReady
     }
 
-    fun getExoPlayer(): SimpleExoPlayer? {
-        return mPlayer
-    }
-
-    fun addListener(listener: ExoPlayer.EventListener) {
+    override fun addListener(listener: ExoPlayer.EventListener) {
         mPlayer.addListener(listener)
     }
 
-    fun removeListener(listener: ExoPlayer.EventListener) {
+    override fun removeListener(listener: ExoPlayer.EventListener) {
         mPlayer.removeListener(listener)
     }
 
-    fun release() {
+    override fun getDuration(): Long {
+        return mPlayer.duration
+    }
+
+    override fun getCurrentPosition(): Long {
+        return mPlayer.currentPosition
+    }
+
+    override fun getBufferedPosition(): Long {
+        return mPlayer.bufferedPosition
+    }
+
+    override fun release() {
         pause()
         mPlayer.release()
     }

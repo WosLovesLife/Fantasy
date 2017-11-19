@@ -11,6 +11,7 @@ import android.content.Intent;
 public class OutAppControlReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
+        // TODO: 2017/11/19 完善Notification控制器的事件接收处理
 //        BroadcastManager
     }
 }

@@ -1,9 +1,13 @@
 package com.wosloveslife.fantasy.v2.player
 
 import com.google.android.exoplayer2.ExoPlaybackException
-import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.Timeline
+import com.google.android.exoplayer2.source.TrackGroupArray
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray
+import com.wosloveslife.dao.Audio
+import com.wosloveslife.fantasy.manager.MusicManager
 import com.wosloveslife.player.ExoPlayerEventListenerAdapter
-import com.wosloveslife.player.PlayService
+import com.wosloveslife.player.IPlayEngine
 import com.wosloveslife.player.PlayerException
 
 /**
@@ -18,48 +22,76 @@ class State {
         const val STATE_ENDED = 4
     }
 
-    private val mEventListenerBuffers: ArrayList<ExoPlayer.EventListener> = ArrayList()
-    private var mPlayer: PlayService.PlayBinder? = null
+    val mEventListener: ArrayList<PlayEvent> = ArrayList()
+    private var mPlayer: IPlayEngine? = null
 
-    var mState: Int = State.STATE_IDLE
-    var isPlaying: Boolean = false
-    var duration: Long = 0L
-    var currentPosition: Long = 0L
-    var bufferedPosition: Long = 0L
-    var playbackState: Int = STATE_IDLE
-
-    fun setPlayBinder(player: PlayService.PlayBinder) {
+    fun setPlayBinder(player: IPlayEngine) {
         mPlayer = player
-        executeAfterBind()
         player.addListener(object : ExoPlayerEventListenerAdapter() {
+            override fun onTracksChanged(trackGroups: TrackGroupArray, trackSelections: TrackSelectionArray) {
+                super.onTracksChanged(trackGroups, trackSelections)
+            }
+
+            override fun onLoadingChanged(isLoading: Boolean) {
+                super.onLoadingChanged(isLoading)
+            }
+
+            override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
+                super.onPlayerStateChanged(playWhenReady, playbackState)
+
+                if (playWhenReady) {
+                    play(MusicManager.getInstance().musicConfig.mCurrentMusic!!);
+                } else {
+                    pause()
+                }
+            }
+
+            override fun onTimelineChanged(timeline: Timeline, manifest: Any) {
+                super.onTimelineChanged(timeline, manifest)
+            }
+
+            override fun onPositionDiscontinuity() {
+                super.onPositionDiscontinuity()
+            }
+
             override fun onPlayerError(error: ExoPlaybackException) {
                 super.onPlayerError(error)
-                badPlay(error)
+                throw PlayerException(PlayerException.FROM_EXO_PLAYER, error)
             }
         })
     }
 
-    private fun executeAfterBind() {
-        for (listener in mEventListenerBuffers) {
-            addListener(listener)
-        }
-        mEventListenerBuffers.clear()
-    }
-
-    fun badPlay(e: ExoPlaybackException) {
-        throw PlayerException(PlayerException.ErrorCode.FROM_EXO_PLAYER, e)
-    }
-
-    fun addListener(listener: ExoPlayer.EventListener) {
-        if (mPlayer == null) {
-            mEventListenerBuffers.add(listener)
-        } else {
-            mPlayer?.addListener(listener)
+    private fun play(audio: Audio) {
+        for (event in mEventListener) {
+            event.onPlay(audio)
         }
     }
 
-    fun removeListener(listener: ExoPlayer.EventListener) {
-        mEventListenerBuffers.remove(listener)
-        mPlayer?.removeListener(listener)
+    private fun pause() {
+        for (event in mEventListener) {
+            event.onPause()
+        }
+    }
+
+    private fun seekTo(progress: Long) {
+        for (event in mEventListener) {
+            event.onSeekTo(progress)
+        }
+    }
+
+    fun isPlaying(): Boolean {
+        return mPlayer?.isPlaying() ?: false
+    }
+
+    fun getDuration(): Long {
+        return mPlayer?.getDuration() ?: 0
+    }
+
+    fun getProgress(duration: Long): Long {
+        return mPlayer?.getCurrentPosition() ?: 0
+    }
+
+    fun getBufferProgress(duration: Long): Long {
+        return mPlayer?.getBufferedPosition() ?: 0
     }
 }
