@@ -4,7 +4,6 @@ import android.app.Service
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
-import com.google.android.exoplayer2.ExoPlayer
 
 /**
  * The service for play audio resource
@@ -19,30 +18,9 @@ class PlayService : Service() {
         return PlayBinder()
     }
 
-    inner class PlayBinder : Binder(), IPlay {
-
-        override fun play(audio: AudioResource) {
-            mPlayerEngine?.play(audio)
-        }
-
-        override fun pause() {
-            mPlayerEngine?.pause()
-        }
-
-        override fun seekTo(progress: Long) {
-            mPlayerEngine?.seekTo(progress)
-        }
-
-        override fun isPlaying(): Boolean {
-            return mPlayerEngine?.isPlaying() ?: false
-        }
-
-        override fun addListener(listener: ExoPlayer.EventListener) {
-            mPlayerEngine?.addListener(listener)
-        }
-
-        override fun removeListener(listener: ExoPlayer.EventListener) {
-            mPlayerEngine?.removeListener(listener)
+    inner class PlayBinder : Binder(), IPlayer {
+        override fun getPlayEngine(): PlayerEngine {
+            return mPlayerEngine!!
         }
     }
 
