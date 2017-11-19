@@ -28,6 +28,7 @@ class Controller private constructor() {
     }
 
     fun init(context: Context) {
+        mContext = context
         if (SystemServiceUtils.isServiceRunning(context, PlayService::class.java.name)) {
             return
         }

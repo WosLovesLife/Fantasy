@@ -24,6 +24,7 @@ import android.widget.TextView;
 
 import com.wosloveslife.fantasy.R;
 import com.wosloveslife.fantasy.manager.SettingConfig;
+import com.wosloveslife.player.PlayService;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
 
 import butterknife.BindView;
