@@ -10,6 +10,7 @@ import com.wosloveslife.fantasy.broadcast.BroadcastManager;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.manager.MusicManager;
 import com.wosloveslife.fantasy.manager.SettingConfig;
+import com.wosloveslife.fantasy.v2.player.Controller;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 
@@ -44,7 +45,7 @@ public class App extends Application {
     @Override
     public void onTerminate() {
         super.onTerminate();
-        Controller.getInstance().onAppStop();
+        Controller.Companion.getSInstance().onAppStop();
         BroadcastManager.getInstance().unregisterAllBroadcasts();
     }
 
@@ -70,7 +71,7 @@ public class App extends Application {
         SPHelper.getInstance().init(this);
         SettingConfig.init(this);
         MusicManager.getInstance().init(this);
-        Controller.getInstance().init(this);
+        Controller.Companion.getSInstance().init(this);
         BroadcastManager.getInstance().init(this);
     }
 

@@ -4,8 +4,10 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.net.Uri
 import android.os.IBinder
 import com.orhanobut.logger.Logger
+import com.wosloveslife.dao.Audio
 import com.wosloveslife.player.AudioResource
 import com.wosloveslife.player.IPlayEngine
 import com.wosloveslife.player.PlayService
@@ -59,9 +61,9 @@ class Controller private constructor() {
         }
     }
 
-    fun play(audio: AudioResource) {
-        mPlayer?.play(AudioResource(audio.mId, audio.mTitle, audio.artist,
-                audio.album, audio.path, audio.duration, audio.size))
+    fun play(audio: Audio) {
+        mPlayer?.play(AudioResource(audio.id, audio.id, audio.artist,
+                audio.album, Uri.parse(audio.path), audio.duration, audio.size))
     }
 
     fun pause() {

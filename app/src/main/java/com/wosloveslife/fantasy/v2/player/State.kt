@@ -9,6 +9,7 @@ import com.wosloveslife.fantasy.manager.MusicManager
 import com.wosloveslife.player.ExoPlayerEventListenerAdapter
 import com.wosloveslife.player.IPlayEngine
 import com.wosloveslife.player.PlayerException
+import java.util.*
 
 /**
  * 只负责状态变化的传达和当前状态的获取
@@ -22,7 +23,7 @@ class State {
         const val STATE_ENDED = 4
     }
 
-    val mEventListener: ArrayList<PlayEvent> = ArrayList()
+    private val mEventListener: ArrayList<PlayEvent> = ArrayList()
     private var mPlayer: IPlayEngine? = null
 
     fun setPlayBinder(player: IPlayEngine) {
@@ -87,11 +88,19 @@ class State {
         return mPlayer?.getDuration() ?: 0
     }
 
-    fun getProgress(duration: Long): Long {
+    fun getCurrentPosition(): Long {
         return mPlayer?.getCurrentPosition() ?: 0
     }
 
-    fun getBufferProgress(duration: Long): Long {
+    fun getBufferedPosition(): Long {
         return mPlayer?.getBufferedPosition() ?: 0
+    }
+
+    fun addListener(listener: PlayEvent) {
+        mEventListener.add(listener)
+    }
+
+    fun removeListener(listener: PlayEvent) {
+        mEventListener.remove(listener)
     }
 }
