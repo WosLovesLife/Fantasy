@@ -14,12 +14,13 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.manager.SettingConfig;
 import com.wosloveslife.fantasy.manager.MusicManager;
+import com.wosloveslife.fantasy.manager.SettingConfig;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 
 import base.BaseFragment;
 import butterknife.BindView;
+import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 /**
@@ -45,14 +46,15 @@ public class SettingFragment extends BaseFragment {
         return fragment;
     }
 
+    @Nullable
     @Override
-    protected View setContentView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_setting, container, false);
     }
 
     @Override
-    protected void initView() {
-        super.initView();
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
         mSwitchAutoExpand.setChecked(SettingConfig.isPlayControllerAutoExpand());
         mSwitchAutoExpand.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {

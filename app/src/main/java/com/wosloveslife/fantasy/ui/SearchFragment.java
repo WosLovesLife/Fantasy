@@ -26,14 +26,9 @@ public class SearchFragment extends BaseFragment {
     @BindView(R.id.autoCompleteTextView)
     AutoCompleteTextView mAutoCompleteTextView;
 
+    @Nullable
     @Override
-    protected View setContentView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_search, container, false);
-    }
-
-    @Override
-    protected void initView() {
-        super.initView();
-
     }
 }

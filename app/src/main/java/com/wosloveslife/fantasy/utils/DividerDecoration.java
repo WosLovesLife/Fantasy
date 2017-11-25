@@ -14,8 +14,8 @@ import android.view.View;
 public class DividerDecoration extends RecyclerView.ItemDecoration {
 
     private Drawable mDivider;
-    int mDividerHeight;
-    int mMarginLeft;
+    private int mDividerHeight;
+    private int mMarginLeft;
 
     public DividerDecoration(Drawable drawable, @Px int dividerHeight, @Px int marginLeft) {
         mDivider = drawable;

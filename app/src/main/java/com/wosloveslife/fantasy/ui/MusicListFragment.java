@@ -16,6 +16,7 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.view.ContextMenu;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -105,14 +106,18 @@ public class MusicListFragment extends BaseFragment {
 
     //========================================生命周期-end========================================
 
+
+    @Nullable
     @Override
-    protected View setContentView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_music_list, container, false);
-        ButterKnife.bind(this, view);
-        return view;
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_music_list, container, false);
     }
 
-    public void initView() {
+    @Override
+    public void onViewCreated(@org.jetbrains.annotations.Nullable View view, @org.jetbrains.annotations.Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        ButterKnife.bind(this, view);
+
         mLayoutManager = new LinearLayoutManager(getActivity());
         mRecyclerView.setLayoutManager(mLayoutManager);
         mRecyclerView.addItemDecoration(new DividerDecoration(
@@ -177,12 +182,6 @@ public class MusicListFragment extends BaseFragment {
 
         syncVisual(MusicManager.getInstance().getMusicConfig().mCurrentMusic);
         updateNvCountdown();
-    }
-
-    @Override
-    protected void updateData() {
-        super.updateData();
-        setData(MusicManager.getInstance().getMusicConfig().mMusicList);
     }
 
     private void initToolbar() {
@@ -316,10 +315,10 @@ public class MusicListFragment extends BaseFragment {
 
     //=======================================UI和逻辑的同步-end=====================================
 
-    @Override
-    protected void getData() {
-        super.getData();
 
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
         setData(MusicManager.getInstance().getMusicConfig().mMusicList);
     }
 
@@ -333,12 +332,8 @@ public class MusicListFragment extends BaseFragment {
     }
 
     @Override
-    protected int initMenu() {
-        return R.menu.menu_search;
-    }
-
-    @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_search, menu);
         super.onCreateOptionsMenu(menu, inflater);
         SearchView searchView = (SearchView) menu.findItem(R.id.item_search).getActionView();
         searchView.setQueryHint("搜索歌单内歌曲/歌手/专辑...");
