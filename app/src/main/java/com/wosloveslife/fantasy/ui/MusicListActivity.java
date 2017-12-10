@@ -30,6 +30,6 @@ public class MusicListActivity extends AppCompatActivity {
     }
 
     protected Fragment setFragment() {
-        return MusicListFragment.newInstance();
+        return HomeFragment.Companion.newInstance();
     }
 }

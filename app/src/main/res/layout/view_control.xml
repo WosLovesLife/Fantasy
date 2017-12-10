@@ -1,225 +1,174 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.design.widget.CoordinatorLayout
+<android.support.v7.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_view"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content"
+    app:cardBackgroundColor="@color/colorPrimary"
+    app:cardCornerRadius="0dp"
+    app:cardElevation="6dp">
 
-    <android.support.v7.widget.CardView
-        android:id="@+id/card_view"
+    <ImageView
+        android:id="@+id/iv_bg"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/colorPrimary"
-        app:cardCornerRadius="0dp"
-        app:cardElevation="6dp">
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        android:src="@color/colorPrimary"/>
 
-        <ImageView
-            android:id="@+id/iv_bg"
+    <FrameLayout
+        android:id="@+id/fl_root"
+        android:layout_width="match_parent"
+        android:layout_height="56dp">
+
+        <com.wosloveslife.fantasy.lrc.LrcView
+            android:id="@+id/lrc_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:contentDescription="@null"
-            android:scaleType="centerCrop"
-            android:src="@color/colorPrimary"/>
+            android:layout_margin="16dp"
+            android:visibility="invisible"/>
 
-        <FrameLayout
-            android:id="@+id/fl_root"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="@dimen/statusBar_height">
-
-            <com.wosloveslife.fantasy.lrc.LrcView
-                android:id="@+id/lrc_view"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_margin="16dp"
-                android:visibility="invisible"/>
-
-            <com.makeramen.roundedimageview.RoundedImageView
-                android:id="@+id/iv_album"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_gravity="center_vertical"
-                android:layout_marginBottom="1dp"
-                android:layout_marginLeft="16dp"
-                android:clickable="true"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_portrait_chicken_174"
-                app:riv_corner_radius="28dp"/>
-
-            <com.yesing.blibrary_wos.text.marguee.MarqueeTextView
-                android:id="@+id/tv_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="70dp"
-                android:layout_marginRight="92dp"
-                android:layout_marginTop="4dp"
-                android:ellipsize="marquee"
-                android:lines="1"
-                android:textColor="@android:color/white"
-                android:textSize="16sp"
-                tools:text="歌名"/>
-
-            <TextView
-                android:id="@+id/tv_artist"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="70dp"
-                android:layout_marginRight="120dp"
-                android:layout_marginTop="24dp"
-                android:ellipsize="end"
-                android:lines="1"
-                android:textColor="@android:color/white"
-                android:textSize="12sp"
-                tools:text="艺术家"/>
-
-            <TextView
-                android:id="@+id/tv_progress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:layout_marginBottom="4dp"
-                android:layout_marginLeft="70dp"
-                android:textColor="@android:color/white"
-                android:textSize="10sp"
-                tools:text="00:00"/>
-
-            <TextView
-                android:id="@+id/tv_duration"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|end"
-                android:layout_marginBottom="4dp"
-                android:layout_marginRight="92dp"
-                android:textColor="@android:color/white"
-                android:textSize="10sp"
-                tools:text="00:00"/>
-
-            <ImageView
-                android:id="@+id/iv_play_btn"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_gravity="end"
-                android:layout_marginLeft="4dp"
-                android:layout_marginRight="48dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/ripple_btn_oval"
-                android:clickable="true"
-                android:contentDescription="@null"
-                app:srcCompat="@drawable/ic_play_arrow"/>
-
-            <ProgressBar
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_gravity="end"
-                android:layout_marginLeft="4dp"
-                android:layout_marginRight="48dp"
-                android:layout_marginTop="10dp"
-                android:visibility="gone"/>
-
-            <android.support.v7.widget.AppCompatImageView
-                android:id="@+id/iv_favor"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_gravity="end"
-                android:layout_marginRight="6dp"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/ripple_btn_oval"
-                android:padding="5dp"
-                app:srcCompat="@drawable/ic_favor_white"/>
-
-            <ProgressBar
-                android:id="@+id/pb_progress"
-                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                android:layout_width="match_parent"
-                android:layout_height="3dp"
-                android:layout_gravity="bottom"
-                android:layout_marginBottom="-2dp"
-                android:hapticFeedbackEnabled="true"
-                tools:progress="30"/>
-
-            <TextView
-                android:id="@+id/tv_seek_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:layout_marginBottom="6dp"
-                android:background="@drawable/ic_location"
-                android:gravity="center_horizontal"
-                android:minHeight="48dp"
-                android:minWidth="48dp"
-                android:paddingTop="10dp"
-                android:text="03:20"
-                android:textColor="@color/white"
-                android:textSize="12sp"
-                android:visibility="invisible"
-                tools:visibility="visible"/>
-
-            <android.support.v7.widget.AppCompatImageView
-                android:id="@+id/iv_playOrder"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginLeft="8dp"
-                android:layout_marginRight="8dp"
-                android:layout_marginTop="48dp"
-                android:background="@drawable/ripple_btn_oval"
-                android:padding="5dp"
-                android:scaleX="0"
-                android:scaleY="0"
-                app:srcCompat="@drawable/ic_order_repeat_one"/>
-        </FrameLayout>
-
-        <android.support.v7.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="@dimen/statusBar_height"
-            android:background="@color/colorPrimary"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            android:visibility="invisible"
-            app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-            app:title="Hello World"/>
-    </android.support.v7.widget.CardView>
-
-    <!--<com.wosloveslife.fantasy.ui.loadingfac.LoadingFacButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:elevation="7dp"
-        app:layout_anchor="@id/fl_root"
-        app:layout_anchorGravity="bottom|end"
-        app:srcCompat="@drawable/ic_play_arrow">
-
-        <android.support.design.widget.FloatingActionButton
-            android:id="@+id/fac_play_btn"
+        <com.makeramen.roundedimageview.RoundedImageView
+            android:id="@+id/iv_album"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            app:elevation="0dp"
-            app:fabSize="mini"
-            app:srcCompat="@drawable/ic_play_arrow"
+            android:layout_gravity="center_vertical"
+            android:layout_marginLeft="16dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_portrait_chicken_174"
+            app:riv_corner_radius="28dp"/>
+
+        <com.yesing.blibrary_wos.text.marguee.MarqueeTextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="70dp"
+            android:layout_marginRight="92dp"
+            android:layout_marginTop="4dp"
+            android:ellipsize="marquee"
+            android:singleLine="true"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            tools:text="歌名"/>
+
+        <TextView
+            android:id="@+id/tv_artist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="70dp"
+            android:layout_marginRight="120dp"
+            android:layout_marginTop="24dp"
+            android:ellipsize="end"
+            android:lines="1"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            tools:text="艺术家"/>
+
+        <TextView
+            android:id="@+id/tv_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_marginBottom="4dp"
+            android:layout_marginLeft="70dp"
+            android:textColor="@android:color/white"
+            android:textSize="10sp"
+            tools:text="00:00"/>
+
+        <TextView
+            android:id="@+id/tv_duration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginBottom="4dp"
+            android:layout_marginRight="92dp"
+            android:textColor="@android:color/white"
+            android:textSize="10sp"
+            tools:text="00:00"/>
+
+        <ImageView
+            android:id="@+id/iv_play_btn"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="end"
+            android:layout_marginLeft="4dp"
+            android:layout_marginRight="48dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/ripple_btn_oval"
+            android:clickable="true"
+            android:contentDescription="@null"
+            app:srcCompat="@drawable/ic_play_arrow"/>
+
+        <ProgressBar
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="end"
+            android:layout_marginLeft="4dp"
+            android:layout_marginRight="48dp"
+            android:layout_marginTop="10dp"
+            android:visibility="gone"/>
+
+        <android.support.v7.widget.AppCompatImageView
+            android:id="@+id/iv_favor"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="end"
+            android:layout_marginRight="6dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/ripple_btn_oval"
+            android:padding="5dp"
+            app:srcCompat="@drawable/ic_favor_white"/>
+
+        <ProgressBar
+            android:id="@+id/pb_progress"
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_gravity="top"
+            android:layout_marginBottom="-2dp"
+            android:hapticFeedbackEnabled="true"
+            tools:progress="30"/>
+
+        <TextView
+            android:id="@+id/tv_seek_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/ic_location"
+            android:gravity="center_horizontal"
+            android:minHeight="48dp"
+            android:minWidth="48dp"
+            android:paddingTop="10dp"
+            android:text="03:20"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:visibility="invisible"
             tools:visibility="visible"/>
-    </com.wosloveslife.fantasy.ui.loadingfac.LoadingFacButton>-->
 
-    <ProgressBar
-        android:id="@+id/pb_loading_big"
-        android:layout_width="58dp"
-        android:layout_height="58dp"
-        android:layout_margin="11dp"
-        android:visibility="gone"
-        app:layout_anchor="@id/fl_root"
-        app:layout_anchorGravity="bottom|end"
-        tools:visibility="visible"/>
+        <android.support.v7.widget.AppCompatImageView
+            android:id="@+id/iv_playOrder"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginLeft="8dp"
+            android:layout_marginRight="8dp"
+            android:layout_marginTop="48dp"
+            android:background="@drawable/ripple_btn_oval"
+            android:padding="5dp"
+            android:scaleX="0"
+            android:scaleY="0"
+            app:srcCompat="@drawable/ic_order_repeat_one"/>
+    </FrameLayout>
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/fac_play_btn"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_margin="16dp"
-        android:visibility="gone"
-        app:elevation="7dp"
-        app:fabSize="mini"
-        app:layout_anchor="@id/fl_root"
-        app:layout_anchorGravity="bottom|end"
-        app:srcCompat="@drawable/ic_play_arrow"
-        tools:visibility="visible"/>
-</android.support.design.widget.CoordinatorLayout>
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@color/colorPrimary"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        android:visibility="invisible"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        app:title="Hello World"/>
+</android.support.v7.widget.CardView>

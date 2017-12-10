@@ -18,14 +18,13 @@ public class MusicConfig {
     private static final String KEY_LAST_SHEET_ID = "fantasy.manager.MusicManager.KEY_LAST_SHEET";
 
     @NonNull
-    public final List<Audio> mMusicList;
+    public final List<Audio> mMusicList = new ArrayList<>();
     @Nullable
     public Audio mCurrentMusic;
 //    @Nullable
 //    public String mCurrentSheetId;
 
     public MusicConfig() {
-        mMusicList = new ArrayList<>();
 //        mCurrentSheetId = getLastSheetId();
     }
 
