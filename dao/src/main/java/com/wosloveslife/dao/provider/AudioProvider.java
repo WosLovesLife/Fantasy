@@ -1,6 +1,5 @@
-package com.wosloveslife.fantasy.dao.engine;
+package com.wosloveslife.dao.provider;
 
-import android.content.Context;
 import android.support.annotation.AnyThread;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
@@ -23,19 +22,7 @@ import rx.functions.Func1;
  * Created by leonard on 17/6/17.
  */
 
-public class MusicProvider {
-
-    @CheckResult
-    @AnyThread
-    public static Observable<List<Audio>> scanSysDB(Context context) {
-        return Observable.just(context.getApplicationContext())
-                .map(new Func1<Context, List<Audio>>() {
-                    @Override
-                    public List<Audio> call(Context context) {
-                        return ScanResourceEngine.getMusicFromSystemDao(context);
-                    }
-                });
-    }
+public class AudioProvider {
 
     /**
      * 根据歌单序号获取歌曲列表

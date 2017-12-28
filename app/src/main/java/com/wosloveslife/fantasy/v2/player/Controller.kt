@@ -28,7 +28,7 @@ class Controller private constructor() {
     }
 
     fun init(context: Context) {
-        mContext = context
+        mContext = context.applicationContext
         if (SystemServiceUtils.isServiceRunning(context, PlayService::class.java.name)) {
             return
         }
@@ -45,7 +45,7 @@ class Controller private constructor() {
         mContext?.unbindService(mServiceConnection)
     }
 
-    private val mServiceConnection = object : ServiceConnection {
+    val mServiceConnection = object : ServiceConnection {
         /** bindService()方法执行后, 绑定成功时回调  */
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
             Logger.d("连接到播放服务")
@@ -63,7 +63,7 @@ class Controller private constructor() {
     }
 
     fun play(audio: Audio) {
-        mPlayer?.play(AudioResource(audio.id, audio.id, audio.artist,
+        mPlayer?.play(AudioResource(audio.id, audio.title, audio.artist,
                 audio.album, Uri.parse(audio.path), audio.duration, audio.size))
     }
 

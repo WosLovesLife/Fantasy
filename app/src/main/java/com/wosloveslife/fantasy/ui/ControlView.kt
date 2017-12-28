@@ -26,8 +26,6 @@ import android.support.v4.view.animation.LinearOutSlowInInterpolator
 import android.support.v7.graphics.Palette
 import android.support.v7.widget.CardView
 import android.support.v7.widget.Toolbar
-import android.text.TextUtils
-import android.text.format.DateFormat
 import android.util.AttributeSet
 import android.view.*
 import android.view.View.OnTouchListener
@@ -38,7 +36,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import butterknife.OnClick
 import com.makeramen.roundedimageview.RoundedImageView
-import com.orhanobut.logger.Logger
 import com.wosloveslife.dao.Audio
 import com.wosloveslife.fantasy.R
 import com.wosloveslife.fantasy.R.id.iv_favor
@@ -55,7 +52,9 @@ import com.wosloveslife.player.PlayerException
 import com.yesing.blibrary_wos.utils.assist.Toaster
 import com.yesing.blibrary_wos.utils.assist.WLogger
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px
+import rx.Observable
 import rx.android.schedulers.AndroidSchedulers
+import rx.functions.Func1
 import rx.schedulers.Schedulers
 import stackblur_java.StackBlurManager
 
@@ -85,8 +84,6 @@ class ControlView @JvmOverloads constructor(context: Context, attrs: AttributeSe
     var mTvSeekValue: TextView? = null
     var toolbar: Toolbar? = null
     var mLrcView: LrcView? = null
-
-    private var mCurrentMusic: Audio? = null
 
     //============
     private var mVelocityTracker: VelocityTracker
@@ -306,10 +303,8 @@ class ControlView @JvmOverloads constructor(context: Context, attrs: AttributeSe
      */
     @UiThread
     fun syncPlayView(music: Audio?) {
-        if (music == null) {
-            // TODO: 2017/9/3 如果Music == null 则置为默认样式
-            return
-        }
+        // TODO: 2017/9/3 如果Music == null 则置为默认样式
+
         if (isPlaying) {
             mIvPlayBtn!!.setImageDrawable(mPauseDrawable)
         } else {
@@ -318,45 +313,23 @@ class ControlView @JvmOverloads constructor(context: Context, attrs: AttributeSe
 
         toggleLrcLoop()
 
-        // TODO: 2017/11/19 加入收藏
-        //        if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
-        //            mIvFavor.setImageResource(R.drawable.ic_favored_white);
-        //        } else {
-        //            mIvFavor.setImageResource(R.drawable.ic_favor_white);
-        //        }
+        mTvTitle!!.text = music?.title ?: "未知"
+        mTvArtist!!.text = music?.artist ?: "未知"
 
-        if (music == mCurrentMusic) return
-        mCurrentMusic = music
-
-        val currentAlbum = if (mCurrentMusic != null) mCurrentMusic!!.album else null
-
-        mTvTitle!!.text = if (TextUtils.isEmpty(music.title)) "未知" else music.title
-        mTvArtist!!.text = if (TextUtils.isEmpty(music.artist)) "未知" else music.artist
-        mTvProgress!!.text = "00:00"
-        mTvDuration!!.text = DateFormat.format("mm:ss", music.duration).toString()
-
-        if (mCurrentMusic == null) return
-
-        if (!TextUtils.equals(currentAlbum, music.album)) {
-            MusicManager.getInstance().getAlbum(mCurrentMusic!!.id, mAlbumSize)
-                    .subscribeOn(Schedulers.io())
-                    .subscribe(object : SubscriberAdapter<Bitmap>() {
-                        override fun onNext(bitmap: Bitmap) {
-                            super.onNext(bitmap)
-                            updateAlbum(bitmap)
-                        }
-
-                        override fun onError(e: Throwable) {
-                            super.onError(e)
-                            updateAlbum(null)
-                        }
-                    })
-        }
+        MusicManager.getInstance()
+                .getAlbum(music?.id, mAlbumSize)
+                .subscribeOn(Schedulers.io())
+                .flatMap(object : Func1<Bitmap, Observable<Drawable>> {
+                    override fun call(t: Bitmap?): Observable<Drawable> {
+                        return updateAlbum(t)
+                    }
+                })
+                .subscribe()
 
         updateProgress()
 
         MusicManager.getInstance()
-                .getLrc(mCurrentMusic!!.id)
+                .getLrc(music?.id)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(object : SubscriberAdapter<BLyric>() {
                     override fun onError(e: Throwable) {
@@ -382,55 +355,60 @@ class ControlView @JvmOverloads constructor(context: Context, attrs: AttributeSe
      * @param bitmap 如果等于null 则恢复默认的色彩和背景
      */
     @WorkerThread
-    private fun updateAlbum(bitmap: Bitmap?) {
-        if (bitmap == null && mAlbum === mDefAlbum) return
-
-        if (bitmap == null) {
-            mAlbum = mDefAlbum
-            mBlurredAlbum = mDefBlurredAlbum
-            mColorMutedBg = mDefColorMutedBg
-            mColorTitle = mDefColorTitle
-            mColorBody = mDefColorBody
-        } else {
-            mAlbum = BitmapDrawable(bitmap)
-            mBlurredAlbum = BitmapDrawable(StackBlurManager(bitmap).process(60))
-
-            val mutedSwatch = Palette.from(bitmap).generate().mutedSwatch
-            if (mutedSwatch != null) {
-                mColorMutedBg = ColorDrawable(mutedSwatch.rgb)
-                mColorTitle = ColorDrawable(mutedSwatch.titleTextColor)
-                mColorBody = ColorDrawable(mutedSwatch.bodyTextColor)
-            }
-        }
-
-        val millis = System.currentTimeMillis()
-        Handler(Looper.getMainLooper()).post {
-            mIvAlbum!!.setImageDrawable(mAlbum)
-            if (ViewCompat.isAttachedToWindow(mIvBg) && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                mIvBg!!.setImageDrawable(mColorMutedBg)
-                val animator = ViewAnimationUtils.createCircularReveal(
-                        mIvBg,
-                        mIvAlbum!!.width / 2 + mIvAlbum!!.left,
-                        mIvBg!!.height / 2,
-                        0f,
-                        mIvBg!!.width.toFloat())
-                animator.interpolator = AccelerateDecelerateInterpolator()
-                animator.duration = 320
-                animator.addListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator) {
-                        super.onAnimationEnd(animation)
-                        mCardView!!.setCardBackgroundColor((mColorMutedBg as ColorDrawable).color)
-                    }
-
-                    override fun onAnimationCancel(animation: Animator) {
-                        super.onAnimationCancel(animation)
-                        mCardView!!.setCardBackgroundColor((mColorBody as ColorDrawable).color)
+    private fun updateAlbum(bitmap: Bitmap?): Observable<Drawable> {
+        return Observable.just(bitmap)
+                .map(object : Func1<Bitmap?, Drawable> {
+                    override fun call(t: Bitmap?): Drawable {
+                        if (bitmap == null) {
+                            mAlbum = mDefAlbum
+                            mBlurredAlbum = mDefBlurredAlbum
+                            mColorMutedBg = mDefColorMutedBg
+                            mColorTitle = mDefColorTitle
+                            mColorBody = mDefColorBody
+                        } else {
+                            mAlbum = BitmapDrawable(bitmap)
+                            mBlurredAlbum = BitmapDrawable(StackBlurManager(bitmap).process(60))
+                            val mutedSwatch = Palette.from(bitmap).generate().mutedSwatch
+                            if (mutedSwatch != null) {
+                                mColorMutedBg = ColorDrawable(mutedSwatch.rgb)
+                                mColorTitle = ColorDrawable(mutedSwatch.titleTextColor)
+                                mColorBody = ColorDrawable(mutedSwatch.bodyTextColor)
+                            }
+                        }
+                        return mAlbum!!
                     }
                 })
-                animator.start()
-            }
-            Logger.d("封面设置完成 时间 = " + (System.currentTimeMillis() - millis))
-        }
+                .subscribeOn(Schedulers.computation())
+                .observeOn(AndroidSchedulers.mainThread())
+                .map (object : Func1<Drawable, Drawable> {
+                    override fun call(t: Drawable): Drawable {
+                        mIvAlbum!!.setImageDrawable(mAlbum)
+                        if (ViewCompat.isAttachedToWindow(mIvBg) && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                            mIvBg!!.setImageDrawable(mColorMutedBg)
+                            val animator = ViewAnimationUtils.createCircularReveal(
+                                    mIvBg,
+                                    mIvAlbum!!.width / 2 + mIvAlbum!!.left,
+                                    mIvBg!!.height / 2,
+                                    0f,
+                                    mIvBg!!.width.toFloat())
+                            animator.interpolator = AccelerateDecelerateInterpolator()
+                            animator.duration = 320
+                            animator.addListener(object : AnimatorListenerAdapter() {
+                                override fun onAnimationEnd(animation: Animator) {
+                                    super.onAnimationEnd(animation)
+                                    mCardView!!.setCardBackgroundColor((mColorMutedBg as ColorDrawable).color)
+                                }
+
+                                override fun onAnimationCancel(animation: Animator) {
+                                    super.onAnimationCancel(animation)
+                                    mCardView!!.setCardBackgroundColor((mColorBody as ColorDrawable).color)
+                                }
+                            })
+                            animator.start()
+                        }
+                        return t
+                    }
+                })
     }
 
     @UiThread
@@ -452,10 +430,10 @@ class ControlView @JvmOverloads constructor(context: Context, attrs: AttributeSe
         }
 
         /* 如果是网络资源(播放地址以http开头)则显示缓存进度 */
-        if (mCurrentMusic?.isOnline == true) {
-            val bufferedPosition = mController.getState().getBufferedPosition()
-            mPbProgress!!.secondaryProgress = (bufferedPosition / 1000).toInt()
-        }
+//        if (mCurrentMusic?.isOnline == true) {
+//            val bufferedPosition = mController.getState().getBufferedPosition()
+//            mPbProgress!!.secondaryProgress = (bufferedPosition / 1000).toInt()
+//        }
 
         mHandler.removeCallbacksAndMessages(null)
 
@@ -496,7 +474,7 @@ class ControlView @JvmOverloads constructor(context: Context, attrs: AttributeSe
                     mController.play(MusicManager.getInstance().musicConfig.mCurrentMusic!!)
                 }
             }
-            iv_favor -> if (mCurrentMusic == null) return
+//            R.id.iv_favor -> if (mCurrentMusic == null) return
             R.id.iv_playOrder -> {
                 when (SettingConfig.getPlayOrder()) {
                     SettingConfig.PlayOrder.SUCCESSIVE // 列表循环
@@ -509,12 +487,6 @@ class ControlView @JvmOverloads constructor(context: Context, attrs: AttributeSe
                 syncPlayOrderVisual()
             }
         }
-        // 通过等待歌曲同步来改变收藏状态 // TODO: 2017/11/19
-        //                if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
-        //                    MusicManager.getInstance().removeFavor(mCurrentMusic.getId());
-        //                } else {
-        //                    MusicManager.getInstance().addFavor(mCurrentMusic.getId()).toBlocking().first();
-        //                }
     }
 
     private fun syncPlayOrderVisual() {

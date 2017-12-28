@@ -5,22 +5,15 @@ import android.graphics.Bitmap;
 import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.animation.GlideAnimation;
-import com.bumptech.glide.request.target.SimpleTarget;
 import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.Mp3File;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.dao.Audio;
 import com.wosloveslife.fantasy.album.AlbumFile;
-import com.wosloveslife.fantasy.baidu.BaiduLrc;
-import com.wosloveslife.fantasy.baidu.BaiduMusicInfo;
-import com.wosloveslife.fantasy.baidu.BaiduSearch;
 import com.wosloveslife.fantasy.lrc.BLyric;
 import com.wosloveslife.fantasy.lrc.LrcFile;
 import com.wosloveslife.fantasy.lrc.LrcParser;
 import com.wosloveslife.fantasy.presenter.MusicPresenter;
-import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.photo.BitmapUtils;
 
 import java.io.File;
@@ -28,9 +21,6 @@ import java.io.File;
 import io.realm.Realm;
 import rx.Observable;
 import rx.Subscriber;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
 
 /**
  * Created by zhangh on 2017/3/20.
@@ -85,83 +75,7 @@ public class MusicInfoEngine {
                 subscriber.onCompleted();
             }
         });
-
-        final Func1<BaiduMusicInfo, Observable<? extends Bitmap>> info2BitmapOb = new Func1<BaiduMusicInfo, Observable<? extends Bitmap>>() {
-            @Override
-            public Observable<? extends Bitmap> call(BaiduMusicInfo baiduMusicInfo) {
-                if (baiduMusicInfo != null) {
-                    BaiduMusicInfo.SonginfoBean songinfo = baiduMusicInfo.getSonginfo();
-                    if (songinfo != null) {
-                        String albumTitle = songinfo.getAlbum_title();
-                        String albumAddress = songinfo.getPic_premium();
-                        if (TextUtils.isEmpty(albumAddress)) {
-                            albumAddress = songinfo.getPic_big();
-                            if (TextUtils.isEmpty(albumAddress)) {
-                                albumAddress = songinfo.getPic_radio();
-                                if (TextUtils.isEmpty(albumAddress)) {
-                                    albumAddress = songinfo.getPic_small();
-                                }
-                            }
-                        }
-
-                        if (TextUtils.equals(music.getAlbum(), albumTitle)) {
-                            music.setAlbum(albumTitle);
-                        }
-                        return getAlbumByAddress(albumAddress, music.getAlbum(), bitmapSize);
-                    }
-                }
-                return null;
-            }
-        };
-
-        final String query = music.getTitle() + (TextUtils.equals(music.getArtist(), "<unknown>") ? " " : " " + music.getArtist());
-        Observable<Bitmap> netOb;
-        if (!music.isOnline()) {
-            netOb = mPresenter.searchFromBaidu(query)
-                    .concatMap(new Func1<BaiduSearch, Observable<BaiduMusicInfo>>() {
-                        @Override
-                        public Observable<BaiduMusicInfo> call(BaiduSearch baiduSearch) {
-                            if (baiduSearch != null) {
-                                try {
-                                    return mPresenter.getMusicInfo(baiduSearch.getSong().get(0).getSongid());
-                                } catch (Throwable e) {
-                                    WLogger.w("call : 未搜索到歌曲,可忽略 e = " + e);
-                                }
-                            }
-                            return null;
-                        }
-                    })
-                    .concatMap(info2BitmapOb);
-        } else {
-            netOb = mPresenter.getMusicInfo(music.getId()).concatMap(info2BitmapOb);
-        }
-
-        return fileOb
-                .switchIfEmpty(mp3Ob)
-                .switchIfEmpty(netOb);
-    }
-
-    private Observable<Bitmap> getAlbumByAddress(final String address, final String album, final int bitmapSize) {
-        return Observable.create(new Observable.OnSubscribe<Bitmap>() {
-            @Override
-            public void call(final Subscriber<? super Bitmap> subscriber) {
-                Glide.with(mContext)
-                        .load(address)
-                        .downloadOnly(new SimpleTarget<File>() {
-                            @Override
-                            public void onResourceReady(File resource, GlideAnimation<? super File> glideAnimation) {
-                                if (resource != null) {
-                                    Bitmap bitmap = BitmapUtils.getScaledDrawable(resource.getAbsolutePath(), bitmapSize, bitmapSize, Bitmap.Config.RGB_565);
-                                    if (bitmap != null) {
-                                        AlbumFile.saveAlbum(mContext, album, bitmap);
-                                    }
-                                    subscriber.onNext(bitmap);
-                                }
-                                subscriber.onCompleted();
-                            }
-                        });
-            }
-        }).subscribeOn(AndroidSchedulers.mainThread());
+        return fileOb.switchIfEmpty(mp3Ob);
     }
 
     /**
@@ -198,7 +112,6 @@ public class MusicInfoEngine {
             }
         });
 
-        String query = audio.getTitle() + (TextUtils.equals(audio.getArtist(), "<unknown>") ? " " : " " + audio.getArtist());
         Observable<BLyric> id3v2Ob = Observable.create(new Observable.OnSubscribe<BLyric>() {
             @Override
             public void call(Subscriber<? super BLyric> subscriber) {
@@ -221,31 +134,6 @@ public class MusicInfoEngine {
             }
         });
 
-        Observable<BLyric> netOb = mPresenter.searchLrc(query).map(new Func1<BaiduLrc, BLyric>() {
-            @Override
-            public BLyric call(BaiduLrc baiduLrc) {
-                BLyric bLyric = null;
-                if (baiduLrc != null) {
-                    String lrc = baiduLrc.getLrcContent();
-                    if (!TextUtils.isEmpty(lrc)) {
-                        LrcFile.saveLrc(mContext, audio.getTitle(), lrc);
-                        bLyric = LrcParser.parseLrc(lrc);
-                    }
-                }
-                return bLyric;
-            }
-        });
-        return fileOb
-                .switchIfEmpty(id3v2Ob)
-                .switchIfEmpty(netOb)
-                .subscribeOn(Schedulers.io());
-    }
-
-    public Observable<BaiduSearch> searchMusicByNet(String query) {
-        return mPresenter.searchFromBaidu(query);
-    }
-
-    public Observable<BaiduMusicInfo> getMusicInfoByNet(String songId) {
-        return mPresenter.getMusicInfo(songId);
+        return fileOb.switchIfEmpty(id3v2Ob);
     }
 }

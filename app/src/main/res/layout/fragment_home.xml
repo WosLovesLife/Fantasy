@@ -8,9 +8,15 @@
     android:layout_height="match_parent">
 
     <FrameLayout
-        android:id="@+id/fl_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:id="@+id/fl_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginBottom="56dp"/>
 
         <com.wosloveslife.fantasy.ui.ControlView
             android:id="@+id/control_view"

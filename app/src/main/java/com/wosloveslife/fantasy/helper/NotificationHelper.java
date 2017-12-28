@@ -138,7 +138,7 @@ public class NotificationHelper {
                 mRemoteViews.setTextViewText(R.id.tv_title, music != null ? music.getTitle() : "暂无播放歌曲");
                 mRemoteViews.setTextViewText(R.id.tv_artist, music != null ? music.getArtist() : "");
                 mRemoteViews.setImageViewResource(R.id.iv_play_btn, isPlaying ? R.drawable.ic_pause_black : R.drawable.ic_play_arrow_black);
-                mRemoteViews.setImageViewResource(R.id.iv_favor, music != null && MusicManager.getInstance().isFavorite(music.getId()) ? R.drawable.ic_favored : R.drawable.ic_favorite_border_matt);
+//                mRemoteViews.setImageViewResource(R.id.iv_favor, music != null && MusicManager.getInstance().isFavorite(music.getId()) ? R.drawable.ic_favored : R.drawable.ic_favorite_border_matt);
 
                 subscriber.onNext(null);
                 subscriber.onCompleted();

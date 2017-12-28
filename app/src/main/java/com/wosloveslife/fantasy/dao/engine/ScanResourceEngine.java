@@ -32,7 +32,7 @@ public class ScanResourceEngine {
     public static List<Audio> getMusicFromSystemDao(final Context context) {
         checkIfNotInit();
 
-        List<Audio> musicList = new ArrayList<>();
+        List<Audio> musicList = new RealmList<>();
         Cursor cursor = context.getContentResolver().query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, null, null, MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
         if (cursor == null) return musicList;
 
@@ -127,6 +127,11 @@ public class ScanResourceEngine {
 
                     musicList.add(bMusic);
                 } while (cursor.moveToNext());
+
+                Realm realm = Realm.getDefaultInstance();
+                realm.beginTransaction();
+                realm.insertOrUpdate(musicList);
+                realm.commitTransaction();
 
                 List<BFolder> folderList = new ArrayList<>();
                 folderList.addAll(folders);

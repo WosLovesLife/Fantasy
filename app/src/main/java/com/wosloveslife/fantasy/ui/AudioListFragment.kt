@@ -1,5 +1,6 @@
 package com.wosloveslife.fantasy.ui
 
+import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
@@ -11,12 +12,16 @@ import base.BaseFragment
 import com.wosloveslife.dao.Audio
 import com.wosloveslife.fantasy.R
 import com.wosloveslife.fantasy.adapter.MusicListAdapter
+import com.wosloveslife.fantasy.event.Event
+import com.wosloveslife.fantasy.event.RxBus
 import com.wosloveslife.fantasy.manager.MusicManager
 import com.wosloveslife.fantasy.utils.DividerDecoration
 import com.wosloveslife.fantasy.v2.player.Controller
 import com.wosloveslife.fantasy.v2.player.PlayEvent
 import com.wosloveslife.player.PlayerException
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px
+import rx.Subscription
+import rx.functions.Action1
 
 /**
  * Created by zhangh on 2017/1/2.
@@ -28,6 +33,8 @@ class AudioListFragment : BaseFragment() {
 
     private var mController: Controller? = null
 
+    private var mSubscription: Subscription? = null
+
     companion object {
         fun newInstance(): AudioListFragment {
             val args = Bundle()
@@ -38,8 +45,9 @@ class AudioListFragment : BaseFragment() {
         }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onAttach(context: Context?) {
+        super.onAttach(context)
+
         retainInstance = true
 
         mController = Controller.sInstance
@@ -70,6 +78,8 @@ class AudioListFragment : BaseFragment() {
                 mController!!.pause()
             }
         }
+
+        mRecyclerView!!.adapter = mAdapter;
 
         mController!!.getState().addListener(object : PlayEvent {
             override fun onPlay(audio: Audio) {
@@ -103,42 +113,20 @@ class AudioListFragment : BaseFragment() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
         setData(MusicManager.getInstance().musicConfig.mMusicList)
+
+        bindEvent()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        mSubscription?.unsubscribe()
     }
 
     private fun syncVisual(music: Audio?) {
         val position = mAdapter!!.getNormalPosition(music)
         mAdapter!!.setChosenItem(position, mController!!.getState().isPlaying())
     }
-
-    //==========================================事件================================================
-
-//    fun onRemoveMusic(event: MusicManager.OnRemoveMusic) {
-//        val music = event.mMusic;
-//        if (TextUtils.equals(MusicManager.getInstance().getMusicConfig().mCurrentSheetId, event.mBelongTo)) {
-//            int startPosition = mAdapter . getNormalPosition (music);
-//            mAdapter.removeItem(music);
-//            mAdapter.notifyItemRangeChanged(startPosition, mAdapter.getRealItemCount() - startPosition);
-//        }
-//        if (music.equals(mCurrentMusic)) {
-//            mControlView.syncPlayView(music);
-//        }
-//    }
-//
-//    fun onMusicChanged(event: MusicManager.OnMusicChanged) {
-//        val music = event.mMusic;
-//        if (TextUtils.equals(MusicManager.getInstance().getMusicConfig().mCurrentSheetId, event.mSheetId) && TextUtils.equals(MusicManager.getInstance().getMusicConfig().mCurrentSheetId, "2")) {
-//            int oldPosition = mAdapter . getNormalPosition (event.mMusic);
-//            if (mRecyclerView.getItemAnimator().isRunning()) {
-//                mRecyclerView.getItemAnimator().endAnimations();
-//            }
-//            mAdapter.removeItemNotNotify(oldPosition);
-//            mAdapter.addItemNotNofity(music, 0);
-//            mAdapter.notifyItemRangeChanged(0, oldPosition + 1);
-//        }
-//        if (music.equals(mCurrentMusic)) {
-//            mControlView.syncPlayView(music);
-//        }
-//    }
 
     private fun setData(musicList: List<Audio>) {
         mAdapter?.setData(musicList)
@@ -147,6 +135,24 @@ class AudioListFragment : BaseFragment() {
     }
 
     private fun handleErrorState() {
-        TODO("错误提示及后续处理")
+        // TODO: 错误提示及后续处理
+    }
+
+    //==========================================事件================================================
+
+    private fun bindEvent() {
+        mSubscription = RxBus.getDefault()
+                .toObservable(Event::class.java)
+                .subscribe(object : Action1<Event> {
+                    override fun call(event: Event?) {
+                        handleEvent(event!!)
+                    }
+                })
+    }
+
+    private fun handleEvent(event: Event) {
+        if (event.action == Event.SHEET_LOADED) {
+            setData(event.data as List<Audio>)
+        }
     }
 }

@@ -35,7 +35,6 @@ public class SettingConfig {
     private static final String KEY_CLOSE_AFTER_PLAY_END = "setting.KEY_CLOSE_AFTER_PLAY_END";
     private static final String KEY_PLAY_CONTROLLER_AUTO_EXPAND = "setting.KEY_PLAY_CONTROLLER_AUTO_EXPAND";
     private static final String KEY_MIN_DURATION = "setting.KEY_MIN_DURATION";
-    private static final String KEY_CHANGE_SHEET_WITH_PLAY_LIST = "setting.KEY_CHANGE_SHEET_WITH_PLAY_LIST";
     private static final String KEY_PLAY_ORDER = "setting.KEY_PLAY_ORDER";
     private static final String KEY_ALL_FOLDERS = "setting.KEY_ALL_FOLDERS";
 

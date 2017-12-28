@@ -9,9 +9,9 @@ import android.support.annotation.WorkerThread;
 import com.wosloveslife.dao.Audio;
 import com.wosloveslife.dao.Sheet;
 import com.wosloveslife.dao.SheetIds;
+import com.wosloveslife.dao.provider.AudioProvider;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
-import com.wosloveslife.fantasy.album.AlbumFile;
-import com.wosloveslife.fantasy.dao.engine.MusicProvider;
+import com.wosloveslife.fantasy.dao.engine.ScanResourceEngine;
 import com.wosloveslife.fantasy.event.Event;
 import com.wosloveslife.fantasy.event.RxBus;
 import com.wosloveslife.fantasy.lrc.BLyric;
@@ -25,11 +25,11 @@ import rx.functions.Func1;
 /**
  * Created by zhangh on 2017/1/2.
  */
-public class MusicManager implements IMusicManage{
+public class MusicManager implements IMusicManage {
     private static MusicManager sMusicManager;
 
     //=============
-    Context mContext;
+    private Context mContext;
 
     //=============Var
 
@@ -54,8 +54,8 @@ public class MusicManager implements IMusicManage{
 
     @AnyThread
     public void init(Context context) {
-        mMusicConfig = new MusicConfig();
         mContext = context.getApplicationContext();
+        mMusicConfig = new MusicConfig();
         mMusicInfoEngine = new MusicInfoEngine(context);
         Observable.just(context)
                 .subscribe(new SubscriberAdapter<Context>() {
@@ -85,56 +85,54 @@ public class MusicManager implements IMusicManage{
     }
 
     private boolean checkNeedScan() {
-        return Realm.getDefaultInstance().where(Sheet.class).equalTo(Sheet.ID, SheetIds.LOCAL).findFirst().getSongs().size() == 0;
+        Sheet sheet = Realm.getDefaultInstance().where(Sheet.class).equalTo(Sheet.ID, SheetIds.LOCAL).findFirst();
+        return sheet == null || sheet.getSongs().size() == 0;
     }
 
-    // TODO: 17/6/17  remove
     @AnyThread
     private void scan() {
-        MusicProvider.scanSysDB(mContext)
-                .map(new Func1<List<Audio>, List<Audio>>() {
+        Observable.just(mContext)
+                .map(new Func1<Context, List<Audio>>() {
                     @Override
-                    public List<Audio> call(final List<Audio> audios) {
-                        MusicProvider.clearSheetEntities(SheetIds.LOCAL).toBlocking().first();
-                        if (audios != null) {
-                            Realm.getDefaultInstance().executeTransaction(new Realm.Transaction() {
-                                @Override
-                                public void execute(Realm realm) {
-                                    List<Audio> list = realm.copyToRealmOrUpdate(audios);
-                                }
-                            });
-                        }
-                        return audios;
+                    public List<Audio> call(Context context) {
+                        return ScanResourceEngine.getMusicFromSystemDao(context);
                     }
                 })
-//                .subscribeOn(Schedulers.io())
                 .subscribe(new SubscriberAdapter<List<Audio>>() {
                     @Override
                     public void onError(Throwable e) {
                         super.onError(e);
-                        onGotData(null, true);
+                        onGotData(null);
+                        RxBus.getDefault().post(Event.create(Event.SHEET_SCANNED, mMusicConfig.mMusicList));
                     }
 
                     @Override
                     public void onNext(List<Audio> bMusics) {
                         super.onNext(bMusics);
-                        onGotData(bMusics, true);
+                        onGotData(bMusics);
+                        RxBus.getDefault().post(Event.create(Event.SHEET_SCANNED, mMusicConfig.mMusicList));
+                    }
+                });
+    }
+
+    private void loadMusics() {
+        AudioProvider.loadMusicBySheet(SheetIds.LOCAL)
+                .subscribe(new SubscriberAdapter<List<Audio>>() {
+                    @Override
+                    public void onNext(List<Audio> audios) {
+                        super.onNext(audios);
+                        onGotData(audios);
                     }
                 });
     }
 
     @AnyThread
-    private void onGotData(List<Audio> bMusics, boolean fromScan) {
+    private void onGotData(List<Audio> bMusics) {
         mMusicConfig.mMusicList.clear();
         if (bMusics != null && bMusics.size() > 0) {
             mMusicConfig.mMusicList.addAll(bMusics);
         }
-
-        if (fromScan) {
-            RxBus.getDefault().post(Event.create(Event.SHEET_SCANNED, mMusicConfig.mMusicList));
-        } else {
-            RxBus.getDefault().post(Event.create(Event.SHEET_LOADED, mMusicConfig.mMusicList));
-        }
+        RxBus.getDefault().post(Event.create(Event.SHEET_LOADED, mMusicConfig.mMusicList));
     }
 
     //=======================================获取音乐-start===========================================
@@ -143,23 +141,10 @@ public class MusicManager implements IMusicManage{
         scan();
     }
 
-    /** 获取歌曲/歌单的Holder */
     @AnyThread
     @NonNull
     public MusicConfig getMusicConfig() {
         return mMusicConfig;
-    }
-
-    //=========================================歌单操作=============================================
-
-    public void loadMusics() {
-        MusicProvider.loadMusicBySheet(SheetIds.LOCAL).subscribe(new SubscriberAdapter<List<Audio>>() {
-            @Override
-            public void onNext(List<Audio> audios) {
-                super.onNext(audios);
-                onGotData(audios, false);
-            }
-        });
     }
 
     //=======================================获取歌曲信息===========================================
@@ -176,25 +161,5 @@ public class MusicManager implements IMusicManage{
 
     public Observable<BLyric> getLrc(final String audioId) {
         return mMusicInfoEngine.getLrc(audioId);
-    }
-
-    @Override
-    public List<Audio> getAudios() {
-        return null;
-    }
-
-    @Override
-    public boolean isFavorite(String audioId) {
-        return false;
-    }
-
-    @Override
-    public AlbumFile getAlbum(String audioId) {
-        return null;
-    }
-
-    @Override
-    public BLyric getLyric(String audioId) {
-        return null;
     }
 }

@@ -82,11 +82,13 @@ public class ApiManager {
         return mOkHttpClient;
     }
 
-    public BaiduApi getBaiduApi() {
-        return BaiduApi.getInstance();
-    }
-
-    public XiamiApi getXiamiApi() {
-        return XiamiApi.getInstance();
-    }
+//    public static final String HOST = "http://tingapi.ting.baidu.com/";
+//    public Retrofit createBase() {
+//        return new Retrofit.Builder()
+//                .baseUrl(HOST)
+//                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+//                .client(ApiManager.getInstance().getOkHttpClient())
+//                .addConverterFactory(GsonConverterFactory.create())
+//                .build();
+//    }
 }

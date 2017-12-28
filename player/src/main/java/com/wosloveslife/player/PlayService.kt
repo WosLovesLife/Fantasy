@@ -24,6 +24,14 @@ class PlayService : Service() {
         }
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    override fun onStart(intent: Intent?, startId: Int) {
+        super.onStart(intent, startId)
+    }
+
     override fun onCreate() { // 只在服务第一次创建时调用
         super.onCreate()
 
