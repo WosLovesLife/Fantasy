@@ -30,6 +30,8 @@
         <activity android:name=".ui.SettingActivity"/>
 
         <service android:name=".services.CountdownTimerService"/>
+
+        <service android:name="com.wosloveslife.player.PlayService"/>
     </application>
 
 </manifest>

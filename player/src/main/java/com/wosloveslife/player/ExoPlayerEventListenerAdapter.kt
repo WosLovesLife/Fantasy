@@ -12,15 +12,15 @@ import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 
 open class ExoPlayerEventListenerAdapter : ExoPlayer.EventListener {
 
-    override fun onPlayerError(error: ExoPlaybackException) {}
+    override fun onPlayerError(error: ExoPlaybackException?) {}
 
-    override fun onTracksChanged(trackGroups: TrackGroupArray, trackSelections: TrackSelectionArray) {}
+    override fun onTracksChanged(trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?) {}
 
     override fun onLoadingChanged(isLoading: Boolean) {}
 
     override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {}
 
-    override fun onTimelineChanged(timeline: Timeline, manifest: Any) {}
+    override fun onTimelineChanged(timeline: Timeline?, manifest: Any?) {}
 
     override fun onPositionDiscontinuity() {}
 }

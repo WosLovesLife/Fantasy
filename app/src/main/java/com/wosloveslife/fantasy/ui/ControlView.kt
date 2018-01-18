@@ -145,7 +145,7 @@ class ControlView @JvmOverloads constructor(context: Context, attrs: AttributeSe
     }
 
     private val isPlaying: Boolean
-        get() = mController.getState().isPlaying()
+        get() = mController.isPlaying()
 
     /**
      * 这个值是为了防止从别的形态到第二阶段的滑动过程中拦截了触摸事件而开启了Seek
@@ -267,7 +267,7 @@ class ControlView @JvmOverloads constructor(context: Context, attrs: AttributeSe
 
         syncPlayOrderVisual()
 
-        mController.getState().addListener(object : PlayEvent {
+        mController.addListener(object : PlayEvent {
             override fun onPlay(audio: Audio) {
                 updateProgress()
             }
@@ -413,8 +413,8 @@ class ControlView @JvmOverloads constructor(context: Context, attrs: AttributeSe
 
     @UiThread
     private fun updateProgress() {
-        val duration = mController.getState().getDuration()
-        val position = mController.getState().getCurrentPosition()
+        val duration = mController.getDuration()
+        val position = mController.getCurrentPosition()
 
         if (duration >= 0) {
             if (mTvDuration != null) {
@@ -449,7 +449,7 @@ class ControlView @JvmOverloads constructor(context: Context, attrs: AttributeSe
     }
 
     private fun toggleLrcLoop() {
-        val progress = mController.getState().getCurrentPosition()
+        val progress = mController.getCurrentPosition()
         WLogger.d("toggleLrcLoop : progress =  " + progress)
         if (isPlaying) {
             mLrcView!!.setAutoSyncLrc(true, if (progress < 0) 0 else progress)
@@ -619,7 +619,7 @@ class ControlView @JvmOverloads constructor(context: Context, attrs: AttributeSe
                     })
         }
 
-        val animator = ValueAnimator.ofInt(mPbProgress!!.progress, (mController.getState().getCurrentPosition() / 1000).toInt())
+        val animator = ValueAnimator.ofInt(mPbProgress!!.progress, (mController.getCurrentPosition() / 1000).toInt())
         animator.addUpdateListener { animation ->
             val progress = animation.animatedValue as Int
             mPbProgress!!.progress = progress

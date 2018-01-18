@@ -73,7 +73,7 @@ class HomeFragment : BaseFragment() {
 
         initListFragment()
 
-        mController!!.getState().addListener(object : PlayEventAdapter() {
+        mController!!.addListener(object : PlayEventAdapter() {
             override fun onPause() {
                 updateNvCountdown()
             }

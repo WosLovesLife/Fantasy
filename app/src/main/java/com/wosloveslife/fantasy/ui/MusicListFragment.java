@@ -16,7 +16,6 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.view.ContextMenu;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -130,7 +129,7 @@ public class MusicListFragment extends BaseFragment {
             @Override
             public void onItemClick(Audio music, View v, int position) {
                 Audio currentMusic = MusicManager.getInstance().getMusicConfig().mCurrentMusic;
-                boolean playing = mController.getState().isPlaying();
+                boolean playing = mController.isPlaying();
                 if (currentMusic == null || !currentMusic.equals(music) || !playing) {
                     mController.play(music);
                 } else {
@@ -143,7 +142,7 @@ public class MusicListFragment extends BaseFragment {
 
         initToolbar();
 
-        mController.getState().addListener(new PlayEvent() {
+        mController.addListener(new PlayEvent() {
             @Override
             public void onPlay(@NotNull Audio audio) {
                 syncVisual(MusicManager.getInstance().getMusicConfig().mCurrentMusic);
@@ -298,7 +297,7 @@ public class MusicListFragment extends BaseFragment {
         mCurrentMusic = music;
         mControlView.syncPlayView(mCurrentMusic);
         int position = mAdapter.getNormalPosition(music);
-        mAdapter.setChosenItem(position, mController.getState().isPlaying());
+        mAdapter.setChosenItem(position, mController.isPlaying());
     }
 
     private void updateNvCountdown() {

@@ -71,7 +71,7 @@ class AudioListFragment : BaseFragment() {
         mAdapter = MusicListAdapter()
         mAdapter?.setOnItemClickListener { music, v, position ->
             val currentMusic = MusicManager.getInstance().musicConfig.mCurrentMusic
-            val playing = mController!!.getState().isPlaying()
+            val playing = mController!!.isPlaying()
             if (currentMusic == null || currentMusic != music || !playing) {
                 mController!!.play(music)
             } else {
@@ -81,7 +81,7 @@ class AudioListFragment : BaseFragment() {
 
         mRecyclerView!!.adapter = mAdapter;
 
-        mController!!.getState().addListener(object : PlayEvent {
+        mController!!.addListener(object : PlayEvent {
             override fun onPlay(audio: Audio) {
                 syncVisual(MusicManager.getInstance().musicConfig.mCurrentMusic)
             }
@@ -125,7 +125,7 @@ class AudioListFragment : BaseFragment() {
 
     private fun syncVisual(music: Audio?) {
         val position = mAdapter!!.getNormalPosition(music)
-        mAdapter!!.setChosenItem(position, mController!!.getState().isPlaying())
+        mAdapter!!.setChosenItem(position, mController!!.isPlaying())
     }
 
     private fun setData(musicList: List<Audio>) {
