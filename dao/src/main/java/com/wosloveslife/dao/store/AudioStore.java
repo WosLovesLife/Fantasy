@@ -25,7 +25,7 @@ public class AudioStore {
         return getRealm().map(new Func1<Realm, List<Audio>>() {
             @Override
             public List<Audio> call(Realm realm) {
-                return realm.where(Audio.class).findAllSorted(Audio.JOIN_TIMESTAMP, Sort.DESCENDING);
+                return realm.where(Audio.class).findAll().sort(Audio.JOIN_TIMESTAMP, Sort.DESCENDING);
             }
         });
     }
@@ -45,7 +45,8 @@ public class AudioStore {
             public List<Audio> call(Realm realm) {
                 return realm.where(Audio.class)
                         .equalTo(Sheet.class.getName() + "." + Sheet.ID, sheetId)
-                        .findAllSorted(Audio.JOIN_TIMESTAMP, Sort.DESCENDING);
+                        .findAll()
+                        .sort(Audio.JOIN_TIMESTAMP, Sort.DESCENDING);
             }
         });
     }
