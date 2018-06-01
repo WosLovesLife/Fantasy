@@ -27,6 +27,9 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.SettingActivity"/>
+
         <service
             android:name=".services.PlayService"
             android:enabled="true"
