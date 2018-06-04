@@ -1,4 +1,6 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
 
 android {
     compileSdkVersion 25
@@ -63,4 +65,6 @@ dependencies {
     implementation 'com.github.jorgecastilloprz:fabprogresscircle:1.01@aar'
     //============底部Bar
     implementation 'com.github.armcha:LuseenBottomNavigation:1.8.2'
+    //============Kotlin
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
 }

@@ -192,7 +192,7 @@ public class PlayService extends Service {
             mPlayer.seekTo(0);
             if (mPlayerEngine.prepare(audio.path)) {
                 play();
-                MusicManager.getInstance().addRecent(audio);
+                MusicManager.Companion.getInstance().addRecent(audio);
                 SPHelper.getInstance().save("current_music", new Gson().toJson(mCurrentMusic));
             } else {
                 pause();
@@ -254,18 +254,18 @@ public class PlayService extends Service {
         Audio next = null;
         switch (CustomConfiguration.getPlayOrder()) {
             case CustomConfiguration.PLAY_ORDER_SUCCESSIVE:
-                next = MusicManager.getInstance().getMusicConfig().getNext(mCurrentMusic);
+                next = MusicManager.Companion.getInstance().getMusicConfig().getNext(mCurrentMusic);
                 if (next == null) {
-                    next = MusicManager.getInstance().getMusicConfig().getFirst();
+                    next = MusicManager.Companion.getInstance().getMusicConfig().getFirst();
                 }
                 break;
             case CustomConfiguration.PLAY_ORDER_REPEAT_ONE:
                 next = mCurrentMusic;
                 break;
             case CustomConfiguration.PLAY_ORDER_RANDOM:
-                int nextInt = new Random().nextInt(MusicManager.getInstance().getMusicConfig().getMusicCount());
+                int nextInt = new Random().nextInt(MusicManager.Companion.getInstance().getMusicConfig().getMusicCount());
                 WLogger.d("next : nextIndex = " + nextInt);
-                next = MusicManager.getInstance().getMusicConfig().getMusic(nextInt);
+                next = MusicManager.Companion.getInstance().getMusicConfig().getMusic(nextInt);
                 break;
         }
 
@@ -283,10 +283,10 @@ public class PlayService extends Service {
      * 如果最后一首歌也没有了,则抛出异常
      */
     public void previous() {
-        Audio previous = MusicManager.getInstance().getMusicConfig().getPrevious(mCurrentMusic);
+        Audio previous = MusicManager.Companion.getInstance().getMusicConfig().getPrevious(mCurrentMusic);
         /* 如果下一首没有了,则获取第1首歌曲 */
         if (previous == null) {
-            previous = MusicManager.getInstance().getMusicConfig().getLast();
+            previous = MusicManager.Companion.getInstance().getMusicConfig().getLast();
         }
 
         /* 如果第一首歌也没有了,则说明发生了异常状况 */
@@ -420,10 +420,10 @@ public class PlayService extends Service {
                 next();
                 break;
             case 3: // 收藏
-                if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
-                    MusicManager.getInstance().removeFavor(mCurrentMusic);
+                if (MusicManager.Companion.getInstance().isFavored(mCurrentMusic)) {
+                    MusicManager.Companion.getInstance().removeFavor(mCurrentMusic);
                 } else {
-                    MusicManager.getInstance().addFavor(mCurrentMusic);
+                    MusicManager.Companion.getInstance().addFavor(mCurrentMusic);
                 }
                 break;
             case 4: // 桌面歌词
@@ -485,24 +485,24 @@ public class PlayService extends Service {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onAddMusic(MusicManager.OnAddMusic event) {
-        if (event == null || event.mMusic == null || !mNotificationHelper.isShown()) return;
-        if (event.mMusic.equals(mCurrentMusic)) {
+        if (event == null || event.getMMusic() == null || !mNotificationHelper.isShown()) return;
+        if (event.getMMusic().equals(mCurrentMusic)) {
             mNotificationHelper.update(isPlaying(), mCurrentMusic);
         }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onRemoveMusic(MusicManager.OnRemoveMusic event) {
-        if (event == null || event.mMusic == null || !mNotificationHelper.isShown()) return;
-        if (event.mMusic.equals(mCurrentMusic)) {
+        if (event == null || event.getMMusic() == null || !mNotificationHelper.isShown()) return;
+        if (event.getMMusic().equals(mCurrentMusic)) {
             mNotificationHelper.update(isPlaying(), mCurrentMusic);
         }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMusicChanged(MusicManager.OnMusicChanged event) {
-        if (event == null || event.mMusic == null || !mNotificationHelper.isShown()) return;
-        if (event.mMusic.equals(mCurrentMusic)) {
+        if (event == null || event.getMMusic() == null || !mNotificationHelper.isShown()) return;
+        if (event.getMMusic().equals(mCurrentMusic)) {
             mNotificationHelper.update(isPlaying(), mCurrentMusic);
         }
     }

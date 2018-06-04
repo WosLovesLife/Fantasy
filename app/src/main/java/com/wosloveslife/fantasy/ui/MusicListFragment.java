@@ -156,8 +156,8 @@ public class MusicListFragment extends BaseFragment {
         mAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<Audio>() {
             @Override
             public void onItemClick(final Audio music, View v, int position) {
-                if (!TextUtils.equals(MusicManager.getInstance().getMusicConfig().mCurrentSheetId, mCurrentSheetOrdinal) || TextUtils.equals(mCurrentSheetOrdinal, "2")) {
-                    MusicManager.getInstance().changeSheet(mCurrentSheetOrdinal);
+                if (!TextUtils.equals(MusicManager.Companion.getInstance().getMusicConfig().mCurrentSheetId, mCurrentSheetOrdinal) || TextUtils.equals(mCurrentSheetOrdinal, "2")) {
+                    MusicManager.Companion.getInstance().changeSheet(mCurrentSheetOrdinal);
                 }
                 if (mCurrentMusic == null || !mCurrentMusic.equals(music)) {
                     mCurrentMusic = music;
@@ -214,7 +214,7 @@ public class MusicListFragment extends BaseFragment {
         View header = LayoutInflater.from(getActivity()).inflate(R.layout.layout_navigation_header, mRvNavigation, false);
         mNavigationAdapter.addHeaderView(header);
         mNavigationAdapter.setData(generateNavigationItems());
-        onChangeSheet(MusicManager.getInstance().getMusicConfig().mCurrentSheetId);
+        onChangeSheet(MusicManager.Companion.getInstance().getMusicConfig().mCurrentSheetId);
         mNavigationAdapter.setOnItemClickListener(new BaseRecyclerViewAdapter.OnItemClickListener<NavigationItem>() {
             @Override
             public void onItemClick(final NavigationItem navigationItem, final View v, final int position) {
@@ -309,21 +309,21 @@ public class MusicListFragment extends BaseFragment {
                 if (!TextUtils.equals(mCurrentSheetOrdinal, "0")) {
                     mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount());
                     mToolbar.setTitle("本地音乐");
-                    MusicManager.getInstance().changeSheet("0");
+                    MusicManager.Companion.getInstance().changeSheet("0");
                 }
                 break;
             case "1":
                 if (!TextUtils.equals(mCurrentSheetOrdinal, "1")) {
                     mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 1);
                     mToolbar.setTitle("我的收藏");
-                    MusicManager.getInstance().changeSheet("1");
+                    MusicManager.Companion.getInstance().changeSheet("1");
                 }
                 break;
             case "2":
                 if (!TextUtils.equals(mCurrentSheetOrdinal, "2")) {
                     mNavigationAdapter.setChosenPosition(mNavigationAdapter.getHeadersCount() + 2);
                     mToolbar.setTitle("最近播放");
-                    MusicManager.getInstance().changeSheet("2");
+                    MusicManager.Companion.getInstance().changeSheet("2");
                 }
                 break;
             case "3":
@@ -444,7 +444,7 @@ public class MusicListFragment extends BaseFragment {
     protected void getData() {
         super.getData();
 
-        setData(MusicManager.getInstance().getMusicConfig().mMusicList);
+        setData(MusicManager.Companion.getInstance().getMusicConfig().mMusicList);
     }
 
     @Override
@@ -488,12 +488,12 @@ public class MusicListFragment extends BaseFragment {
     public void onScannedMusic(MusicManager.OnScannedMusicEvent event) {
         if (event == null) return;
 
-        setData(event.mBMusicList);
+        setData(event.getMBMusicList());
 
         if (mSnackbar == null) {
-            mSnackbar = Snackbar.make(mRecyclerView, "找到了" + event.mBMusicList.size() + "首音乐", Snackbar.LENGTH_LONG);
+            mSnackbar = Snackbar.make(mRecyclerView, "找到了" + event.getMBMusicList().size() + "首音乐", Snackbar.LENGTH_LONG);
         } else {
-            mSnackbar.setText("找到了" + event.mBMusicList.size() + "首音乐");
+            mSnackbar.setText("找到了" + event.getMBMusicList().size() + "首音乐");
             mSnackbar.setDuration(Snackbar.LENGTH_LONG);
         }
 
@@ -503,14 +503,14 @@ public class MusicListFragment extends BaseFragment {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onGotMusic(MusicManager.OnGotMusicEvent event) {
         if (event == null) return;
-        setData(event.mBMusicList);
+        setData(event.getMBMusicList());
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onAddMusic(MusicManager.OnAddMusic event) {
-        if (event == null || event.mMusic == null) return;
-        Audio music = event.mMusic;
-        if (TextUtils.equals(mCurrentSheetOrdinal, event.mSheetId)) {
+        if (event == null || event.getMMusic() == null) return;
+        Audio music = event.getMMusic();
+        if (TextUtils.equals(mCurrentSheetOrdinal, event.getMSheetId())) {
             mAdapter.addItem(music, 0);
         }
         if (music.equals(mCurrentMusic)) {
@@ -520,9 +520,9 @@ public class MusicListFragment extends BaseFragment {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onRemoveMusic(MusicManager.OnRemoveMusic event) {
-        if (event == null || event.mMusic == null) return;
-        Audio music = event.mMusic;
-        if (TextUtils.equals(mCurrentSheetOrdinal, event.mBelongTo)) {
+        if (event == null || event.getMMusic() == null) return;
+        Audio music = event.getMMusic();
+        if (TextUtils.equals(mCurrentSheetOrdinal, event.getMBelongTo())) {
             int startPosition = mAdapter.getNormalPosition(music);
             mAdapter.removeItem(music);
             mAdapter.notifyItemRangeChanged(startPosition, mAdapter.getRealItemCount() - startPosition);
@@ -534,10 +534,10 @@ public class MusicListFragment extends BaseFragment {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMusicChanged(MusicManager.OnMusicChanged event) {
-        if (event == null || event.mMusic == null) return;
-        Audio music = event.mMusic;
-        if (TextUtils.equals(mCurrentSheetOrdinal, event.mSheetId) && TextUtils.equals(mCurrentSheetOrdinal, "2")) {
-            int oldPosition = mAdapter.getNormalPosition(event.mMusic);
+        if (event == null || event.getMMusic() == null) return;
+        Audio music = event.getMMusic();
+        if (TextUtils.equals(mCurrentSheetOrdinal, event.getMSheetId()) && TextUtils.equals(mCurrentSheetOrdinal, "2")) {
+            int oldPosition = mAdapter.getNormalPosition(event.getMMusic());
             if (mRecyclerView.getItemAnimator().isRunning()) {
                 mRecyclerView.getItemAnimator().endAnimations();
             }

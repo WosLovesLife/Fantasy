@@ -78,7 +78,7 @@ public class SearchResultAdapter extends BaseRecyclerViewAdapter<Audio> {
             mTvArtist.setText(hasKeyWord(bMusic.artist));
 
             mIvAlbum.setVisibility(View.INVISIBLE);
-            MusicManager.getInstance()
+            MusicManager.Companion.getInstance()
                     .getAlbum(bMusic, mAlbumSize)
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(new SubscriberAdapter<Bitmap>() {

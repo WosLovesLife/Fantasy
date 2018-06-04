@@ -59,7 +59,7 @@ public class App extends Application {
     private void initManager() {
         SPHelper.getInstance().init(this);
         CustomConfiguration.init(this);
-        MusicManager.getInstance().init(this);
+        MusicManager.Companion.getInstance().init(this);
     }
 
     public static void executeOnComputationThread(Subscriber<? super Object> subscriber) {

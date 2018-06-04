@@ -470,7 +470,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         toggleLrcLoop();
 
-        if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
+        if (MusicManager.Companion.getInstance().isFavored(mCurrentMusic)) {
             mIvFavor.setImageResource(R.drawable.ic_favored_white);
         } else {
             mIvFavor.setImageResource(R.drawable.ic_favor_white);
@@ -490,7 +490,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         if (mCurrentMusic == null) return;
 
         if (!TextUtils.equals(currentAlbum, music.album)) {
-            MusicManager.getInstance().getAlbum(mCurrentMusic, mAlbumSize)
+            MusicManager.Companion.getInstance().getAlbum(mCurrentMusic, mAlbumSize)
                     .observeOn(Schedulers.computation())
                     .subscribe(new SubscriberAdapter<Bitmap>() {
                         @Override
@@ -509,7 +509,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
 
         updateProgress();
 
-        MusicManager.getInstance()
+        MusicManager.Companion.getInstance()
                 .getLrc(mCurrentMusic)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SubscriberAdapter<BLyric>() {
@@ -712,10 +712,10 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 if (mCurrentMusic == null) return;
 
                 /* 通过等待歌曲同步来改变收藏状态 */
-                if (MusicManager.getInstance().isFavored(mCurrentMusic)) {
-                    MusicManager.getInstance().removeFavor(mCurrentMusic);
+                if (MusicManager.Companion.getInstance().isFavored(mCurrentMusic)) {
+                    MusicManager.Companion.getInstance().removeFavor(mCurrentMusic);
                 } else {
-                    MusicManager.getInstance().addFavor(mCurrentMusic);
+                    MusicManager.Companion.getInstance().addFavor(mCurrentMusic);
                 }
                 break;
             case R.id.iv_playOrder:

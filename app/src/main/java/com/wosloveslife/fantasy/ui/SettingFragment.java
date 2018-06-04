@@ -94,7 +94,7 @@ public class SettingFragment extends BaseFragment {
                         .setPositiveButton("我知道了", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                MusicManager.getInstance().scanMusic();
+                                MusicManager.Companion.getInstance().scanMusic();
                                 Toaster.showShort("返回主页看看吧~");
                             }
                         })
