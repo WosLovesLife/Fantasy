@@ -1,1 +1,1 @@
-include ':app', ':blibrary_wos', ':daogenerate', ':dao'
+include ':app', ':blibrary_wos', ':daogenerate', ':dao', ':player'

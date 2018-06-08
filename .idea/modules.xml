@@ -7,6 +7,7 @@
       <module fileurl="file://$PROJECT_DIR$/blibrary_wos/blibrary_wos.iml" filepath="$PROJECT_DIR$/blibrary_wos/blibrary_wos.iml" />
       <module fileurl="file://$PROJECT_DIR$/dao/dao.iml" filepath="$PROJECT_DIR$/dao/dao.iml" />
       <module fileurl="file://$PROJECT_DIR$/daogenerate/daogenerate.iml" filepath="$PROJECT_DIR$/daogenerate/daogenerate.iml" />
+      <module fileurl="file://$PROJECT_DIR$/player/player.iml" filepath="$PROJECT_DIR$/player/player.iml" />
     </modules>
   </component>
 </project>

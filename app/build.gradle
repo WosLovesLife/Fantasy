@@ -37,6 +37,7 @@ dependencies {
     //=============依赖的库
     implementation project(':blibrary_wos')
     implementation project(':dao')
+    implementation project(':player')
     //=============ButterKnife
     implementation 'com.jakewharton:butterknife:8.8.1'
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.8.1'
@@ -66,5 +67,5 @@ dependencies {
     //============底部Bar
     implementation 'com.github.armcha:LuseenBottomNavigation:1.8.2'
     //============Kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
