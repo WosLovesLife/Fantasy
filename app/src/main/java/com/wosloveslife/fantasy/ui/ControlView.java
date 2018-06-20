@@ -3,6 +3,7 @@ package com.wosloveslife.fantasy.ui;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
@@ -22,7 +23,6 @@ import android.support.annotation.UiThread;
 import android.support.annotation.WorkerThread;
 import android.support.design.widget.FloatingActionButton;
 import android.support.graphics.drawable.AnimatedVectorDrawableCompat;
-import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.NestedScrollingChild;
 import android.support.v4.view.NestedScrollingParent;
 import android.support.v4.view.NestedScrollingParentHelper;
@@ -53,27 +53,28 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.Timeline;
 import com.makeramen.roundedimageview.RoundedImageView;
 import com.mpatric.mp3agic.ID3v2;
 import com.orhanobut.logger.Logger;
 import com.wosloveslife.dao.Audio;
-import com.wosloveslife.fantasy.App;
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.adapter.SubscriberAdapter;
 import com.wosloveslife.fantasy.helper.SPHelper;
 import com.wosloveslife.fantasy.lrc.BLyric;
 import com.wosloveslife.fantasy.lrc.LrcView;
 import com.wosloveslife.fantasy.manager.CustomConfiguration;
 import com.wosloveslife.fantasy.manager.MusicManager;
+import com.wosloveslife.fantasy.manager.PlayState;
+import com.wosloveslife.fantasy.manager.PlayStateListener;
+import com.wosloveslife.fantasy.manager.PlayerController;
 import com.wosloveslife.fantasy.ui.loadingfac.FabProgressGlue;
 import com.wosloveslife.fantasy.utils.FormatUtils;
 import com.wosloveslife.fantasy.utils.NetWorkUtil;
 import com.yesing.blibrary_wos.utils.assist.Toaster;
 import com.yesing.blibrary_wos.utils.assist.WLogger;
 import com.yesing.blibrary_wos.utils.screenAdaptation.Dp2Px;
+
+import org.jetbrains.annotations.NotNull;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -152,7 +153,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     private boolean mIsOnline;
 
     //=============
-    private SimpleExoPlayer mPlayer;
+    private PlayerController mPlayer;
 
     //=============Var
     /** 如果手正在拖动SeekBar,就不能让Progress自动跳转 */
@@ -242,6 +243,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     }
 
     private void init() {
+        mPlayer = PlayerController.Companion.getInstance();
+        setPlayListener();
+
         m16dp = Dp2Px.toPX(getContext(), 16);
         m48dp = Dp2Px.toPX(getContext(), 48);
 
@@ -331,6 +335,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public void onViewAdded(View child) {
         super.onViewAdded(child);
@@ -356,7 +361,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
                 mVelocityTracker.addMovement(event);
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        mScrollPointerId = MotionEventCompat.getPointerId(event, 0);
+                        mScrollPointerId = event.getPointerId(0);
                         mHeadDownY = y;
                         mHeadClick = true;
                         break;
@@ -428,24 +433,37 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     boolean mLrcSeeking;
     long mLrcProgress;
 
-    public void setPlayer(SimpleExoPlayer player) {
-        mPlayer = player;
-
-        mPlayer.addListener(new ExoPlayerEventListenerAdapter() {
-
+    private void setPlayListener() {
+//        mPlayer.addListener(new ExoPlayerEventListenerAdapter() {
+//
+//            @Override
+//            public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+//                updateProgress();
+//            }
+//
+//            @Override
+//            public void onTimelineChanged(Timeline timeline, Object manifest) {
+//                updateProgress();
+//            }
+//
+//            @Override
+//            public void onPositionDiscontinuity() {
+//                updateProgress();
+//            }
+//        });
+        mPlayer.addListener(new PlayStateListener() {
             @Override
-            public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+            public void onPlayStateChanged(@NotNull PlayState state) {
                 updateProgress();
             }
 
             @Override
-            public void onTimelineChanged(Timeline timeline, Object manifest) {
+            public void onSeekTo() {
                 updateProgress();
             }
 
             @Override
-            public void onPositionDiscontinuity() {
-                updateProgress();
+            public void onBuffering() {
             }
         });
     }
@@ -455,7 +473,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     /**
      * 当歌曲切换时通过该功能同步该控件的状态
      *
-     * @param music
+     * @param music sync view by music
      */
     @UiThread
     public void syncPlayView(Audio music) {
@@ -466,7 +484,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         } else {
             mIvPlayBtn.setImageDrawable(mPlayDrawable);
         }
-        toggleFacBtn(mPlayer.getPlayWhenReady());
+        toggleFacBtn(isPlaying());
 
         toggleLrcLoop();
 
@@ -560,9 +578,9 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
         }
 
         Logger.d("准备设置封面 时间 = " + System.currentTimeMillis());
-        App.executeOnMainThread(new SubscriberAdapter<Object>() {
+        mIvAlbum.post(new Runnable() {
             @Override
-            public void onCompleted() {
+            public void run() {
                 Logger.d("准备设置封面2 时间 = " + System.currentTimeMillis());
                 mIvAlbum.setImageDrawable(mAlbum);
                 if (ViewCompat.isAttachedToWindow(mIvBg) && !mIsExpanded && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
@@ -648,7 +666,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     };
 
     private boolean isPlaying() {
-        return mPlayer != null && mPlayer.getPlayWhenReady();
+        return mPlayer != null && mPlayer.isPlaying();
     }
 
     private void toggleFacBtn(boolean play) {
@@ -845,6 +863,7 @@ public class ControlView extends FrameLayout implements NestedScrollingParent {
     boolean mSeeking;
 
     @Override
+    @SuppressLint("ClickableViewAccessibility")
     public boolean onTouchEvent(MotionEvent ev) {
         if (!mIsExpanded) return false;
 

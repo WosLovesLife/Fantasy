@@ -4,13 +4,10 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v4.view.ViewCompat;
@@ -34,16 +31,16 @@ import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 
 import com.makeramen.roundedimageview.RoundedImageView;
-import com.orhanobut.logger.Logger;
 import com.wosloveslife.dao.Audio;
 import com.wosloveslife.dao.SheetIds;
 import com.wosloveslife.fantasy.R;
-import com.wosloveslife.fantasy.adapter.ExoPlayerEventListenerAdapter;
 import com.wosloveslife.fantasy.adapter.MusicListAdapter;
 import com.wosloveslife.fantasy.dao.bean.NavigationItem;
 import com.wosloveslife.fantasy.manager.MusicManager;
+import com.wosloveslife.fantasy.manager.PlayState;
+import com.wosloveslife.fantasy.manager.PlayStateListener;
+import com.wosloveslife.fantasy.manager.PlayerController;
 import com.wosloveslife.fantasy.services.CountdownTimerService;
-import com.wosloveslife.fantasy.services.PlayService;
 import com.wosloveslife.fantasy.ui.swapablenavigation.SwapNavigationAdapter;
 import com.wosloveslife.fantasy.ui.swapablenavigation.VerticalSwapItemTouchHelperCallBack;
 import com.wosloveslife.fantasy.utils.DividerDecoration;
@@ -55,6 +52,7 @@ import com.yesing.blibrary_wos.utils.systemUtils.SystemServiceUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,7 +86,9 @@ public class MusicListFragment extends BaseFragment {
     private MusicListAdapter mAdapter;
     private SwapNavigationAdapter mNavigationAdapter;
     private LinearLayoutManager mLayoutManager;
-    private PlayService.PlayBinder mPlayBinder;
+//    private PlayService.PlayBinder mPlayBinder;
+
+    private PlayerController mController;
 
     //=============
     Audio mCurrentMusic;
@@ -105,6 +105,13 @@ public class MusicListFragment extends BaseFragment {
         MusicListFragment fragment = new MusicListFragment();
         fragment.setArguments(args);
         return fragment;
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+
+        mController = PlayerController.Companion.getInstance();
     }
 
     //========================================生命周期-start========================================
@@ -130,7 +137,7 @@ public class MusicListFragment extends BaseFragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        getActivity().unbindService(mServiceConnection);
+//        getActivity().unbindService(mServiceConnection);
     }
 
     //========================================生命周期-end========================================
@@ -161,10 +168,12 @@ public class MusicListFragment extends BaseFragment {
                 }
                 if (mCurrentMusic == null || !mCurrentMusic.equals(music)) {
                     mCurrentMusic = music;
-                    mPlayBinder.play(music);
-                } else {
+                    mController.play(music);
+                } else if (mController.isPlaying()) {
                     /* 播放,暂停当前曲目 */
-                    mPlayBinder.togglePlayOrPause();
+                    mController.pause();
+                } else {
+                    mController.play(null);
                 }
                 mControlView.syncPlayView(music);
             }
@@ -177,17 +186,17 @@ public class MusicListFragment extends BaseFragment {
         mControlView.setControlListener(new ControlView.ControlListener() {
             @Override
             public void previous() {
-                mPlayBinder.previous();
+                mController.previous();
             }
 
             @Override
             public void next() {
-                mPlayBinder.next();
+                mController.next();
             }
 
             @Override
             public void play() {
-                mPlayBinder.play();
+                mController.play(null);
             }
 
             /**
@@ -195,9 +204,13 @@ public class MusicListFragment extends BaseFragment {
              */
             @Override
             public void pause() {
-                mPlayBinder.pause();
+                mController.pause();
             }
         });
+
+        syncVisual(mController.getCurrentMusic());
+        mIsCountdown = mController.isCountdown();
+        updateNvCountdown(0, 0);
     }
 
     private void initToolbar() {
@@ -247,11 +260,11 @@ public class MusicListFragment extends BaseFragment {
                                 if (mIsCountdown) {
                                     Intent intent = CountdownTimerService.createIntent(getActivity(), result.duration);
                                     getActivity().startService(intent);
-                                    mPlayBinder.setCountdown(result.duration, result.closeAfterPlayComplete);
+                                    mController.setCountdown(result.duration, result.closeAfterPlayComplete);
                                 } else if (SystemServiceUtils.isServiceRunning(getActivity(), CountdownTimerService.class.getName())) {
                                     Intent intent = CountdownTimerService.stopService(getActivity());
                                     getActivity().startService(intent);
-                                    mPlayBinder.setCountdown(result.duration, false);
+                                    mController.setCountdown(result.duration, false);
                                 }
                                 updateNvCountdown(result.duration, 0);
 
@@ -349,11 +362,11 @@ public class MusicListFragment extends BaseFragment {
                 if (mIsCountdown) {
                     Intent intent = CountdownTimerService.createIntent(getActivity(), pickDate);
                     getActivity().startService(intent);
-                    mPlayBinder.setCountdown(pickDate, closeAfterPlayComplete);
+                    mController.setCountdown(pickDate, closeAfterPlayComplete);
                 } else if (SystemServiceUtils.isServiceRunning(getActivity(), CountdownTimerService.class.getName())) {
                     Intent intent = CountdownTimerService.stopService(getActivity());
                     getActivity().startService(intent);
-                    mPlayBinder.setCountdown(pickDate, false);
+                    mController.setCountdown(pickDate, false);
                 }
                 updateNvCountdown(pickDate, 0);
                 break;
@@ -380,44 +393,70 @@ public class MusicListFragment extends BaseFragment {
     }
 
     private void initServiceBinder() {
-        getActivity().bindService(new Intent(getActivity(), PlayService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
-    }
-
-    ServiceConnection mServiceConnection = new ServiceConnection() {
-        /** bindService()方法执行后, 绑定成功时回调 */
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            Logger.d("连接到播放服务");
-            mPlayBinder = (PlayService.PlayBinder) service;
-            mPlayBinder.addListener(new ExoPlayerEventListenerAdapter() {
-                @Override
-                public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-                    super.onPlayerStateChanged(playWhenReady, playbackState);
-                    if (playWhenReady) {
-                        syncVisual(mPlayBinder.getCurrentMusic());
-                    } else {
-                        mControlView.syncPlayView(mCurrentMusic);
-                        mAdapter.togglePlay(false);
-                        if (mIsCountdown && !mPlayBinder.isCountdown()) {
-                            mIsCountdown = false;
-                            updateNvCountdown(0, 0);
-                        }
+        mController.addListener(new PlayStateListener() {
+            @Override
+            public void onPlayStateChanged(@NotNull PlayState state) {
+                if (state == PlayState.PLAY) {
+                    syncVisual(mController.getCurrentMusic());
+                } else {
+                    mControlView.syncPlayView(mCurrentMusic);
+                    mAdapter.togglePlay(false);
+                    if (mIsCountdown && !mController.isCountdown()) {
+                        mIsCountdown = false;
+                        updateNvCountdown(0, 0);
                     }
                 }
-            });
+            }
 
-            mControlView.setPlayer(mPlayBinder.getExoPlayer());
-            syncVisual(mPlayBinder.getCurrentMusic());
-            mIsCountdown = mPlayBinder.isCountdown();
-            updateNvCountdown(0, 0);
-        }
+            @Override
+            public void onSeekTo() {
+            }
 
-        /** 和服务断开连接后回调(比如unbindService()方法执行后) */
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Logger.d("和服务断开连接");
-        }
-    };
+            @Override
+            public void onBuffering() {
+            }
+        });
+    }
+
+//    private void initServiceBinder() {
+//        getActivity().bindService(new Intent(getActivity(), PlayService.class), mServiceConnection, Context.BIND_AUTO_CREATE);
+//    }
+//
+//    ServiceConnection mServiceConnection = new ServiceConnection() {
+//        /** bindService()方法执行后, 绑定成功时回调 */
+//        @Override
+//        public void onServiceConnected(ComponentName name, IBinder service) {
+//            Logger.d("连接到播放服务");
+//            mPlayBinder = (PlayService.PlayBinder) service;
+//            mPlayBinder.addListener(new ExoPlayerEventListenerAdapter() {
+//                @Override
+//                public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+//                    super.onPlayerStateChanged(playWhenReady, playbackState);
+//                    if (playWhenReady) {
+//                        syncVisual(mPlayBinder.getCurrentMusic());
+//                    } else {
+//                        mControlView.syncPlayView(mCurrentMusic);
+//                        mAdapter.togglePlay(false);
+//                        if (mIsCountdown && !mPlayBinder.isCountdown()) {
+//                            mIsCountdown = false;
+//                            updateNvCountdown(0, 0);
+//                        }
+//                    }
+//                }
+//            });
+//
+//            mControlView.setPlayer(mPlayBinder.getExoPlayer());
+//            syncVisual(mPlayBinder.getCurrentMusic());
+//            mIsCountdown = mPlayBinder.isCountdown();
+//            updateNvCountdown(0, 0);
+//        }
+//
+//        /** 和服务断开连接后回调(比如unbindService()方法执行后) */
+//        @Override
+//        public void onServiceDisconnected(ComponentName name) {
+//            Logger.d("和服务断开连接");
+//        }
+//    };
 
     //=======================================UI和逻辑的同步=========================================
 
@@ -425,16 +464,16 @@ public class MusicListFragment extends BaseFragment {
         mCurrentMusic = music;
         mControlView.syncPlayView(mCurrentMusic);
         int position = mAdapter.getNormalPosition(music);
-        mAdapter.setChosenItem(position, mPlayBinder.isPlaying());
+        mAdapter.setChosenItem(position, mController.isPlaying());
     }
 
     private void updateNvCountdown(long totalMillis, long millisUntilFinished) {
         if (totalMillis == millisUntilFinished) {
             mNavigationAdapter.updateCountDownTimer(mNavigationAdapter.getHeadersCount() + 5, -1,
-                    mPlayBinder != null && mPlayBinder.isCloseAfterPlayComplete());
+                    mController != null && mController.isCloseAfterPlayComplete());
         } else {
             mNavigationAdapter.updateCountDownTimer(mNavigationAdapter.getHeadersCount() + 5, millisUntilFinished,
-                    mPlayBinder != null && mPlayBinder.isCloseAfterPlayComplete());
+                    mController != null && mController.isCloseAfterPlayComplete());
         }
     }
 
